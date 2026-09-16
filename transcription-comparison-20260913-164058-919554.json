@@ -1,0 +1,8 @@
+{
+  "recording": "answer.webm",
+  "previous_transcript_supplied_by_user": "I would prefer it's not items because it is the idomic Python approach and the containers are falsely in Python, so it clearly expresses the intention of checking whether the container is empty, it is concise, readable and works with list as well as others standard containers such as couples, dictionaries, set, and strings.",
+  "comparison_model": "whisper-large-v3",
+  "comparison_seconds": 1.37,
+  "comparison_text": "I would prefer if not items because it is the idomic python approach empty containers are falsy in python so it clearly expresses the intention of checking whether the container is empty it is concise readable and works with list as well as well as others standard containers such as tuples dictionaries set and strings",
+  "note": "Compare both texts against playback. The previous transcript is not ground truth. No answer or expected wording was supplied to the model."
+}

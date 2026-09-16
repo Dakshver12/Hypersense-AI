@@ -1,0 +1,31 @@
+[project]
+name = "hypersense-ai"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Dakshver12", email = "168059924+Dakshver12@users.noreply.github.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi[standard]>=0.141.1",
+    "faster-whisper>=1.2.1",
+    "google-genai>=2.23.0",
+    "groq>=1.7.0",
+    "matplotlib>=3.11.1",
+    "mediapipe>=1.0.1",
+    "numpy>=2.5.3",
+    "openai-whisper>=20250625",
+    "opencv-python>=4.10,<5",
+    "pandas>=3.0.5",
+    "python-dotenv>=1.2.3",
+    "python-multipart>=0.0.32",
+    "seaborn>=0.13.2",
+]
+
+[project.scripts]
+hypersense-ai = "hypersense_ai:main"
+
+[build-system]
+requires = ["uv_build>=0.12.13,<0.13.0"]
+build-backend = "uv_build"
