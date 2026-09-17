@@ -4,6 +4,7 @@
 :root{color-scheme:dark;--bg:#080f20;--panel:#111c32;--line:#293952;--muted:#a9bad0;--accent:#76e3c4}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:#edf3ff;font:16px/1.6 system-ui,sans-serif}header{border-bottom:1px solid var(--line);padding:22px max(24px,calc((100vw - 1120px)/2));display:flex;justify-content:space-between;gap:20px}header strong{letter-spacing:.08em}header span,.muted{color:var(--muted)}main{max-width:1168px;margin:auto;padding:36px 24px}h1{font-size:clamp(28px,4vw,40px);line-height:1.2;margin:0 0 12px}h2{font-size:20px;margin:0 0 18px}.intro{margin-bottom:28px}.layout{display:block}.setup-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 24px}.setup-field{min-width:0}.setup-wide{grid-column:1/-1}.setup-grid textarea{min-height:100px}.single-practice{border-top:1px solid var(--line);margin-top:24px;padding-top:18px}summary{cursor:pointer}summary:focus-visible{outline:3px solid var(--accent);outline-offset:3px}.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:24px;margin-bottom:20px}label{display:block;font-size:14px;color:var(--muted);margin:16px 0 6px}input,select,textarea{width:100%;padding:12px;background:#0b1426;color:#edf3ff;border:1px solid #40516b;border-radius:9px;font:inherit}textarea{min-height:160px;resize:vertical}button{font:inherit;font-weight:650;padding:11px 18px;border-radius:9px;border:1px solid var(--line);background:#20334f;color:#edf3ff;cursor:pointer}button.primary{background:var(--accent);color:#08241d;border-color:var(--accent)}button:disabled{opacity:.45;cursor:not-allowed}button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid #76e3c4;outline-offset:3px}.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}#generate{width:100%;margin-top:24px}.eyebrow{color:var(--accent);font-size:13px;letter-spacing:.12em;text-transform:uppercase;margin-bottom:8px}#question{white-space:pre-wrap;font-size:22px;line-height:1.6}#timer{font-size:30px;font-variant-numeric:tabular-nums}.row{display:flex;align-items:center;justify-content:space-between;gap:16px}#status{min-height:30px;color:var(--accent);margin:10px 0 20px;white-space:pre-wrap}#status.error{color:#ffb3b3}#score{font-size:56px;font-weight:750;color:var(--accent);line-height:1.2}#feedback{white-space:pre-wrap}audio{width:100%;margin-top:16px}.upload{border-top:1px solid var(--line);margin-top:22px;padding-top:4px}small{font-size:14px;color:var(--muted)}[hidden]{display:none!important}@media(max-width:780px){.setup-grid{grid-template-columns:1fr}header span{display:none}main{padding:24px 16px}.card{padding:20px}}
 
 .resume-setup{border:1px solid var(--line);border-radius:12px;margin:24px 0;padding:18px;min-width:0}.resume-setup legend{padding:0 8px;font-weight:650}.resume-setup p{margin:10px 0}
+.interview-delivery{border-top:1px solid var(--line);margin-top:28px;padding-top:20px}.interview-delivery li{margin-bottom:24px}.interview-delivery h5{font-size:16px;margin:16px 0 10px}.interview-delivery blockquote{margin:10px 0;padding:10px 16px;border-left:3px solid var(--accent);white-space:pre-wrap;overflow-wrap:anywhere}
 .camera-preview{position:relative;background:#070d18;border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-top:16px}
 .camera-preview video{width:100%;display:block;transform:scaleX(-1)}
 .camera-preview canvas{position:absolute;inset:0;width:100%;height:100%;transform:scaleX(-1);pointer-events:none}
@@ -11,9 +12,9 @@
 .download-button{display:inline-block;padding:11px 18px;border:1px solid var(--accent);border-radius:9px;color:var(--accent);font-weight:650;text-decoration:none}.download-button:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
 </style></head><body>
 <header><strong>HYPERSENSE AI</strong><span>Interview practice</span></header>
-<main><div class="intro"><div class="eyebrow">Practice with purpose</div><h1>Your next interview starts here.</h1><p class="muted">Choose a topic, record your answer, and review your feedback.</p></div>
+<main><div class="intro" id="interview-intro"><div class="eyebrow">Practice with purpose</div><h1>Your next interview starts here.</h1><p class="muted">Choose a topic, record your answer, and review your feedback.</p></div>
 <div id="status" role="status" aria-live="polite">Set up your interview session below to begin.</div>
-<section class="card" id="session-setup" aria-labelledby="session-title"><h2 id="session-title">Set up your interview session</h2>
+<div id="interview-page"><section class="card" id="session-setup" aria-labelledby="session-title"><h2 id="session-title">Set up your interview session</h2>
 <p class="muted">Choose your interview preferences, then start your session.</p>
 <div class="setup-grid"><div class="setup-field"><label for="interview-type">Interview type</label><select id="interview-type"><option value="technical">Technical</option><option value="behavioral">Behavioral</option><option value="hr">HR</option><option value="mixed">Mixed</option></select></div>
 <div class="setup-field"><label for="target-role">Target role (optional)</label><input id="target-role" maxlength="160" placeholder="e.g. Machine Learning Intern"></div>
@@ -52,7 +53,7 @@
 <small>Recent questions are remembered in this browser to help avoid repeats.</small>
 </details>
 <p><small>Recordings go through your backend to Groq for transcription when configured. Local Whisper is used when Groq is unavailable or local mode is selected. Your reviewed answer is sent to Gemini, or Groq when configured as fallback, for evaluation.</small></p>
-<div id="session-report" hidden></div></section>
+</section>
 
 <div class="layout">
 <div><section class="card" aria-labelledby="camera-title">
@@ -116,9 +117,15 @@
 <p id="history-status" role="status"></p></section>
 <section class="card" id="result" hidden><div class="eyebrow">03 · Feedback</div><div id="score"></div><small>AI assessment · out of 100</small><p id="feedback"></p></section></div></div><section class="card"><h2>Saved interview sessions</h2>
 <p class="muted">Stored on this browser and device. Use the same localhost address to reopen them. Download recordings you want to keep elsewhere.</p>
-<p id="session-storage-status" role="status"></p>
-<button id="retry-session-save" hidden>Retry saving session</button>
-<div id="saved-session-list"></div></section></main>
+
+
+<div id="saved-session-list"></div></section></div>
+<section id="results-page" hidden aria-labelledby="results-title">
+<div class="row"><h1 id="results-title" tabindex="-1">Your interview results</h1><button id="back-to-interview">Back to interview setup</button></div>
+<p id="session-storage-status" role="status"></p><button id="retry-session-save" hidden>Retry saving session</button>
+<p id="results-empty">Choose a completed session from Saved interview sessions to view its feedback.</p>
+<div class="card" id="session-report" hidden></div>
+</section></main>
 <script>
 const $=id=>document.getElementById(id);
 let microphoneReadyTimer=null;
@@ -492,6 +499,7 @@ function sessionSnapshot(){
     return {interview_type:current.interview_type||'technical',question:current.question,answer:$('transcript').value.trim(),recording,
         score:sessionEvaluation?.score??null,
         feedback:sessionEvaluation?.feedback??'Not scored',
+        coaching:sessionEvaluation?.coaching??[],
         provider:sessionEvaluation?.provider??null,model:sessionEvaluation?.model??null,
         audio:deliveryAudio?JSON.parse(JSON.stringify(deliveryAudio)):null,
         head:poseSummary(),expressions:summarizeExpressions(),confidence:$('confidence-rating').value||null};
@@ -571,6 +579,44 @@ function addRecordingPlayer(container,recording){
     setSource();
 }
 
+function reportText(parent,tag,text){const el=document.createElement(tag);el.textContent=text;parent.appendChild(el);return el;}
+function renderBehaviorCoaching(parent,answer){
+    reportText(parent,'h5','Answer communication & behavior examples');
+    const items=Array.isArray(answer.coaching)?answer.coaching.filter(c=>c&&typeof c.evidence==='string'&&c.evidence.trim()&&typeof answer.answer==='string'&&answer.answer.includes(c.evidence)&&typeof c.observation==='string'&&typeof c.suggestion==='string').slice(0,3):[];
+    if(!items.length){reportText(parent,'p','No supported transcript coaching available for this answer. Older sessions and unscored answers may not include it.');return;}
+    for(const c of items){
+        const labels={clarity:'Clarity',structure:'Structure',ownership:'Ownership described',teamwork:'Teamwork described',reflection:'Reflection described'};
+        reportText(parent,'strong',labels[c.category]||'Answer observation');
+        reportText(parent,'blockquote',c.evidence);
+        reportText(parent,'p',c.observation);
+        reportText(parent,'p','Try next: '+c.suggestion);
+    }
+}
+function renderInterviewDelivery(parent,answers){
+    const box=document.createElement('section');box.className='interview-delivery';parent.appendChild(box);
+    reportText(box,'h3','Interview Delivery & Behavior');
+    reportText(box,'p','Delivery measurements and optional practice suggestions are separate from answer scores. Transcript examples describe what you said, not verified conduct or personality.');
+    if(!answers.length){reportText(box,'p','Complete an answer to see observations.');return;}
+    const list=document.createElement('ol');box.appendChild(list);
+    for(const a of answers){
+        const row=document.createElement('li');list.appendChild(row);
+        reportText(row,'h4',modeName(a.interview_type)+' · '+(a.question||'Answer'));
+        const audio=a.audio;
+        const number=x=>typeof x==='number'&&Number.isFinite(x);
+        if(audio&&number(audio.words_per_minute))reportText(row,'p',`Speaking pace: ${audio.words_per_minute} words/minute. Replay the explanation and check whether each point is easy to follow; faster is not automatically better.`);
+        else reportText(row,'p','Speaking pace unavailable. Record and transcribe an answer to measure it.');
+        if(audio&&number(audio.pause_count)&&number(audio.longest_pause_seconds))reportText(row,'p',`Gaps of at least 1 second between recognized words: ${audio.pause_count}. Longest: ${audio.longest_pause_seconds} seconds. ${audio.pause_count?'Replay the gaps: keep useful thinking pauses and rehearse transitions where you lost your place.':'Shorter pauses may still be present.'}`);
+        if(audio?.levels&&number(audio.levels.variation_db))reportText(row,'p',`Recorded volume variation: ${audio.levels.variation_db} dB. Replay quieter and louder sections to check audibility. This does not measure tone, confidence or vocal expressiveness; microphone gain affects it.`);
+        if(audio?.fillers&&number(audio.fillers.count))reportText(row,'p',`Possible filler sounds in the original transcript: ${audio.fillers.count}. Recognition may omit fillers; check the recording before drawing conclusions.`);
+        if(a.head)reportText(row,'p',`Head orientation relative to calibration: turn ${a.head.yaw}°, nod ${a.head.pitch}°, tilt ${a.head.roll}° on average. Use playback or the camera preview to check framing; natural movement is fine.`);
+        else reportText(row,'p','Calibrated camera observations unavailable.');
+        const rating=Number(a.confidence);
+        reportText(row,'p',Number.isInteger(rating)&&rating>=1&&rating<=5?`Your self-rated confidence: ${rating}/5. Compare this with your own later attempts.`:'Self-rated confidence: not provided.');
+        renderBehaviorCoaching(row,a);
+    }
+    reportText(box,'small','Word timings are transcription estimates, not measured silence. Facial movements do not establish emotion or confidence. Tone, sentiment and an automatic confidence score are not measured here.');
+}
+
 function finishInterviewSession(restored=false){
     interviewSession.active=false;
     cancelQuestionSpeech(false);clearInterval(ticker);ticker=null;current=null;
@@ -612,12 +658,13 @@ function finishInterviewSession(restored=false){
         if(a.expressions)add(item,'p','Facial movement signals (0–1): '+Object.entries(a.expressions.means).map(([key,value])=>key+': '+value.toFixed(2)).join(', '));
         if(a.confidence)add(item,'p',`Self-rated confidence: ${a.confidence}/5.`);
     }
+    renderInterviewDelivery(report,answers);
     add(report,'h4','Next practice');
     add(report,'p',scored.some(a=>a.score<100)?'Revisit the specific gaps listed above, then explain the answer again in your own words.':'Practise structuring each answer as one main point, an example, and a brief conclusion.');
     add(report,'p','Compare the pace and pauses across your answers. Replay recordings you downloaded to decide which pauses helped your explanation. Head angles describe orientation, not confidence.');
     $('session-progress').textContent=`Session finished: ${answers.length} of ${interviewSession.total} questions.`;
     if(!restored)saveFinishedSession(interviewSession);
-    message('Session report ready.');refresh();report.scrollIntoView({behavior:'smooth',block:'start'});
+    message('Session report ready.');refresh();showResultsPage(interviewSession.id);
 }
 $('session-start').onclick=()=>run(async()=>{
     const total=Number($('session-count').value),source=$('session-source').value;
@@ -766,15 +813,17 @@ $('evaluate').onclick=()=>run(async()=>{
     if(!Number.isInteger(data.score)||data.score<0||data.score>100||typeof data.feedback!=='string')
         throw Error('The evaluation response is invalid.');
     if(interviewSession?.active){
-        sessionEvaluation={score:data.score,feedback:data.feedback,provider:data.provider,model:data.model};
+        sessionEvaluation={score:data.score,feedback:data.feedback,provider:data.provider,model:data.model,coaching:data.coaching||[]};
         archiveSessionAnswer();
         if(interviewSession.answers.length===interviewSession.total)finishInterviewSession();
         else await loadSessionQuestion();
         return;
     }
-    $('score').textContent=data.score;$('feedback').textContent=data.feedback;
-    $('feedback').lang=current.language==='Hindi'?'hi':'en';$('result').hidden=false;
-    message('Feedback ready. Evaluator: '+(data.provider||'Gemini')+' ('+(data.model||'default')+').');$('result').scrollIntoView({behavior:'smooth',block:'nearest'});
+    releaseSessionRecordings();
+    interviewSession={id:crypto.randomUUID(),date:new Date().toISOString(),active:false,loaded:false,total:1,source:'single',questions:[current.question],settings:{...current},answers:[]};
+    sessionEvaluation={score:data.score,feedback:data.feedback,provider:data.provider,model:data.model,coaching:data.coaching||[]};
+    interviewSession.answers.push(sessionSnapshot());
+    finishInterviewSession();
 });
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)updateAnswerTimer();});
 window.addEventListener('pagehide',()=>{clearTimeout(microphoneReadyTimer);releaseSessionRecordings();cancelQuestionSpeech(false);stopCamera();clearInterval(ticker);stream?.getTracks().forEach(t=>t.stop());if(playUrl)URL.revokeObjectURL(playUrl);});
@@ -1073,7 +1122,7 @@ async function scorePendingAnswers(){
             });
             if(!Number.isInteger(result.score)||result.score<0||result.score>100||typeof result.feedback!=='string'||!result.feedback.trim())
                 throw Error('The evaluator returned an invalid result. This answer remains unscored.');
-            answer.score=result.score;answer.feedback=result.feedback;
+            answer.score=result.score;answer.feedback=result.feedback;answer.coaching=result.coaching||[];
             answer.provider=result.provider||null;answer.model=result.model||null;
             completed++;
             if(!await saveFinishedSession(session))
@@ -1114,7 +1163,38 @@ async function deleteSavedSession(id){
 }
 $('retry-session-save').onclick=()=>{if(sessionSavePending&&!busy&&!recording&&!interviewSession?.active)saveFinishedSession(sessionSavePending);};
 
+function setPageView(results){
+    $('interview-page').hidden=results;
+    $('interview-intro').hidden=results;
+    $('results-page').hidden=!results;
+    document.title=results?'HyperSense AI · Interview results':'HyperSense AI · Interview practice';
+}
+function showResultsPage(id){
+    const path='/results?session='+encodeURIComponent(id);
+    if(location.pathname+location.search!==path)history.pushState({},'',path);
+    setPageView(true);$('results-empty').hidden=true;
+    $('results-title').focus();window.scrollTo({top:0,behavior:'smooth'});
+}
+function showInterviewPage(){
+    $('session-report').querySelectorAll('audio').forEach(player=>player.pause());
+    if(location.pathname!=='/interview'||location.search)history.pushState({},'','/interview');
+    setPageView(false);message('Set up another interview or open a saved session below.');
+    $('session-title').scrollIntoView({behavior:'smooth',block:'start'});
+}
+$('back-to-interview').onclick=showInterviewPage;
+async function restorePageRoute(){
+    if(location.pathname!=='/results'){setPageView(false);return;}
+    if(interviewSession?.active){history.replaceState({},'','/interview');setPageView(false);return;}
+    setPageView(true);
+    const id=new URLSearchParams(location.search).get('session');
+    if(id&&interviewSession?.id===id){$('results-empty').hidden=true;return;}
+    $('session-report').hidden=true;$('results-empty').hidden=false;
+    if(id)await openSavedSession(id);
+}
+window.addEventListener('popstate',restorePageRoute);
+
 renderHistory();
 refresh();
 renderSavedSessions();
+restorePageRoute();
 </script></body></html>

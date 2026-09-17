@@ -208,7 +208,37 @@ class AnswerRequest(BaseModel):
     language: Literal["English", "Hindi", "Hinglish"] = "English"
 
 
+COACHING_INSTRUCTION = (
+    " Also return a separate coaching array with zero to three observations about the reviewed "
+    "answer's communication or stated behavior. This array must not affect score or feedback. "
+    "Each observation has category (clarity, structure, ownership, teamwork, or reflection), "
+    "evidence (an exact contiguous quote from the answer, 1-300 characters), observation "
+    "(a specific supported description, not a personality judgment), and suggestion (one concrete "
+    "practice action). Use ownership, teamwork and reflection only when relevant to the question "
+    "and supported by the answer; do not require them in a technical explanation. Discuss what "
+    "the answer describes, not whether it proves actual behavior. Do not invent missing events, "
+    "quotes or accomplishments. Return an empty array when evidence is insufficient. "
+    "Do not infer tone, audibility, confidence, emotion, honesty, accent, body language or "
+    "interview conduct from text. No confidence, personality or hiring scores. Suggestions are "
+    "optional coaching, not grounds for answer-score deductions. Keep each observation and "
+    "suggestion short, using the requested feedback language; preserve evidence verbatim."
+)
+
+
+class CoachingObservation(BaseModel):
+    category: Literal["clarity", "structure", "ownership", "teamwork", "reflection"]
+    evidence: str = Field(min_length=1, max_length=300)
+    observation: str = Field(min_length=1, max_length=600)
+    suggestion: str = Field(min_length=1, max_length=600)
+
+
+def grounded_coaching(items, answer):
+    # A quotation must be present in the reviewed answer; unsupported quotes are dropped.
+    return [item for item in items if item.evidence.strip() and item.evidence in answer]
+
+
 class EvaluationResult(BaseModel):
+    coaching: list[CoachingObservation] = Field(default_factory=list, max_length=3)
     score: int = Field(ge=0, le=100)
     feedback: str = Field(min_length=1, max_length=1500)
 
@@ -226,10 +256,11 @@ def evaluate_answer(request: AnswerRequest):
             detail="Question and answer cannot be blank.",
         )
 
-    response = generate_with_fallback(request.model_dump_json(), types.GenerateContentConfig(system_instruction=evaluation_instruction(request.interview_type), response_mime_type='application/json', response_schema=EvaluationResult, max_output_tokens=2048))
+    response = generate_with_fallback(request.model_dump_json(), types.GenerateContentConfig(system_instruction=evaluation_instruction(request.interview_type) + COACHING_INSTRUCTION, response_mime_type='application/json', response_schema=EvaluationResult, max_output_tokens=2048))
 
     try:
         result = EvaluationResult.model_validate_json(response.text or "")
+        result.coaching = grounded_coaching(result.coaching, request.answer)
         return EvaluationResponse(**result.model_dump(), provider=response.provider, model=response.model)
     except ValidationError:
         raise HTTPException(
@@ -513,6 +544,7 @@ def transcribe_audio(
             detail="Transcription failed. Check the server terminal.",
         ) from None
     
+@app.get("/results", response_class=FileResponse)
 @app.get("/interview", response_class=FileResponse)
 def interview_page():
     return FileResponse(
