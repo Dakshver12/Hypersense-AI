@@ -25,6 +25,8 @@
 <div class="setup-field"><label for="language">Question & feedback language</label><select id="language"><option>English</option><option>Hindi</option><option>Hinglish</option></select></div>
 <div class="setup-field"><label for="duration">Answer time</label><select id="duration"><option value="30">30 seconds</option><option value="60" selected>60 seconds</option><option value="90">90 seconds</option></select></div>
 </div>
+<label for="auto-flow">Answer workflow</label><select id="auto-flow"><option value="auto">Automatic — record, transcribe and submit</option><option value="manual">Manual — review before submitting</option></select>
+<small>Automatic mode starts the microphone after question readout. When recording stops, it transcribes and submits after an 8-second correction window. Use Pause automation to review or correct an answer. Recognition errors can affect scores.</small>
 <fieldset class="resume-setup"><legend>Candidate profile &amp; résumé (optional)</legend>
 <p class="muted">Use your skills, projects and experience to personalise generated questions.</p>
 <label for="candidate-level">Experience level</label><select id="candidate-level"><option value="unspecified">Not specified</option><option value="student">Student / learning</option><option value="entry">Entry-level / fresher</option><option value="experienced">Experienced professional</option><option value="senior">Senior / lead</option></select>
@@ -74,6 +76,7 @@
 <p id="question">Your interview question will appear here.</p><small id="context"></small></section>
 <section class="card"><div class="row"><h2>02 · Your answer</h2><output id="timer" aria-label="Time remaining">01:00</output></div>
 <label for="spoken">Spoken language</label><select id="spoken"><option value="auto">Auto-detect / mixed language</option><option value="en">English</option><option value="hi">Hindi</option></select>
+<p id="automation-status" role="status"></p><button id="pause-automation" type="button">Pause automation</button>
 <div class="actions"><button class="primary" id="record" disabled>Record answer</button><button id="stop" disabled>Stop recording</button></div>
 <p id="microphone-status" role="status" aria-live="polite">Click Record answer, then wait for “Recording—speak now”.</p>
 <div id="recording-preview" hidden>
@@ -319,6 +322,42 @@ $('clear-history').onclick=()=>{
     catch{$('history-status').textContent='Could not clear saved summaries.';}
 };
 
+let automationPaused=false,automationTimer=null,automationToken=0;
+function cancelAutomation(){clearTimeout(automationTimer);automationTimer=null;automationToken++;}
+function autoEnabled(){return Boolean(current?.auto_flow)&&!automationPaused;}
+function pauseAutomation(notice='Automation paused. Use Record, Transcribe or Submit when ready.'){
+    automationPaused=true;cancelAutomation();$('automation-status').textContent=notice;
+}
+$('pause-automation').onclick=()=>pauseAutomation();
+function queueAutoRecording(){
+    if(!autoEnabled())return;
+    const question=current,token=automationToken;
+    const attempt=()=>{
+        if(token!==automationToken||current!==question||!autoEnabled()||answerSubmitted||answerExpired)return;
+        if(busy||speechPending){automationTimer=setTimeout(attempt,100);return;}
+        if(!recording){$('automation-status').textContent='Starting microphone… Wait for “Recording—speak now”.';$('record').onclick();}
+    };
+    automationTimer=setTimeout(attempt,200);
+}
+async function autoProcessRecording(){
+    if(!autoEnabled()||busy||!blob?.size)return;
+    clearInterval(ticker);ticker=null;answerExpired=true;
+    const question=current,token=automationToken;
+    await run(async()=>{
+        $('automation-status').textContent='Transcribing your answer…';
+        await transcribeAnswer();
+        if(token!==automationToken||question!==current||!autoEnabled())return;
+        let remaining=8;
+        const tick=()=>{
+            if(token!==automationToken||current!==question||!autoEnabled())return;
+            if(remaining>0){$('automation-status').textContent=`Submitting in ${remaining--} seconds. Edit the transcript or pause to review.`;automationTimer=setTimeout(tick,1000);return;}
+            if(busy){automationTimer=setTimeout(tick,100);return;}
+            $('automation-status').textContent='Submitting answer…';run(submitAnswer);
+        };
+        tick();
+    });
+}
+
 function cancelQuestionSpeech(startAnswer){
     const pending=speechPending;
     speechToken++;clearTimeout(speechWatchdog);
@@ -370,6 +409,7 @@ function speakQuestion(initial){
     refresh();
 }
 function beginQuestionReadout(){
+    cancelAutomation(); automationPaused=false;
     clearTimeout(microphoneReadyTimer);
     $('microphone-status').textContent='Click Record answer, then wait for “Recording—speak now”.';
     sessionEvaluation=null;
@@ -416,12 +456,12 @@ function rememberQuestion(technology, question){
     try{localStorage.setItem(QUESTION_HISTORY_KEY,JSON.stringify(recentQuestionHistory));}catch{}
 }
 
-const controls=['candidate-level','resume-text','resume-file','clear-resume','interview-type','target-role','job-description','technology','difficulty','language','duration','spoken'];
+const controls=['auto-flow','candidate-level','resume-text','resume-file','clear-resume','interview-type','target-role','job-description','technology','difficulty','language','duration','spoken'];
 function message(text,error=false){$('status').textContent=text;$('status').className=error?'error':'';}
 function interviewSettings(){
     return {technology:$('technology').value.trim()||'General',difficulty:$('difficulty').value,
         language:$('language').value,interview_type:$('interview-type').value,
-        target_role:$('target-role').value.trim(),job_description:$('job-description').value.trim(),candidate_level:$('candidate-level').value,resume_text:$('resume-text').value.trim()};
+        target_role:$('target-role').value.trim(),job_description:$('job-description').value.trim(),candidate_level:$('candidate-level').value,resume_text:$('resume-text').value.trim(),auto_flow:$('auto-flow').value==='auto'};
 }
 function concreteSettings(settings,index=null){
     return {...settings,interview_type:settings.interview_type==='mixed'?
@@ -475,7 +515,7 @@ function refreshSession(){
     $('session-end').disabled=busy||recording;
     if(active){
         $('generate').disabled=true;$('use-manual').disabled=true;
-        for(const id of ['candidate-level','resume-text','resume-file','clear-resume','interview-type','target-role','job-description','technology','difficulty','language','duration'])$(id).disabled=true;
+        for(const id of ['auto-flow','candidate-level','resume-text','resume-file','clear-resume','interview-type','target-role','job-description','technology','difficulty','language','duration'])$(id).disabled=true;
         const n=interviewSession.answers.length;
         $('session-progress').textContent=interviewSession.loaded?
             `Question ${n+1} of ${interviewSession.total} · ${n} completed`:
@@ -618,6 +658,7 @@ function renderInterviewDelivery(parent,answers){
 }
 
 function finishInterviewSession(restored=false){
+    cancelAutomation();
     interviewSession.active=false;
     cancelQuestionSpeech(false);clearInterval(ticker);ticker=null;current=null;
     const answers=interviewSession.answers;
@@ -693,6 +734,7 @@ function startAnswerTimer() {
     deadline = Date.now() + Number($('duration').value) * 1000;
     updateAnswerTimer();
     ticker = setInterval(updateAnswerTimer, 200);
+    queueAutoRecording();
 }
 function updateAnswerTimer() {
     if (!current || speechPending || answerSubmitted || answerExpired) return;
@@ -746,10 +788,10 @@ function setAudio(data,name){
     if(!$('delivery-report').hidden)renderDelivery();
 }
 async function api(path,body,isForm=false){const response=await fetch(path,{method:'POST',headers:isForm?{}:{'Content-Type':'application/json'},body:isForm?body:JSON.stringify(body)});const text=await response.text();let data;try{data=JSON.parse(text);}catch{throw Error('Server returned '+response.status+'. Check the backend terminal.');}if(!response.ok){let detail=data.detail;throw Error(typeof detail==='string'?detail:JSON.stringify(detail||data));}return data;}
-async function run(task){busy=true;refresh();try{await task();}catch(err){message(err.message||'The request failed.',true);}finally{busy=false;refresh();}}
+async function run(task){if(busy)return;busy=true;refresh();try{await task();}catch(err){pauseAutomation('Automatic flow paused: '+(err.message||'The request failed.'));message(err.message||'The request failed.',true);}finally{busy=false;refresh();}}
 $('generate').onclick=()=>run(async()=>{const technology=$('technology').value.trim();if(!technology)throw Error('Enter a technology first.');message('Generating your question…');const settings=concreteSettings(interviewSettings());const data=await api('/generate-question',{...settings,recent_questions:recentQuestionsFor(technology)});if(!data.question)throw Error('No question returned.');rememberQuestion(technology,data.question);current={...settings,question:data.question};$('question').textContent=current.question;$('context').textContent=[modeName(settings.interview_type),technology,settings.difficulty,settings.language].join(' · ');$('question').lang=settings.language==='Hindi'?'hi':'en';$('spoken').value=settings.language==='Hindi'?'hi':settings.language==='English'?'en':'auto';clearAudio();$('transcript').value='';$('result').hidden=true;beginQuestionReadout();});
 $('duration').onchange=()=>{if(!current)clock(Number($('duration').value));};
-$('transcript').oninput=()=>{$('result').hidden=true;refresh();};
+$('transcript').oninput=()=>{pauseAutomation('Transcript editing: submit when ready.');$('result').hidden=true;refresh();};
 $('record').onclick=async()=>{
     if(busy||recording||speechPending||!current||answerExpired||answerSubmitted)return;
     cancelQuestionSpeech(false);busy=true;refresh();
@@ -783,8 +825,10 @@ $('record').onclick=async()=>{
             const ext=type.includes('ogg')?'ogg':type.includes('mp4')?'m4a':'webm';
             setAudio(new Blob(chunks,{type}),`answer.${ext}`);renderDelivery();
             message(answerExpired?'Time is up. Recording saved; transcribe it and review recognition errors.':'Recording saved. Your answer timer is still running.');refresh();
+            if(blob?.size && !recorder.failed)autoProcessRecording();
         };
         recorder.onerror=()=>{
+            recorder.failed=true;pauseAutomation("Recording failed. Review or record again.");
             clearTimeout(microphoneReadyTimer);
             $('microphone-status').textContent='Recording failed. Try again or upload audio.';
             message('Recording failed. Try again or upload audio.',true);stopRecording();
@@ -792,6 +836,7 @@ $('record').onclick=async()=>{
         clearAudio();$('transcript').value='';$('result').hidden=true;
         recorder.start();recording=true;
     }catch(err){
+        pauseAutomation('Microphone unavailable. Allow access, then use Record answer.');
         clearTimeout(microphoneReadyTimer);recording=false;
         stream?.getTracks().forEach(t=>t.stop());
         const text=err.name==='NotAllowedError'?'Microphone permission was denied. Allow access or upload a recording.':err.message;
@@ -804,8 +849,9 @@ function stopRecording(){
 }
 $('stop').onclick=stopRecording;
 $('upload').onchange=()=>{updateAnswerTimer();if(answerExpired||answerSubmitted){$('upload').value='';message('Answer time has expired. Generate a new question.',true);return;}const file=$('upload').files[0];if(!file)return;if(!file.size||file.size>10*1024*1024){message('Choose a nonempty audio file up to 10 MB.',true);$('upload').value='';return;}setAudio(file,file.name);message('Audio selected. Click Transcribe audio.');};
-$('transcribe').onclick=()=>run(async()=>{message('Transcribing… Groq is primary when configured. Local fallback may take longer on first use.');const form=new FormData();form.append('file',blob,filename);form.append('spoken_language',$('spoken').value);const data=await api('/transcribe',form,true);if(!data.text?.trim())throw Error('No speech was returned.');deliveryAudio=data.delivery||null;renderDelivery();$('transcript').value=data.text;$('result').hidden=true;message('Transcript: '+data.transcription_engine+' / '+data.transcription_model+' · '+data.transcription_seconds+' seconds. '+(data.transcription_notice||'')+' Review and correct recognition errors before submitting.');});
-$('evaluate').onclick=()=>run(async()=>{
+async function transcribeAnswer(){message('Transcribing… Groq is primary when configured. Local fallback may take longer on first use.');const form=new FormData();form.append('file',blob,filename);form.append('spoken_language',$('spoken').value);const data=await api('/transcribe',form,true);if(!data.text?.trim())throw Error('No speech was returned.');deliveryAudio=data.delivery||null;renderDelivery();$('transcript').value=data.text;$('result').hidden=true;message('Transcript: '+data.transcription_engine+' / '+data.transcription_model+' · '+data.transcription_seconds+' seconds. '+(data.transcription_notice||'')+' Review and correct recognition errors before submitting.');}
+$('transcribe').onclick=()=>run(transcribeAnswer);
+async function submitAnswer(){
     cancelQuestionSpeech(false);updateAnswerTimer();clearInterval(ticker);ticker=null;
     answerSubmitted=true;renderDelivery();
     message(interviewSession?.active?'Submitting your answer…':'Evaluating your reviewed answer…');
@@ -824,9 +870,10 @@ $('evaluate').onclick=()=>run(async()=>{
     sessionEvaluation={score:data.score,feedback:data.feedback,provider:data.provider,model:data.model,coaching:data.coaching||[]};
     interviewSession.answers.push(sessionSnapshot());
     finishInterviewSession();
-});
+}
+$('evaluate').onclick=()=>{cancelAutomation();return run(submitAnswer);};
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)updateAnswerTimer();});
-window.addEventListener('pagehide',()=>{clearTimeout(microphoneReadyTimer);releaseSessionRecordings();cancelQuestionSpeech(false);stopCamera();clearInterval(ticker);stream?.getTracks().forEach(t=>t.stop());if(playUrl)URL.revokeObjectURL(playUrl);});
+window.addEventListener('pagehide',()=>{cancelAutomation();clearTimeout(microphoneReadyTimer);releaseSessionRecordings();cancelQuestionSpeech(false);stopCamera();clearInterval(ticker);stream?.getTracks().forEach(t=>t.stop());if(playUrl)URL.revokeObjectURL(playUrl);});
 
 // The camera has its own stream. Turning it off never stops microphone audio.
 let cameraStream = null;
