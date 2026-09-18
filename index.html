@@ -5,6 +5,7 @@
 
 .resume-setup{border:1px solid var(--line);border-radius:12px;margin:24px 0;padding:18px;min-width:0}.resume-setup legend{padding:0 8px;font-weight:650}.resume-setup p{margin:10px 0}
 .interview-delivery{border-top:1px solid var(--line);margin-top:28px;padding-top:20px}.interview-delivery li{margin-bottom:24px}.interview-delivery h5{font-size:16px;margin:16px 0 10px}.interview-delivery blockquote{margin:10px 0;padding:10px 16px;border-left:3px solid var(--accent);white-space:pre-wrap;overflow-wrap:anywhere}
+.session-camera{border:1px solid var(--line);border-radius:12px;padding:18px;margin:24px 0}.session-camera h3{margin:0}.session-camera .camera-preview{max-width:560px}.session-camera .row{flex-wrap:wrap}
 .camera-preview{position:relative;background:#070d18;border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-top:16px}
 .camera-preview video{width:100%;display:block;transform:scaleX(-1)}
 .camera-preview canvas{position:absolute;inset:0;width:100%;height:100%;transform:scaleX(-1);pointer-events:none}
@@ -43,6 +44,20 @@
 <label for="session-questions">Manual question list — separate questions with a line containing ---</label>
 <textarea id="session-questions" placeholder="Paste your first question here.&#10;---&#10;Paste your second question here."></textarea>
 <small>Review each transcript, then submit to advance automatically. Feedback appears after the session ends. Each submitted recording stays available in the final report. Download recordings before refreshing or starting another session.</small>
+<section class="session-camera" aria-labelledby="camera-title">
+<div class="row"><h3 id="camera-title">Session camera</h3><span class="muted">Required</span></div>
+<small>Enable the camera and calibrate your neutral position before starting a session. Sampled images go only to your local backend and are not saved. Detection does not measure emotion or confidence.</small>
+<div class="actions"><button id="camera-on">Enable camera</button><button id="camera-off" disabled>Turn camera off</button><button id="retry-detection" hidden>Retry face detection</button></div>
+<div class="camera-preview" id="camera-preview" hidden><video id="camera-video" autoplay muted playsinline></video><canvas id="face-overlay" aria-hidden="true"></canvas></div>
+<div class="actions"><button id="calibrate" disabled>Calibrate neutral position</button></div>
+<p id="pose-status" role="status" aria-live="polite">Enable the camera, then look toward it and calibrate.</p>
+<div class="row" style="flex-wrap:wrap"><span>Turn: <strong id="yaw">—</strong></span><span>Nod: <strong id="pitch">—</strong></span><span>Tilt: <strong id="roll">—</strong></span></div>
+<small>Approximate rotation from your calibrated position. These measurements are not eye contact or a confidence score. Your camera and calibration stay active between questions until you turn the camera off or leave this page. Recalibrate if you move your camera or seat.</small>
+<h3>Live facial movements</h3>
+<div id="expression-live">Enable the camera to see facial movement estimates.</div>
+<small>Model signals from 0 to 1, not probabilities of feelings. Mouth movement also changes while speaking. No extra calibration is needed for these signals.</small>
+<p id="camera-status" role="status" aria-live="polite">Camera is required. Enable it and calibrate before starting a session.</p>
+</section>
 <div class="actions"><button class="primary" id="session-start">Start session</button><button id="session-next" hidden>Next question</button><button id="session-end" hidden>End session</button></div>
 <p id="session-progress" role="status">No active session.</p>
 <small>Completed sessions, reviewed answers and recordings are saved in this browser. Wait for the saved confirmation before leaving. Clearing browser data removes them; unfinished sessions are not restored. Answer scoring uses provider quota; you can continue without scoring.</small>
@@ -58,20 +73,7 @@
 </section>
 
 <div class="layout">
-<div><section class="card" aria-labelledby="camera-title">
-<div class="row"><h2 id="camera-title">Camera practice</h2><span class="muted">Optional</span></div>
-<small>Enable the camera to check your framing. Sampled images go only to your local backend and are not saved. Detection does not measure emotion or confidence.</small>
-<div class="actions"><button id="camera-on">Enable camera</button><button id="camera-off" disabled>Turn camera off</button><button id="retry-detection" hidden>Retry face detection</button></div>
-<div class="camera-preview" id="camera-preview" hidden><video id="camera-video" autoplay muted playsinline></video><canvas id="face-overlay" aria-hidden="true"></canvas></div>
-<div class="actions"><button id="calibrate" disabled>Calibrate neutral position</button></div>
-<p id="pose-status" role="status" aria-live="polite">Enable the camera, then look toward it and calibrate.</p>
-<div class="row" style="flex-wrap:wrap"><span>Turn: <strong id="yaw">—</strong></span><span>Nod: <strong id="pitch">—</strong></span><span>Tilt: <strong id="roll">—</strong></span></div>
-<small>Approximate rotation from your calibrated position. These measurements are not eye contact or a confidence score. Your camera and calibration stay active between questions until you turn the camera off or leave this page. Recalibrate if you move your camera or seat.</small>
-<h3>Live facial movements</h3>
-<div id="expression-live">Enable the camera to see facial movement estimates.</div>
-<small>Model signals from 0 to 1, not probabilities of feelings. Mouth movement also changes while speaking. No extra calibration is needed for these signals.</small>
-<p id="camera-status" role="status" aria-live="polite">Camera is off. You can practice without it.</p>
-</section><section class="card"><div class="eyebrow">01 · Question</div><div class="actions"><button id="replay-question" disabled>Replay question</button><button id="stop-speaking" disabled>Stop speaking / start answering</button></div>
+<div><section class="card"><div class="eyebrow">01 · Question</div><div class="actions"><button id="replay-question" disabled>Replay question</button><button id="stop-speaking" disabled>Stop speaking / start answering</button></div>
 <p id="speech-status" role="status">The question will be read aloud before your answer timer starts.</p>
 <p id="question">Your interview question will appear here.</p><small id="context"></small></section>
 <section class="card"><div class="row"><h2>02 · Your answer</h2><output id="timer" aria-label="Time remaining">01:00</output></div>
@@ -501,6 +503,8 @@ function refresh() {
     refreshSession();
     $('evaluate').disabled = busy || recording || speechPending || !current || !$('transcript').value.trim() || !$('result').hidden;
 }
+function cameraReady(){return Boolean(cameraStream?.getVideoTracks().some(track=>track.readyState==='live'&&track.enabled)&&neutralRotation&&!calibrating);}
+function requireSessionCamera(){if(!cameraReady())throw Error('Enable the camera and calibrate your neutral position before continuing the session.');}
 function refreshSession(){
     const active=Boolean(interviewSession?.active);
     document.querySelectorAll('[data-session-history]').forEach(button=>button.disabled=active||busy||recording);
@@ -510,6 +514,7 @@ function refreshSession(){
     $('evaluate').textContent=active?'Submit answer & continue':'Submit for feedback';
     for(const id of ['session-count','session-source','session-questions','session-start'])
         $(id).disabled=busy||recording||active;
+    $('session-start').disabled=busy||recording||active||!cameraReady();
     $('session-next').hidden=!active;$('session-end').hidden=!active;
     $('session-next').disabled=busy||recording||speechPending;
     $('session-end').disabled=busy||recording;
@@ -552,6 +557,7 @@ function archiveSessionAnswer(){
     interviewSession.loaded=false;current=null;
 }
 async function loadSessionQuestion(){
+    requireSessionCamera();
     const session=interviewSession;
     const settings=concreteSettings(session.settings,session.answers.length);
     let question;
@@ -708,6 +714,7 @@ function finishInterviewSession(restored=false){
     message('Session report ready.');refresh();showResultsPage(interviewSession.id);
 }
 $('session-start').onclick=()=>run(async()=>{
+    requireSessionCamera();
     const total=Number($('session-count').value),source=$('session-source').value;
     const questions=$('session-questions').value.split(/^\s*---\s*$/m).map(q=>q.trim()).filter(Boolean);
     if(source==='manual'&&(questions.length!==total||questions.some(q=>q.length>2000)))
@@ -793,6 +800,7 @@ $('generate').onclick=()=>run(async()=>{const technology=$('technology').value.t
 $('duration').onchange=()=>{if(!current)clock(Number($('duration').value));};
 $('transcript').oninput=()=>{pauseAutomation('Transcript editing: submit when ready.');$('result').hidden=true;refresh();};
 $('record').onclick=async()=>{
+    if(interviewSession?.active&&!cameraReady()){pauseAutomation('Camera required. Enable it and calibrate before recording.');return;}
     if(busy||recording||speechPending||!current||answerExpired||answerSubmitted)return;
     cancelQuestionSpeech(false);busy=true;refresh();
     clearTimeout(microphoneReadyTimer);
@@ -852,6 +860,7 @@ $('upload').onchange=()=>{updateAnswerTimer();if(answerExpired||answerSubmitted)
 async function transcribeAnswer(){message('Transcribing… Groq is primary when configured. Local fallback may take longer on first use.');const form=new FormData();form.append('file',blob,filename);form.append('spoken_language',$('spoken').value);const data=await api('/transcribe',form,true);if(!data.text?.trim())throw Error('No speech was returned.');deliveryAudio=data.delivery||null;renderDelivery();$('transcript').value=data.text;$('result').hidden=true;message('Transcript: '+data.transcription_engine+' / '+data.transcription_model+' · '+data.transcription_seconds+' seconds. '+(data.transcription_notice||'')+' Review and correct recognition errors before submitting.');}
 $('transcribe').onclick=()=>run(transcribeAnswer);
 async function submitAnswer(){
+    if(interviewSession?.active)requireSessionCamera();
     cancelQuestionSpeech(false);updateAnswerTimer();clearInterval(ticker);ticker=null;
     answerSubmitted=true;renderDelivery();
     message(interviewSession?.active?'Submitting your answer…':'Evaluating your reviewed answer…');
@@ -894,7 +903,7 @@ function clearFaceBoxes() {
     const canvas = $('face-overlay');
     canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
 }
-function stopCamera(text = 'Camera is off. You can practice without it.') {
+function stopCamera(text = 'Camera is required. Enable it and calibrate before starting a session.') {
     cameraSession++;
     detectionFailures=0;
     $('retry-detection').hidden=true;
@@ -911,6 +920,8 @@ function stopCamera(text = 'Camera is off. You can practice without it.') {
     $('camera-on').disabled = false;
     $('camera-off').disabled = true;
     cameraMessage(text);
+    if(interviewSession?.active){pauseAutomation('Camera disconnected or turned off. Re-enable and calibrate before continuing. Your answer is preserved.');if(recording)stopRecording();}
+    refresh();
 }
 async function detectCameraFrame(session) {
     if (session !== cameraSession || !cameraStream) return;
@@ -1062,7 +1073,7 @@ function updatePose(rotation, count) {
         calibrationSamples.push(rotation);
         $('pose-status').textContent=`Look toward the camera and hold still: ${calibrationSamples.length}/5 samples.`;
         if(calibrationSamples.length<5)return;
-        neutralRotation=rotation;calibrating=false;$('calibrate').disabled=false;
+        neutralRotation=rotation;calibrating=false;$('calibrate').disabled=false;refresh();
     }
     if(!neutralRotation){$('pose-status').textContent='Look toward the camera, then click Calibrate neutral position.';return;}
     const angles=relativeAngles(neutralRotation,rotation);
@@ -1073,7 +1084,7 @@ function updatePose(rotation, count) {
 $('calibrate').onclick=()=>{
     if(!latestRotation||!cameraStream)return;
     deliveryPose=[];deliveryFrames=0;
-    calibrating=true;calibrationSamples=[];neutralRotation=null;$('calibrate').disabled=true;
+    calibrating=true;calibrationSamples=[];neutralRotation=null;$('calibrate').disabled=true;refresh();
     for(const id of ['yaw','pitch','roll']) $(id).textContent='—';
     $('pose-status').textContent='Look toward the camera and hold still for five samples (about 4–6 seconds).';
 };
