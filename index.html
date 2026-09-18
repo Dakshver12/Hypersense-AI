@@ -44,21 +44,9 @@
 <label for="session-questions">Manual question list — separate questions with a line containing ---</label>
 <textarea id="session-questions" placeholder="Paste your first question here.&#10;---&#10;Paste your second question here."></textarea>
 <small>Review each transcript, then submit to advance automatically. Feedback appears after the session ends. Each submitted recording stays available in the final report. Download recordings before refreshing or starting another session.</small>
-<section class="session-camera" aria-labelledby="camera-title">
-<div class="row"><h3 id="camera-title">Session camera</h3><span class="muted">Required</span></div>
-<small>Enable the camera and calibrate your neutral position before starting a session. Sampled images go only to your local backend and are not saved. Detection does not measure emotion or confidence.</small>
-<div class="actions"><button id="camera-on">Enable camera</button><button id="camera-off" disabled>Turn camera off</button><button id="retry-detection" hidden>Retry face detection</button></div>
-<div class="camera-preview" id="camera-preview" hidden><video id="camera-video" autoplay muted playsinline></video><canvas id="face-overlay" aria-hidden="true"></canvas></div>
-<div class="actions"><button id="calibrate" disabled>Calibrate neutral position</button></div>
-<p id="pose-status" role="status" aria-live="polite">Enable the camera, then look toward it and calibrate.</p>
-<div class="row" style="flex-wrap:wrap"><span>Turn: <strong id="yaw">—</strong></span><span>Nod: <strong id="pitch">—</strong></span><span>Tilt: <strong id="roll">—</strong></span></div>
-<small>Approximate rotation from your calibrated position. These measurements are not eye contact or a confidence score. Your camera and calibration stay active between questions until you turn the camera off or leave this page. Recalibrate if you move your camera or seat.</small>
-<h3>Live facial movements</h3>
-<div id="expression-live">Enable the camera to see facial movement estimates.</div>
-<small>Model signals from 0 to 1, not probabilities of feelings. Mouth movement also changes while speaking. No extra calibration is needed for these signals.</small>
-<p id="camera-status" role="status" aria-live="polite">Camera is required. Enable it and calibrate before starting a session.</p>
-</section>
-<div class="actions"><button class="primary" id="session-start">Start session</button><button id="session-next" hidden>Next question</button><button id="session-end" hidden>End session</button></div>
+
+<div class="actions"><button class="primary" id="session-start">Continue to camera check</button><button id="session-next" hidden>Next question</button><button id="session-end" hidden>End session</button></div>
+<button id="open-camera-check" type="button">Camera check</button>
 <p id="session-progress" role="status">No active session.</p>
 <small>Completed sessions, reviewed answers and recordings are saved in this browser. Wait for the saved confirmation before leaving. Clearing browser data removes them; unfinished sessions are not restored. Answer scoring uses provider quota; you can continue without scoring.</small>
 <details class="single-practice"><summary>Practise a single question instead</summary><small>Uses the interview preferences above.</small><button class="primary" id="generate">Generate question</button>
@@ -125,6 +113,24 @@
 
 
 <div id="saved-session-list"></div></section></div>
+<section id="camera-check-page" hidden aria-labelledby="camera-check-title">
+<h1 id="camera-check-title" tabindex="-1">Check your camera</h1><p>Enable your camera, keep one face in view, then calibrate your neutral position. Your camera stays on when you continue.</p>
+<section class="session-camera" aria-labelledby="camera-title">
+<div class="row"><h3 id="camera-title">Session camera</h3><span class="muted">Required</span></div>
+<small>Enable the camera and calibrate your neutral position before starting a session. Sampled images go only to your local backend and are not saved. Detection does not measure emotion or confidence.</small>
+<div class="actions"><button id="camera-on">Enable camera</button><button id="camera-off" disabled>Turn camera off</button><button id="retry-detection" hidden>Retry face detection</button></div>
+<div class="camera-preview" id="camera-preview" hidden><video id="camera-video" autoplay muted playsinline></video><canvas id="face-overlay" aria-hidden="true"></canvas></div>
+<div class="actions"><button id="calibrate" disabled>Calibrate neutral position</button></div>
+<p id="pose-status" role="status" aria-live="polite">Enable the camera, then look toward it and calibrate.</p>
+<div class="row" style="flex-wrap:wrap"><span>Turn: <strong id="yaw">—</strong></span><span>Nod: <strong id="pitch">—</strong></span><span>Tilt: <strong id="roll">—</strong></span></div>
+<small>Approximate rotation from your calibrated position. These measurements are not eye contact or a confidence score. Your camera and calibration stay active between questions until you turn the camera off or leave this page. Recalibrate if you move your camera or seat.</small>
+<h3>Live facial movements</h3>
+<div id="expression-live">Enable the camera to see facial movement estimates.</div>
+<small>Model signals from 0 to 1, not probabilities of feelings. Mouth movement also changes while speaking. No extra calibration is needed for these signals.</small>
+<p id="camera-status" role="status" aria-live="polite">Camera is required. Enable it and calibrate before starting a session.</p>
+</section>
+<div class="actions"><button id="camera-check-back">Back to setup</button><button class="primary" id="camera-check-continue" disabled>Start interview</button></div>
+<p>Camera access and calibration are required. Reloading this page requires calibration again.</p></section>
 <section id="results-page" hidden aria-labelledby="results-title">
 <div class="row"><h1 id="results-title" tabindex="-1">Your interview results</h1><button id="back-to-interview">Back to interview setup</button></div>
 <p id="session-storage-status" role="status"></p><button id="retry-session-save" hidden>Retry saving session</button>
@@ -514,7 +520,10 @@ function refreshSession(){
     $('evaluate').textContent=active?'Submit answer & continue':'Submit for feedback';
     for(const id of ['session-count','session-source','session-questions','session-start'])
         $(id).disabled=busy||recording||active;
-    $('session-start').disabled=busy||recording||active||!cameraReady();
+    $('session-start').disabled=busy||recording||active;
+    $('camera-check-continue').disabled=busy||recording||!cameraReady();
+    $('camera-check-continue').textContent=active?'Return to interview':'Start interview';
+    $('camera-check-back').disabled=busy||recording;
     $('session-next').hidden=!active;$('session-end').hidden=!active;
     $('session-next').disabled=busy||recording||speechPending;
     $('session-end').disabled=busy||recording;
@@ -713,7 +722,7 @@ function finishInterviewSession(restored=false){
     if(!restored)saveFinishedSession(interviewSession);
     message('Session report ready.');refresh();showResultsPage(interviewSession.id);
 }
-$('session-start').onclick=()=>run(async()=>{
+async function startCheckedSession(){
     requireSessionCamera();
     const total=Number($('session-count').value),source=$('session-source').value;
     const questions=$('session-questions').value.split(/^\s*---\s*$/m).map(q=>q.trim()).filter(Boolean);
@@ -726,7 +735,22 @@ $('session-start').onclick=()=>run(async()=>{
     interviewSession={id:crypto.randomUUID(),date:new Date().toISOString(),active:true,loaded:false,total,source,questions,settings,answers:[]};
     $('session-report').hidden=true;
     await loadSessionQuestion();
+}
+$('session-start').onclick=()=>{
+    if(busy||recording||interviewSession?.active)return;
+    const total=Number($('session-count').value);
+    const questions=$('session-questions').value.split(/^\s*---\s*$/m).map(q=>q.trim()).filter(Boolean);
+    if($('session-source').value==='manual'&&(questions.length!==total||questions.some(q=>q.length>2000))){message(`Paste exactly ${total} valid questions separated by ---.`,true);return;}
+    showCameraCheck();
+};
+$('camera-check-continue').onclick=()=>run(async()=>{
+    requireSessionCamera();
+    showInterviewPage();
+    if(!interviewSession?.active)await startCheckedSession();
+    else message('Camera ready. Continue your current answer or load the next question.');
 });
+$('open-camera-check').onclick=()=>{if(!busy&&!recording)showCameraCheck();};
+$('camera-check-back').onclick=()=>{if(!busy&&!recording)showInterviewPage();};
 $('session-next').onclick=()=>run(async()=>{
     archiveSessionAnswer();
     if(interviewSession.answers.length===interviewSession.total)finishInterviewSession();
@@ -920,7 +944,7 @@ function stopCamera(text = 'Camera is required. Enable it and calibrate before s
     $('camera-on').disabled = false;
     $('camera-off').disabled = true;
     cameraMessage(text);
-    if(interviewSession?.active){pauseAutomation('Camera disconnected or turned off. Re-enable and calibrate before continuing. Your answer is preserved.');if(recording)stopRecording();}
+    if(interviewSession?.active){pauseAutomation('Camera disconnected or turned off. Re-enable and calibrate before continuing. Your answer is preserved.');if(recording)stopRecording();showCameraCheck();}
     refresh();
 }
 async function detectCameraFrame(session) {
@@ -1221,7 +1245,15 @@ async function deleteSavedSession(id){
 }
 $('retry-session-save').onclick=()=>{if(sessionSavePending&&!busy&&!recording&&!interviewSession?.active)saveFinishedSession(sessionSavePending);};
 
+function showCameraCheck(){
+    if(interviewSession?.active)pauseAutomation('Camera check open. Return to the interview to continue manually.');
+    if(location.pathname!=='/camera-check')history.pushState({},'','/camera-check');
+    $('interview-page').hidden=true;$('interview-intro').hidden=true;$('results-page').hidden=true;
+    $('camera-check-page').hidden=false;document.title='HyperSense AI · Camera check';
+    refresh();$('camera-check-title').focus();window.scrollTo({top:0,behavior:'smooth'});
+}
 function setPageView(results){
+    $('camera-check-page').hidden=true;
     $('interview-page').hidden=results;
     $('interview-intro').hidden=results;
     $('results-page').hidden=!results;
@@ -1241,6 +1273,7 @@ function showInterviewPage(){
 }
 $('back-to-interview').onclick=showInterviewPage;
 async function restorePageRoute(){
+    if(location.pathname==='/camera-check'){showCameraCheck();return;}
     if(location.pathname!=='/results'){setPageView(false);return;}
     if(interviewSession?.active){history.replaceState({},'','/interview');setPageView(false);return;}
     setPageView(true);

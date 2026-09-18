@@ -39,7 +39,7 @@ class Checks(unittest.TestCase):
     def test_backend_routes(self):
         tree=ast.parse((ROOT/'main.py').read_text(encoding='utf-8'))
         routes=[d.args[0].value for n in ast.walk(tree) if isinstance(n,(ast.FunctionDef,ast.AsyncFunctionDef)) for d in n.decorator_list if isinstance(d,ast.Call) and d.args and isinstance(d.args[0],ast.Constant)]
-        for route in ['/interview','/results','/transcribe','/evaluate-answer','/generate-question']: self.assertIn(route,routes)
+        for route in ['/interview','/camera-check','/results','/transcribe','/evaluate-answer','/generate-question']: self.assertIn(route,routes)
     def test_automatic_flow(self):
         code=JS[JS.index('let automationPaused='):JS.index('function cancelQuestionSpeech(')]
         self.node('''const assert=require('node:assert/strict');
@@ -63,10 +63,10 @@ current={auto_flow:true};queueAutoRecording();current={auto_flow:true};await dra
 })().catch(e=>{console.error(e);process.exitCode=1;});
 ''')
     def test_results_navigation(self):
-        code=JS[JS.index('function setPageView('):JS.index("window.addEventListener('popstate'")]
-        self.node('''const assert=require('node:assert/strict');const els={};const $=id=>els[id]??={hidden:false,focus(){},scrollIntoView(){},querySelectorAll(){return []}};const document={title:''};const window={scrollTo(){}};const location={pathname:'/interview',search:''};const history={pushState(a,b,p){const u=new URL(p,'http://test');location.pathname=u.pathname;location.search=u.search},replaceState(a,b,p){this.pushState(a,b,p)}};const message=()=>{};let interviewSession=null,opened=null;async function openSavedSession(id){opened=id;}
+        code=JS[JS.index('function showCameraCheck('):JS.index("window.addEventListener('popstate'")]
+        self.node('''const assert=require('node:assert/strict');const els={};const $=id=>els[id]??={hidden:false,focus(){},scrollIntoView(){},querySelectorAll(){return []}};const document={title:''};const window={scrollTo(){}};const location={pathname:'/interview',search:''};const history={pushState(a,b,p){const u=new URL(p,'http://test');location.pathname=u.pathname;location.search=u.search},replaceState(a,b,p){this.pushState(a,b,p)}};const message=()=>{};const refresh=()=>{};const pauseAutomation=()=>{};let interviewSession=null,opened=null;async function openSavedSession(id){opened=id;}
 '''+code+'''
-(async()=>{showResultsPage('saved');assert.equal(location.pathname,'/results');assert.equal($('interview-page').hidden,true);showInterviewPage();assert.equal(location.pathname,'/interview');history.pushState({},'','/results?session=saved');await restorePageRoute();assert.equal(opened,'saved');interviewSession={active:true};await restorePageRoute();assert.equal(location.pathname,'/interview');})().catch(e=>{console.error(e);process.exitCode=1;});
+(async()=>{showResultsPage('saved');assert.equal(location.pathname,'/results');assert.equal($('interview-page').hidden,true);showInterviewPage();assert.equal(location.pathname,'/interview');history.pushState({},'','/results?session=saved');await restorePageRoute();assert.equal(opened,'saved');interviewSession={active:true};await restorePageRoute();assert.equal(location.pathname,'/interview');interviewSession=null;history.pushState({},'','/camera-check');await restorePageRoute();assert.equal($('camera-check-page').hidden,false);assert.equal($('interview-page').hidden,true);})().catch(e=>{console.error(e);process.exitCode=1;});
 ''')
 
 if __name__=='__main__': unittest.main(verbosity=2)

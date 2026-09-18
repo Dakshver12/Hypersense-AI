@@ -544,6 +544,7 @@ def transcribe_audio(
             detail="Transcription failed. Check the server terminal.",
         ) from None
     
+@app.get("/camera-check", response_class=FileResponse)
 @app.get("/results", response_class=FileResponse)
 @app.get("/interview", response_class=FileResponse)
 def interview_page():
