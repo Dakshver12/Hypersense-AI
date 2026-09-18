@@ -5,7 +5,7 @@
 
 .resume-setup{border:1px solid var(--line);border-radius:12px;margin:24px 0;padding:18px;min-width:0}.resume-setup legend{padding:0 8px;font-weight:650}.resume-setup p{margin:10px 0}
 .interview-delivery{border-top:1px solid var(--line);margin-top:28px;padding-top:20px}.interview-delivery li{margin-bottom:24px}.interview-delivery h5{font-size:16px;margin:16px 0 10px}.interview-delivery blockquote{margin:10px 0;padding:10px 16px;border-left:3px solid var(--accent);white-space:pre-wrap;overflow-wrap:anywhere}
-.session-camera{border:1px solid var(--line);border-radius:12px;padding:18px;margin:24px 0}.session-camera h3{margin:0}.session-camera .camera-preview{max-width:560px}.session-camera .row{flex-wrap:wrap}
+.session-camera{border:1px solid var(--line);border-radius:12px;padding:18px;margin:24px 0}.session-camera h3{margin:0}.session-camera .camera-preview{max-width:560px}.session-camera .row{flex-wrap:wrap}.setup-only{display:block}.interview-workspace,.history-workspace{display:none}.page-nav{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 20px}
 .camera-preview{position:relative;background:#070d18;border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-top:16px}
 .camera-preview video{width:100%;display:block;transform:scaleX(-1)}
 .camera-preview canvas{position:absolute;inset:0;width:100%;height:100%;transform:scaleX(-1);pointer-events:none}
@@ -60,7 +60,7 @@
 <p><small>Recordings go through your backend to Groq for transcription when configured. Local Whisper is used when Groq is unavailable or local mode is selected. Your reviewed answer is sent to Gemini, or Groq when configured as fallback, for evaluation.</small></p>
 </section>
 
-<div class="layout">
+<div class="layout interview-workspace" id="interview-workspace">
 <div><section class="card"><div class="eyebrow">01 · Question</div><div class="actions"><button id="replay-question" disabled>Replay question</button><button id="stop-speaking" disabled>Stop speaking / start answering</button></div>
 <p id="speech-status" role="status">The question will be read aloud before your answer timer starts.</p>
 <p id="question">Your interview question will appear here.</p><small id="context"></small></section>
@@ -1248,15 +1248,24 @@ $('retry-session-save').onclick=()=>{if(sessionSavePending&&!busy&&!recording&&!
 function showCameraCheck(){
     if(interviewSession?.active)pauseAutomation('Camera check open. Return to the interview to continue manually.');
     if(location.pathname!=='/camera-check')history.pushState({},'','/camera-check');
-    $('interview-page').hidden=true;$('interview-intro').hidden=true;$('results-page').hidden=true;
+    $('interview-page').hidden=true;$('interview-intro').hidden=true;$('results-page').hidden=true;setWorkspace('setup');
     $('camera-check-page').hidden=false;document.title='HyperSense AI · Camera check';
     refresh();$('camera-check-title').focus();window.scrollTo({top:0,behavior:'smooth'});
+}
+function setWorkspace(space){
+    const setup=$('session-setup');
+    const interview=$('interview-workspace');
+    const history=[...(document.querySelectorAll?.('section.card')||[])].find(x=>x.querySelector('h2')?.textContent.trim()==='Saved interview sessions');
+    if(setup?.style)setup.style.display=space==='setup'?'block':'none';
+    if(interview?.style)interview.style.display=space==='interview'?'block':'none';
+    if(history)history.style.display=space==='history'?'block':'none';
 }
 function setPageView(results){
     $('camera-check-page').hidden=true;
     $('interview-page').hidden=results;
     $('interview-intro').hidden=results;
     $('results-page').hidden=!results;
+    setWorkspace(results?'history':'setup');
     document.title=results?'HyperSense AI · Interview results':'HyperSense AI · Interview practice';
 }
 function showResultsPage(id){
@@ -1268,7 +1277,7 @@ function showResultsPage(id){
 function showInterviewPage(){
     $('session-report').querySelectorAll('audio').forEach(player=>player.pause());
     if(location.pathname!=='/interview'||location.search)history.pushState({},'','/interview');
-    setPageView(false);message('Set up another interview or open a saved session below.');
+    setPageView(false);setWorkspace('interview');message('Interview workspace ready.');
     $('session-title').scrollIntoView({behavior:'smooth',block:'start'});
 }
 $('back-to-interview').onclick=showInterviewPage;
