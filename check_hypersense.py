@@ -33,7 +33,7 @@ class Checks(unittest.TestCase):
         parser=Markup();parser.feed(HTML)
         self.assertFalse(parser.stack)
         self.assertEqual(len(parser.ids),len(set(parser.ids)))
-        dynamic={'score-pending'}
+        dynamic={'score-pending','live-camera-dock'}
         for ident in re.findall(r"\$\('([^']+)'\)",JS): self.assertIn(ident,set(parser.ids)|dynamic)
     def test_javascript_syntax(self): self.node(JS,True)
     def test_backend_routes(self):
@@ -65,8 +65,12 @@ current={auto_flow:true};queueAutoRecording();current={auto_flow:true};await dra
     def test_results_navigation(self):
         code=JS[JS.index('function showCameraCheck('):JS.index("window.addEventListener('popstate'")]
         self.node('''const assert=require('node:assert/strict');const els={};const $=id=>els[id]??={hidden:false,focus(){},scrollIntoView(){},querySelectorAll(){return []}};const document={title:''};const window={scrollTo(){}};const location={pathname:'/interview',search:''};const history={pushState(a,b,p){const u=new URL(p,'http://test');location.pathname=u.pathname;location.search=u.search},replaceState(a,b,p){this.pushState(a,b,p)}};const message=()=>{};const refresh=()=>{};const pauseAutomation=()=>{};let interviewSession=null,opened=null;async function openSavedSession(id){opened=id;}
+let cameraStream=null,busy=false,recording=false;
+const cameraSection={insertBefore(child){child.parent='check';}};
+$('camera-title').closest=()=>cameraSection;
+$('live-camera-dock').appendChild=child=>{child.parent='interview';};
 '''+code+'''
-(async()=>{showResultsPage('saved');assert.equal(location.pathname,'/results');assert.equal($('interview-page').hidden,true);showInterviewPage();assert.equal(location.pathname,'/interview');history.pushState({},'','/results?session=saved');await restorePageRoute();assert.equal(opened,'saved');interviewSession={active:true};await restorePageRoute();assert.equal(location.pathname,'/interview');interviewSession=null;history.pushState({},'','/camera-check');await restorePageRoute();assert.equal($('camera-check-page').hidden,false);assert.equal($('interview-page').hidden,true);})().catch(e=>{console.error(e);process.exitCode=1;});
+(async()=>{showResultsPage('saved');assert.equal(location.pathname,'/results');assert.equal($('interview-page').hidden,true);showInterviewPage();assert.equal($('camera-preview').parent,'interview');assert.equal(location.pathname,'/interview');history.pushState({},'','/results?session=saved');await restorePageRoute();assert.equal(opened,'saved');interviewSession={active:true};await restorePageRoute();assert.equal(location.pathname,'/interview');interviewSession=null;history.pushState({},'','/camera-check');await restorePageRoute();assert.equal($('camera-preview').parent,'check');assert.equal($('camera-check-page').hidden,false);assert.equal($('interview-page').hidden,true);})().catch(e=>{console.error(e);process.exitCode=1;});
 ''')
 
 if __name__=='__main__': unittest.main(verbosity=2)

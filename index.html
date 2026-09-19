@@ -1246,6 +1246,7 @@ async function deleteSavedSession(id){
 $('retry-session-save').onclick=()=>{if(sessionSavePending&&!busy&&!recording&&!interviewSession?.active)saveFinishedSession(sessionSavePending);};
 
 function showCameraCheck(){
+    $('camera-title').closest('section').insertBefore($('camera-preview'),$('calibrate').parentElement);
     if(interviewSession?.active)pauseAutomation('Camera check open. Return to the interview to continue manually.');
     if(location.pathname!=='/camera-check')history.pushState({},'','/camera-check');
     $('interview-page').hidden=true;$('interview-intro').hidden=true;$('results-page').hidden=true;setWorkspace('setup');
@@ -1259,6 +1260,10 @@ function setWorkspace(space){
     if(setup?.style)setup.style.display=space==='setup'?'block':'none';
     if(interview?.style)interview.style.display=space==='interview'?'block':'none';
     if(history)history.style.display=space==='history'?'block':'none';
+    if(space==='interview'){
+        $('live-camera-dock').appendChild($('camera-preview'));
+        if(cameraStream)$('camera-video').play().catch(()=>cameraMessage('Click Camera check to resume the preview.'));
+    }
 }
 function setPageView(results){
     $('camera-check-page').hidden=true;
@@ -1280,7 +1285,14 @@ function showInterviewPage(){
     setPageView(false);setWorkspace('interview');message('Interview workspace ready.');
     $('session-title').scrollIntoView({behavior:'smooth',block:'start'});
 }
-$('back-to-interview').onclick=showInterviewPage;
+function showSetupPage(){
+    if(interviewSession?.active){showInterviewPage();return;}
+    if(location.pathname!=='/interview'||location.search)history.pushState({},'','/interview');
+    setPageView(false);message('Set up your next interview.');
+    $('session-title').scrollIntoView({behavior:'smooth',block:'start'});
+}
+$('back-to-interview').onclick=showSetupPage;
+$('camera-check-back').onclick=()=>{if(!busy&&!recording)showSetupPage();};
 async function restorePageRoute(){
     if(location.pathname==='/camera-check'){showCameraCheck();return;}
     if(location.pathname!=='/results'){setPageView(false);return;}
@@ -1293,6 +1305,12 @@ async function restorePageRoute(){
 }
 window.addEventListener('popstate',restorePageRoute);
 
+const liveCameraDock=document.createElement('section');
+liveCameraDock.id='live-camera-dock';liveCameraDock.className='card';
+const liveCameraTitle=document.createElement('h2');liveCameraTitle.textContent='Live camera';
+liveCameraDock.appendChild(liveCameraTitle);
+liveCameraDock.appendChild($('open-camera-check'));
+$('interview-workspace').prepend(liveCameraDock);
 renderHistory();
 refresh();
 renderSavedSessions();
