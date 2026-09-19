@@ -77,6 +77,19 @@ for(let i=0;i<4;i++)updatePose(r,1);assert.equal(neutralRotation,null);updatePos
 updatePose(null,0);assert.deepEqual(neutralRotation,r);
 })().catch(e=>{console.error(e);process.exitCode=1;});
 ''')
+    def test_question_formatting(self):
+        code=JS[JS.index('function renderQuestion('):JS.index('let microphoneReadyTimer=')]
+        self.node('''const assert=require('node:assert/strict');
+class Element{constructor(tag){this.tag=tag;this.children=[];this.textContent='';}appendChild(x){this.children.push(x);}replaceChildren(){this.children=[];}}
+const root=new Element('div');const $=()=>root;const document={createElement:t=>new Element(t),createTextNode:t=>({tag:'#text',textContent:t})};
+'''+code+'''
+renderQuestion('Compare `get()` with **indexing**.\\n\\n```python\\nif ready:\\n    run()\\n```\\n\\n<img src=x onerror=alert(1)>');
+assert.equal(root.children[0].tag,'p');assert.equal(root.children[1].tag,'pre');
+assert.equal(root.children[1].children[0].textContent,'if ready:\\n    run()');
+assert(root.children[0].children.some(x=>x.tag==='code'&&x.textContent==='get()'));
+assert.equal(root.children[2].children[0].tag,'#text');
+renderQuestion('Next question');assert.equal(root.children.length,1);
+''')
     def test_results_navigation(self):
         code=JS[JS.index('function showCameraCheck('):JS.index("window.addEventListener('popstate'")]
         self.node('''const assert=require('node:assert/strict');const els={};const $=id=>els[id]??={hidden:false,focus(){},scrollIntoView(){},querySelectorAll(){return []}};const document={title:''};const window={scrollTo(){}};const location={pathname:'/interview',search:''};const history={pushState(a,b,p){const u=new URL(p,'http://test');location.pathname=u.pathname;location.search=u.search},replaceState(a,b,p){this.pushState(a,b,p)}};const message=()=>{};const refresh=()=>{};const pauseAutomation=()=>{};let interviewSession=null,opened=null;async function openSavedSession(id){opened=id;}

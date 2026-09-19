@@ -20,6 +20,19 @@
 #live-camera-dock .camera-preview canvas{object-fit:contain}
 #live-camera-dock #open-camera-check{width:100%;font-size:13px;padding:8px 12px}
 @media(max-width:780px){.question-camera-row{grid-template-columns:1fr}.question-camera-row #live-camera-dock{width:100%;max-width:320px;justify-self:end}}
+main,.layout,.layout>div,#interview-page,#interview-workspace{min-width:0;max-width:100%}
+.question-camera-row{grid-template-columns:minmax(0,1fr) minmax(0,240px);gap:18px;width:100%;min-width:0}
+.question-camera-row>.card{overflow:hidden}
+#question{font-size:17px;line-height:1.65;white-space:normal;overflow-wrap:anywhere;margin:18px 0}
+#question p{margin:0 0 14px}
+#question code{font-family:ui-monospace,Consolas,monospace;font-size:.9em;background:#1d3049;color:#9bedd7;padding:2px 5px;border-radius:4px}
+#question pre{max-width:100%;overflow:auto;margin:14px 0;padding:16px;background:#080f1d;border:1px solid #2b3d55;border-radius:10px;white-space:pre;line-height:1.5;overflow-wrap:normal}
+#question pre code{padding:0;background:none;color:#dce8fb;font-size:14px}
+.question-camera-row .actions{margin-top:10px;gap:8px}
+.question-camera-row .actions button{font-size:13px;padding:8px 12px}
+#speech-status{font-size:13px;color:var(--muted);margin:12px 0}
+#context{display:block;padding-top:12px;border-top:1px solid var(--line);font-size:12px}
+@media(max-width:900px){.question-camera-row{grid-template-columns:minmax(0,1fr)}.question-camera-row #live-camera-dock{width:100%;max-width:280px;justify-self:start}}
 </style></head><body>
 <header><strong>HYPERSENSE AI</strong><span>Interview practice</span></header>
 <main><div class="intro" id="interview-intro"><div class="eyebrow">Practice with purpose</div><h1>Your next interview starts here.</h1><p class="muted">Choose a topic, record your answer, and review your feedback.</p></div>
@@ -74,7 +87,7 @@
 <div class="layout interview-workspace" id="interview-workspace">
 <div><section class="card"><div class="eyebrow">01 · Question</div><div class="actions"><button id="replay-question" disabled>Replay question</button><button id="stop-speaking" disabled>Stop speaking / start answering</button></div>
 <p id="speech-status" role="status">The question will be read aloud before your answer timer starts.</p>
-<p id="question">Your interview question will appear here.</p><small id="context"></small></section>
+<div id="question">Your interview question will appear here.</div><small id="context"></small></section>
 <section class="card"><div class="row"><h2>02 · Your answer</h2><output id="timer" aria-label="Time remaining">01:00</output></div>
 <label for="spoken">Spoken language</label><select id="spoken"><option value="auto">Auto-detect / mixed language</option><option value="en">English</option><option value="hi">Hindi</option></select>
 <p id="automation-status" role="status"></p><button id="pause-automation" type="button">Pause automation</button>
@@ -150,6 +163,29 @@
 </section></main>
 <script>
 const $=id=>document.getElementById(id);
+function renderQuestion(text){
+    const target=$('question');target.replaceChildren();
+    const lines=String(text||'').replace(/\r\n/g,'\n').split('\n');
+    let fence=null,code=[],paragraph=[];
+    const inline=(parent,value)=>{
+        const pattern=/(`+)([^`]+)\1|\*\*([^*]+)\*\*/g;let last=0,match;
+        while((match=pattern.exec(value))){
+            parent.appendChild(document.createTextNode(value.slice(last,match.index)));
+            const node=document.createElement(match[3]?'strong':'code');node.textContent=match[3]||match[2];parent.appendChild(node);last=pattern.lastIndex;
+        }
+        parent.appendChild(document.createTextNode(value.slice(last)));
+    };
+    const flush=()=>{if(!paragraph.length)return;const p=document.createElement('p');inline(p,paragraph.join(' '));target.appendChild(p);paragraph=[];};
+    const flushCode=()=>{const pre=document.createElement('pre'),node=document.createElement('code');node.textContent=code.join('\n');pre.appendChild(node);target.appendChild(pre);code=[];};
+    for(const line of lines){
+        const marker=line.match(/^\s*(`{3,}|~{3,})(.*)$/);
+        if(fence){if(marker&&marker[1][0]===fence[0]&&marker[1].length>=fence.length&&!marker[2].trim()){flushCode();fence=null;}else code.push(line);continue;}
+        if(marker){flush();fence=marker[1];continue;}
+        if(!line.trim()){flush();continue;}
+        paragraph.push(line.trim());
+    }
+    if(fence)flushCode();flush();
+}
 let microphoneReadyTimer=null;
 let interviewSession=null, sessionEvaluation=null;
 let current=null,busy=false,recording=false,media=null,stream=null,blob=null,filename='',playUrl='',ticker=null,deadline=0;
@@ -449,7 +485,7 @@ $('use-manual').onclick=()=>{
     const question=$('manual-question').value.trim();
     if(!question){message('Enter a practice question first.',true);return;}
     current={...concreteSettings(interviewSettings()),question};
-    $('question').textContent=question;
+    renderQuestion(question);
     $('question').lang=current.language==='Hindi'?'hi':'en';
     $('context').textContent=modeName(current.interview_type)+' · '+current.technology+' · Manual practice question';
     $('spoken').value=current.language==='Hindi'?'hi':current.language==='English'?'en':'auto';
@@ -590,7 +626,7 @@ async function loadSessionQuestion(){
     }
     sessionEvaluation=null;
     current={...settings,question};session.loaded=true;
-    $('question').textContent=question;$('question').lang=settings.language==='Hindi'?'hi':'en';
+    renderQuestion(question);$('question').lang=settings.language==='Hindi'?'hi':'en';
     $('context').textContent=[modeName(settings.interview_type),settings.technology,settings.difficulty,settings.language].join(' · ');
     $('spoken').value=settings.language==='Hindi'?'hi':settings.language==='English'?'en':'auto';
     clearAudio();$('transcript').value='';$('result').hidden=true;
@@ -832,7 +868,7 @@ function setAudio(data,name){
 }
 async function api(path,body,isForm=false){const response=await fetch(path,{method:'POST',headers:isForm?{}:{'Content-Type':'application/json'},body:isForm?body:JSON.stringify(body)});const text=await response.text();let data;try{data=JSON.parse(text);}catch{throw Error('Server returned '+response.status+'. Check the backend terminal.');}if(!response.ok){let detail=data.detail;throw Error(typeof detail==='string'?detail:JSON.stringify(detail||data));}return data;}
 async function run(task){if(busy)return;busy=true;refresh();try{await task();}catch(err){pauseAutomation('Automatic flow paused: '+(err.message||'The request failed.'));message(err.message||'The request failed.',true);}finally{busy=false;refresh();}}
-$('generate').onclick=()=>run(async()=>{const technology=$('technology').value.trim();if(!technology)throw Error('Enter a technology first.');message('Generating your question…');const settings=concreteSettings(interviewSettings());const data=await api('/generate-question',{...settings,recent_questions:recentQuestionsFor(technology)});if(!data.question)throw Error('No question returned.');rememberQuestion(technology,data.question);current={...settings,question:data.question};$('question').textContent=current.question;$('context').textContent=[modeName(settings.interview_type),technology,settings.difficulty,settings.language].join(' · ');$('question').lang=settings.language==='Hindi'?'hi':'en';$('spoken').value=settings.language==='Hindi'?'hi':settings.language==='English'?'en':'auto';clearAudio();$('transcript').value='';$('result').hidden=true;beginQuestionReadout();});
+$('generate').onclick=()=>run(async()=>{const technology=$('technology').value.trim();if(!technology)throw Error('Enter a technology first.');message('Generating your question…');const settings=concreteSettings(interviewSettings());const data=await api('/generate-question',{...settings,recent_questions:recentQuestionsFor(technology)});if(!data.question)throw Error('No question returned.');rememberQuestion(technology,data.question);current={...settings,question:data.question};renderQuestion(current.question);$('context').textContent=[modeName(settings.interview_type),technology,settings.difficulty,settings.language].join(' · ');$('question').lang=settings.language==='Hindi'?'hi':'en';$('spoken').value=settings.language==='Hindi'?'hi':settings.language==='English'?'en':'auto';clearAudio();$('transcript').value='';$('result').hidden=true;beginQuestionReadout();});
 $('duration').onchange=()=>{if(!current)clock(Number($('duration').value));};
 $('transcript').oninput=()=>{pauseAutomation('Transcript editing: submit when ready.');$('result').hidden=true;refresh();};
 $('record').onclick=async()=>{
