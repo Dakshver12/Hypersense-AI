@@ -722,6 +722,7 @@ function renderInterviewDelivery(parent,answers){
 function finishInterviewSession(restored=false){
     cancelAutomation();
     interviewSession.active=false;
+    stopCamera('Session ended. Camera is off.');
     cancelQuestionSpeech(false);clearInterval(ticker);ticker=null;current=null;
     const answers=interviewSession.answers;
     const scored=answers.filter(a=>a.score!==null);
