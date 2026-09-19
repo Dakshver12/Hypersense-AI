@@ -11,6 +11,15 @@
 .camera-preview canvas{position:absolute;inset:0;width:100%;height:100%;transform:scaleX(-1);pointer-events:none}
 #camera-status{font-size:14px;color:var(--muted);margin-top:14px;white-space:pre-wrap}
 .download-button{display:inline-block;padding:11px 18px;border:1px solid var(--accent);border-radius:9px;color:var(--accent);font-weight:650;text-decoration:none}.download-button:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+.question-camera-row{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:20px;align-items:start;margin-bottom:20px}
+.question-camera-row>.card{margin-bottom:0;min-width:0}
+#live-camera-dock{padding:16px}
+#live-camera-dock h2{font-size:15px;margin:0 0 12px}
+#live-camera-dock .camera-preview{margin:0 0 12px;aspect-ratio:4/3}
+#live-camera-dock .camera-preview video{width:100%;height:100%;object-fit:contain;background:#070d18}
+#live-camera-dock .camera-preview canvas{object-fit:contain}
+#live-camera-dock #open-camera-check{width:100%;font-size:13px;padding:8px 12px}
+@media(max-width:780px){.question-camera-row{grid-template-columns:1fr}.question-camera-row #live-camera-dock{width:100%;max-width:320px;justify-self:end}}
 </style></head><body>
 <header><strong>HYPERSENSE AI</strong><span>Interview practice</span></header>
 <main><div class="intro" id="interview-intro"><div class="eyebrow">Practice with purpose</div><h1>Your next interview starts here.</h1><p class="muted">Choose a topic, record your answer, and review your feedback.</p></div>
@@ -45,7 +54,9 @@
 <textarea id="session-questions" placeholder="Paste your first question here.&#10;---&#10;Paste your second question here."></textarea>
 <small>Review each transcript, then submit to advance automatically. Feedback appears after the session ends. Each submitted recording stays available in the final report. Download recordings before refreshing or starting another session.</small>
 
-<div class="actions"><button class="primary" id="session-start">Continue to camera check</button><button id="session-next" hidden>Next question</button><button id="session-end" hidden>End session</button></div>
+<label for="camera-consent" style="display:flex;align-items:flex-start;gap:12px;color:#edf3ff"><input type="checkbox" id="camera-consent" style="width:auto;margin-top:6px;flex-shrink:0" aria-describedby="camera-consent-help">I agree to use my camera during this interview for face detection and head-movement observations.</label>
+<small id="camera-consent-help">Required to continue. Sampled frames are processed by your local backend and are not saved. Camera setup and calibration run automatically after you continue. You can turn the camera off at any time.</small>
+<div class="actions"><button class="primary" id="session-start" disabled>Continue to camera check</button><button id="session-next" hidden>Next question</button><button id="session-end" hidden>End session</button></div>
 <button id="open-camera-check" type="button">Camera check</button>
 <p id="session-progress" role="status">No active session.</p>
 <small>Completed sessions, reviewed answers and recordings are saved in this browser. Wait for the saved confirmation before leaving. Clearing browser data removes them; unfinished sessions are not restored. Answer scoring uses provider quota; you can continue without scoring.</small>
@@ -114,13 +125,13 @@
 
 <div id="saved-session-list"></div></section></div>
 <section id="camera-check-page" hidden aria-labelledby="camera-check-title">
-<h1 id="camera-check-title" tabindex="-1">Check your camera</h1><p>Enable your camera, keep one face in view, then calibrate your neutral position. Your camera stays on when you continue.</p>
+<h1 id="camera-check-title" tabindex="-1">Check your camera</h1><p>Allow browser camera access if prompted, then look toward the camera and hold still. Calibration starts automatically when one face is detected. Your camera stays on when you continue.</p>
 <section class="session-camera" aria-labelledby="camera-title">
 <div class="row"><h3 id="camera-title">Session camera</h3><span class="muted">Required</span></div>
 <small>Enable the camera and calibrate your neutral position before starting a session. Sampled images go only to your local backend and are not saved. Detection does not measure emotion or confidence.</small>
-<div class="actions"><button id="camera-on">Enable camera</button><button id="camera-off" disabled>Turn camera off</button><button id="retry-detection" hidden>Retry face detection</button></div>
+<div class="actions"><button id="camera-on">Allow camera / retry</button><button id="camera-off" disabled>Turn camera off</button><button id="retry-detection" hidden>Retry face detection</button></div>
 <div class="camera-preview" id="camera-preview" hidden><video id="camera-video" autoplay muted playsinline></video><canvas id="face-overlay" aria-hidden="true"></canvas></div>
-<div class="actions"><button id="calibrate" disabled>Calibrate neutral position</button></div>
+<div class="actions"><button id="calibrate" disabled>Recalibrate if needed</button></div>
 <p id="pose-status" role="status" aria-live="polite">Enable the camera, then look toward it and calibrate.</p>
 <div class="row" style="flex-wrap:wrap"><span>Turn: <strong id="yaw">—</strong></span><span>Nod: <strong id="pitch">—</strong></span><span>Tilt: <strong id="roll">—</strong></span></div>
 <small>Approximate rotation from your calibrated position. These measurements are not eye contact or a confidence score. Your camera and calibration stay active between questions until you turn the camera off or leave this page. Recalibrate if you move your camera or seat.</small>
@@ -520,7 +531,7 @@ function refreshSession(){
     $('evaluate').textContent=active?'Submit answer & continue':'Submit for feedback';
     for(const id of ['session-count','session-source','session-questions','session-start'])
         $(id).disabled=busy||recording||active;
-    $('session-start').disabled=busy||recording||active;
+    $('session-start').disabled=busy||recording||active||!$('camera-consent').checked;
     $('camera-check-continue').disabled=busy||recording||!cameraReady();
     $('camera-check-continue').textContent=active?'Return to interview':'Start interview';
     $('camera-check-back').disabled=busy||recording;
@@ -738,6 +749,7 @@ async function startCheckedSession(){
 }
 $('session-start').onclick=()=>{
     if(busy||recording||interviewSession?.active)return;
+    if(!$('camera-consent').checked){message('Check the camera consent box before continuing.',true);return;}
     const total=Number($('session-count').value);
     const questions=$('session-questions').value.split(/^\s*---\s*$/m).map(q=>q.trim()).filter(Boolean);
     if($('session-source').value==='manual'&&(questions.length!==total||questions.some(q=>q.length>2000))){message(`Paste exactly ${total} valid questions separated by ---.`,true);return;}
@@ -922,6 +934,7 @@ const frameCanvas = document.createElement('canvas');
 
 function cameraMessage(text) {
     if ($('camera-status').textContent !== text) $('camera-status').textContent = text;
+    if(location.pathname==='/camera-check')message(text);
 }
 function clearFaceBoxes() {
     const canvas = $('face-overlay');
@@ -944,7 +957,7 @@ function stopCamera(text = 'Camera is required. Enable it and calibrate before s
     $('camera-on').disabled = false;
     $('camera-off').disabled = true;
     cameraMessage(text);
-    if(interviewSession?.active){pauseAutomation('Camera disconnected or turned off. Re-enable and calibrate before continuing. Your answer is preserved.');if(recording)stopRecording();showCameraCheck();}
+    if(interviewSession?.active){pauseAutomation('Camera disconnected or turned off. Use Allow camera / retry to continue. Your answer is preserved.');if(recording)stopRecording();showCameraCheck(false);}
     refresh();
 }
 async function detectCameraFrame(session) {
@@ -956,6 +969,8 @@ async function detectCameraFrame(session) {
     }
     const video = $('camera-video');
     if (!video.videoWidth || video.readyState < 2) {
+        cameraMessage('Waiting for camera video frames. If the preview stays black, click Allow camera / retry.');
+        if(video.paused)video.play().catch(()=>cameraMessage('Video playback is blocked. Click Allow camera / retry.'));
         faceTimeout = setTimeout(() => detectCameraFrame(session), 800);
         return;
     }
@@ -964,6 +979,7 @@ async function detectCameraFrame(session) {
     let retryDelay=1000;
     const reportEpoch=deliveryEpoch;
     try {
+        cameraMessage('Camera frames available. Waiting for face detection from the backend…');
         const scale = Math.min(1, 640 / Math.max(video.videoWidth, video.videoHeight));
         frameCanvas.width = Math.round(video.videoWidth * scale);
         frameCanvas.height = Math.round(video.videoHeight * scale);
@@ -1021,7 +1037,23 @@ async function detectCameraFrame(session) {
     }
 }
 $('camera-on').onclick = async () => {
-    if (cameraStream || cameraStarting) return;
+    if (cameraStarting) return;
+    if(cameraStream){
+        const video=$('camera-video');
+        cameraMessage('Resuming camera preview and retrying face detection…');
+        video.srcObject=cameraStream;
+        video.play().catch(()=>cameraMessage('Could not resume the preview. Turn the camera off, then retry.'));
+        clearTimeout(faceTimeout);
+        detectionFailures=0;
+        $('retry-detection').hidden=false;
+        if(!frameBusy)detectCameraFrame(cameraSession);
+        else cameraMessage('A detection request is still running. It will time out after 30 seconds if the backend does not respond.');
+        return;
+    }
+    if(!$('camera-consent').checked){
+        cameraMessage('Camera stays off. Return to setup and check the camera consent box first.');
+        return;
+    }
     cameraStarting = true;
     const session = ++cameraSession;
     $('camera-on').disabled = true;
@@ -1040,7 +1072,10 @@ $('camera-on').onclick = async () => {
         };
         $('camera-video').srcObject = acquired;
         $('camera-preview').hidden = false;
-        await $('camera-video').play();
+        // Do not let a pending play() promise prevent the detection loop starting.
+        $('camera-video').play().catch(err=>{
+            if(session===cameraSession)cameraMessage('Camera playback could not start: '+err.message+'. Click Allow camera / retry.');
+        });
         if (session !== cameraSession) return;
         cameraMessage('Camera is on. Checking face detection…');
         detectCameraFrame(session);
@@ -1050,10 +1085,14 @@ $('camera-on').onclick = async () => {
             'Camera permission denied. Allow access in the browser and try again.' :
             'Could not start camera: ' + err.message);
     } finally {
-        if (session === cameraSession) cameraStarting = false;
+        if (session === cameraSession){cameraStarting = false;$('camera-on').disabled=false;}
     }
 };
 $('camera-off').onclick = () => stopCamera();
+$('camera-consent').onchange=()=>{
+    if(!$('camera-consent').checked&&(cameraStream||cameraStarting))stopCamera('Camera consent withdrawn. Camera is off.');
+    refresh();
+};
 $('retry-detection').onclick = () => {
     if(!cameraStream || frameBusy)return;
     clearTimeout(faceTimeout);
@@ -1085,6 +1124,9 @@ function updatePose(rotation, count) {
     const valid=count===1 && Array.isArray(rotation) && rotation.length===3 &&
         rotation.every(row=>Array.isArray(row)&&row.length===3&&row.every(Number.isFinite));
     latestRotation=valid?rotation:null;
+    if(valid && cameraStream && !neutralRotation && !calibrating){
+        calibrating=true;calibrationSamples=[];
+    }
     $('calibrate').disabled=!valid||calibrating;
     if(!valid) {
         for(const id of ['yaw','pitch','roll']) $(id).textContent='—';
@@ -1245,13 +1287,14 @@ async function deleteSavedSession(id){
 }
 $('retry-session-save').onclick=()=>{if(sessionSavePending&&!busy&&!recording&&!interviewSession?.active)saveFinishedSession(sessionSavePending);};
 
-function showCameraCheck(){
+function showCameraCheck(offerPermission=true){
     $('camera-title').closest('section').insertBefore($('camera-preview'),$('calibrate').parentElement);
     if(interviewSession?.active)pauseAutomation('Camera check open. Return to the interview to continue manually.');
     if(location.pathname!=='/camera-check')history.pushState({},'','/camera-check');
     $('interview-page').hidden=true;$('interview-intro').hidden=true;$('results-page').hidden=true;setWorkspace('setup');
     $('camera-check-page').hidden=false;document.title='HyperSense AI · Camera check';
     refresh();$('camera-check-title').focus();window.scrollTo({top:0,behavior:'smooth'});
+    if(offerPermission)$('camera-on').onclick();
 }
 function setWorkspace(space){
     const setup=$('session-setup');
@@ -1262,6 +1305,7 @@ function setWorkspace(space){
     if(history)history.style.display=space==='history'?'block':'none';
     if(space==='interview'){
         $('live-camera-dock').appendChild($('camera-preview'));
+        $('live-camera-dock').appendChild($('open-camera-check'));
         if(cameraStream)$('camera-video').play().catch(()=>cameraMessage('Click Camera check to resume the preview.'));
     }
 }
@@ -1310,7 +1354,11 @@ liveCameraDock.id='live-camera-dock';liveCameraDock.className='card';
 const liveCameraTitle=document.createElement('h2');liveCameraTitle.textContent='Live camera';
 liveCameraDock.appendChild(liveCameraTitle);
 liveCameraDock.appendChild($('open-camera-check'));
-$('interview-workspace').prepend(liveCameraDock);
+const questionCard=$('question').closest('section');
+const questionCameraRow=document.createElement('div');questionCameraRow.className='question-camera-row';
+questionCard.before(questionCameraRow);
+questionCameraRow.appendChild(questionCard);
+questionCameraRow.appendChild(liveCameraDock);
 renderHistory();
 refresh();
 renderSavedSessions();
