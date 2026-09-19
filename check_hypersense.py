@@ -62,10 +62,26 @@ fail=false;automationPaused=false;current={auto_flow:false};await autoProcessRec
 current={auto_flow:true};queueAutoRecording();current={auto_flow:true};await drain();assert.equal(starts,1);
 })().catch(e=>{console.error(e);process.exitCode=1;});
 ''')
+    def test_camera_permission_and_calibration(self):
+        start=JS.index("$('camera-on').onclick = async () => {")
+        end=JS.index("$('camera-off').onclick",start)
+        pose=JS[JS.index('function updatePose('):JS.index("$('calibrate').onclick=")]
+        self.node('''const assert=require('node:assert/strict');const els={};const $=id=>els[id]??={textContent:'',disabled:false,play:async()=>{}};
+let cameraStream=null,cameraStarting=false,cameraSession=0,neutralRotation=null,latestRotation=null,calibrating=false,calibrationSamples=[],calls=0,consent=false;
+const window={confirm:()=>consent};const cameraMessage=()=>{};const refresh=()=>{};const detectCameraFrame=()=>{};const relativeAngles=()=>({total:0,yaw:0,pitch:0,roll:0});
+const navigator={mediaDevices:{getUserMedia:async()=>{calls++;return {getVideoTracks:()=>[],getTracks:()=>[]};}}};const stopCamera=()=>{};
+'''+JS[start:end]+pose+'''
+(async()=>{await $('camera-on').onclick();assert.equal(calls,0);$('camera-consent').checked=true;await $('camera-on').onclick();assert.equal(calls,1);
+const r=[[1,0,0],[0,1,0],[0,0,1]];updatePose(r,2);assert.equal(neutralRotation,null);
+for(let i=0;i<4;i++)updatePose(r,1);assert.equal(neutralRotation,null);updatePose(r,1);assert.deepEqual(neutralRotation,r);assert.equal(calibrating,false);
+updatePose(null,0);assert.deepEqual(neutralRotation,r);
+})().catch(e=>{console.error(e);process.exitCode=1;});
+''')
     def test_results_navigation(self):
         code=JS[JS.index('function showCameraCheck('):JS.index("window.addEventListener('popstate'")]
         self.node('''const assert=require('node:assert/strict');const els={};const $=id=>els[id]??={hidden:false,focus(){},scrollIntoView(){},querySelectorAll(){return []}};const document={title:''};const window={scrollTo(){}};const location={pathname:'/interview',search:''};const history={pushState(a,b,p){const u=new URL(p,'http://test');location.pathname=u.pathname;location.search=u.search},replaceState(a,b,p){this.pushState(a,b,p)}};const message=()=>{};const refresh=()=>{};const pauseAutomation=()=>{};let interviewSession=null,opened=null;async function openSavedSession(id){opened=id;}
 let cameraStream=null,busy=false,recording=false;
+$('camera-on').onclick=()=>{};
 const cameraSection={insertBefore(child){child.parent='check';}};
 $('camera-title').closest=()=>cameraSection;
 $('live-camera-dock').appendChild=child=>{child.parent='interview';};
