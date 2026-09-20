@@ -33,6 +33,11 @@ const w=dom.window,$=id=>w.document.getElementById(id),evaluate=code=>w.eval(cod
 const waitFor=async fn=>{for(let i=0;i<100;i++){if(fn())return;await new Promise(r=>setTimeout(r,10));}throw Error('UI condition timed out');};
 (async()=>{
     await waitFor(()=>$('saved-session-list').textContent.includes('No completed'));
+    assert.equal($('nav-practice').getAttribute('aria-current'),'page');
+    $('session-questions').value='Keep my questions';$('session-source').value='gemini';$('session-source').dispatchEvent(new w.Event('change'));
+    assert.equal($('manual-question-fields').hidden,true);
+    $('session-source').value='manual';$('session-source').dispatchEvent(new w.Event('change'));
+    assert.equal($('manual-question-fields').hidden,false);assert.equal($('session-questions').value,'Keep my questions');
     await $('camera-on').onclick();assert.equal(evaluate('state.cameraStream'),null);
     evaluate(`cameraStream={getVideoTracks:()=>[{readyState:'live',enabled:true}],getTracks:()=>[{stop(){}}]};`);
     evaluate('updatePose([[1,0,0],[0,1,0],[0,0,1]],2)');assert.equal(evaluate('state.neutralRotation'),null);

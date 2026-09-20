@@ -82,6 +82,11 @@ export function evaluationContext(settings) {
   };
 }
 export function initSetup() {
+  const updateQuestionSource = () => {
+    $("manual-question-fields").hidden = $("session-source").value !== "manual";
+  };
+  $("session-source").addEventListener("change", updateQuestionSource);
+  updateQuestionSource();
   $("resume-text").addEventListener("input", resumeStatus);
   $("resume-file").onchange = () =>
     run(async () => {

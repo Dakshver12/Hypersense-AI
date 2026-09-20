@@ -222,6 +222,8 @@ export function showDashboard() {
   $("dashboard-page").hidden = false;
   if (location.pathname + location.search !== "/interview?view=dashboard")
     history.pushState({}, "", "/interview?view=dashboard");
+  $("nav-practice").removeAttribute("aria-current");
+  $("nav-dashboard").setAttribute("aria-current", "page");
   document.title = "HyperSense AI · Dashboard";
   message("Your saved interview progress.");
   renderDashboard();

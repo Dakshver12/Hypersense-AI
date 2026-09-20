@@ -1,186 +1,252 @@
 <section class="card" id="session-setup" aria-labelledby="session-title">
-  <h2 id="session-title">Set up your interview session</h2>
-  <p class="muted">Choose your interview preferences, then start your session.</p>
-  <div class="setup-grid">
-    <div class="setup-field">
-      <label for="interview-type">Interview type</label
-      ><select id="interview-type">
-        <option value="technical">Technical</option>
-        <option value="behavioral">Behavioral</option>
-        <option value="hr">HR</option>
-        <option value="mixed">Mixed</option>
-      </select>
+  <div class="setup-heading">
+    <div>
+      <span class="eyebrow">NEW PRACTICE SESSION</span>
+      <h1 id="session-title">Make your next interview count.</h1>
+      <p class="muted">Choose your focus. We’ll guide you through the rest.</p>
     </div>
-    <div class="setup-field">
-      <label for="target-role">Target role (optional)</label
-      ><input id="target-role" maxlength="160" placeholder="e.g. Machine Learning Intern" />
-    </div>
-    <div class="setup-field setup-wide">
-      <label for="job-description">Job description (optional)</label
-      ><textarea
-        id="job-description"
-        maxlength="4000"
-        placeholder="Paste relevant role requirements"
-      ></textarea>
-    </div>
-    <small class="setup-wide"
-      >Mixed sessions rotate Technical → Behavioral → HR. For manual mixed sessions, paste questions
-      in that order. Behavioral and HR scores assess answer quality, not technical accuracy.</small
-    >
-    <div class="setup-field">
-      <label for="technology">Technology / subject</label
-      ><input id="technology" value="Python" maxlength="80" />
-    </div>
-    <div class="setup-field">
-      <label for="difficulty">Difficulty</label
-      ><select id="difficulty">
-        <option value="easy">Easy</option>
-        <option value="medium">Medium</option>
-        <option value="hard">Hard</option>
-      </select>
-    </div>
-    <div class="setup-field">
-      <label for="language">Question & feedback language</label
-      ><select id="language">
-        <option>English</option>
-        <option>Hindi</option>
-        <option>Hinglish</option>
-      </select>
-    </div>
-    <div class="setup-field">
-      <label for="duration">Answer time</label
-      ><select id="duration">
-        <option value="30">30 seconds</option>
-        <option value="60" selected>60 seconds</option>
-        <option value="90">90 seconds</option>
-      </select>
-    </div>
+    <span class="step-pill">Step 1 of 3</span>
   </div>
-  <label for="auto-flow">Answer workflow</label
-  ><select id="auto-flow">
-    <option value="auto">Automatic — record, transcribe and submit</option>
-    <option value="manual">Manual — review before submitting</option>
-  </select>
-  <small
-    >Automatic mode starts the microphone after question readout. When recording stops, it
-    transcribes and submits after an 8-second correction window. Use Pause automation to review or
-    correct an answer. Recognition errors can affect scores.</small
-  >
-  <fieldset class="resume-setup">
-    <legend>Candidate profile &amp; résumé (optional)</legend>
-    <p class="muted">
-      Use your skills, projects and experience to personalise generated questions.
-    </p>
-    <label for="candidate-level">Experience level</label
-    ><select id="candidate-level">
-      <option value="unspecified">Not specified</option>
-      <option value="student">Student / learning</option>
-      <option value="entry">Entry-level / fresher</option>
-      <option value="experienced">Experienced professional</option>
-      <option value="senior">Senior / lead</option>
-    </select>
-    <small
-      >Your selected level guides question depth together with difficulty. It is not a verified
-      skill assessment.</small
-    >
-    <label for="resume-file">Import résumé text (.txt, up to 64 KB)</label
-    ><input id="resume-file" type="file" accept=".txt,text/plain" aria-describedby="resume-help" />
-    <label for="resume-text">Résumé content</label
-    ><textarea
-      id="resume-text"
-      maxlength="12000"
-      placeholder="Paste relevant skills, education, projects, internships and work experience. For a PDF or Word résumé, copy its text here."
-    ></textarea>
-    <p id="resume-status" role="status">No résumé added. You can still start a session.</p>
-    <button type="button" id="clear-resume">Clear résumé</button>
-    <p id="resume-help">
+  <ol class="setup-steps" aria-label="Session steps">
+    <li aria-current="step"><b>1</b> Configure session</li>
+    <li><b>2</b> Check camera</li>
+    <li><b>3</b> Start interview</li>
+  </ol>
+  <div class="setup-columns">
+    <div class="setup-form">
+      <div class="section-heading">
+        <span>01</span>
+        <h2>Your interview</h2>
+      </div>
+      <div class="setup-grid">
+        <div class="setup-field">
+          <label for="interview-type">Interview type</label
+          ><select id="interview-type">
+            <option value="technical">Technical</option>
+            <option value="behavioral">Behavioral</option>
+            <option value="hr">HR</option>
+            <option value="mixed">Mixed</option>
+          </select>
+        </div>
+        <div class="setup-field">
+          <label for="technology">Technology / subject</label
+          ><input id="technology" value="Python" maxlength="80" />
+        </div>
+        <div class="setup-field">
+          <label for="difficulty">Difficulty</label
+          ><select id="difficulty">
+            <option value="easy">Easy</option>
+            <option value="medium">Medium</option>
+            <option value="hard">Hard</option>
+          </select>
+        </div>
+        <div class="setup-field">
+          <label for="language">Question & feedback language</label
+          ><select id="language">
+            <option>English</option>
+            <option>Hindi</option>
+            <option>Hinglish</option>
+          </select>
+        </div>
+        <div class="setup-field">
+          <label for="duration">Answer time</label
+          ><select id="duration">
+            <option value="30">30 seconds</option>
+            <option value="60" selected>60 seconds</option>
+            <option value="90">90 seconds</option>
+          </select>
+        </div>
+      <div class="setup-field">
+          <label for="session-count">Questions</label
+          ><select id="session-count">
+            <option value="5">5 questions</option>
+            <option value="10">10 questions</option>
+          </select>
+        </div>
+</div>
+      <details class="setup-disclosure">
+        <summary>Personalise with your role &amp; résumé <span>Optional</span></summary>
+        <div class="setup-field">
+          <label for="target-role">Target role (optional)</label
+          ><input id="target-role" maxlength="160" placeholder="e.g. Machine Learning Intern" />
+        </div>
+        <div class="setup-field setup-wide">
+          <label for="job-description">Job description (optional)</label
+          ><textarea
+            id="job-description"
+            maxlength="4000"
+            placeholder="Paste relevant role requirements"
+          ></textarea>
+        </div>
+        <small class="setup-wide"
+          >Mixed sessions rotate Technical → Behavioral → HR. For manual mixed sessions, paste
+          questions in that order. Behavioral and HR scores assess answer quality, not technical
+          accuracy.</small
+        >
+        <fieldset class="resume-setup">
+          <legend>Candidate profile &amp; résumé (optional)</legend>
+          <p class="muted">
+            Use your skills, projects and experience to personalise generated questions.
+          </p>
+          <label for="candidate-level">Experience level</label
+          ><select id="candidate-level">
+            <option value="unspecified">Not specified</option>
+            <option value="student">Student / learning</option>
+            <option value="entry">Entry-level / fresher</option>
+            <option value="experienced">Experienced professional</option>
+            <option value="senior">Senior / lead</option>
+          </select>
+          <small
+            >Your selected level guides question depth together with difficulty. It is not a
+            verified skill assessment.</small
+          >
+          <label for="resume-file">Import résumé text (.txt, up to 64 KB)</label
+          ><input
+            id="resume-file"
+            type="file"
+            accept=".txt,text/plain"
+            aria-describedby="resume-help"
+          />
+          <label for="resume-text">Résumé content</label
+          ><textarea
+            id="resume-text"
+            maxlength="12000"
+            placeholder="Paste relevant skills, education, projects, internships and work experience. For a PDF or Word résumé, copy its text here."
+          ></textarea>
+          <p id="resume-status" role="status">No résumé added. You can still start a session.</p>
+          <button type="button" id="clear-resume">Clear résumé</button>
+          <p id="resume-help">
+            <small
+              >Review imported text and remove contact details you do not want to share. Résumé text
+              is sent to your configured question-generation provider when you generate questions.
+              Manual questions remain as written. Raw résumé text is not saved in session history;
+              generated questions may refer to its projects. Clearing this section affects future
+              sessions.</small
+            >
+          </p>
+        </fieldset>
+      </details>
+      <div class="section-heading">
+        <span>02</span>
+        <h2>Questions &amp; answer flow</h2>
+      </div>
+      <label for="auto-flow">Answer workflow</label
+      ><select id="auto-flow">
+        <option value="auto">Automatic — record, transcribe and submit</option>
+        <option value="manual">Manual — review before submitting</option>
+      </select>
       <small
-        >Review imported text and remove contact details you do not want to share. Résumé text is
-        sent to your configured question-generation provider when you generate questions. Manual
-        questions remain as written. Raw résumé text is not saved in session history; generated
-        questions may refer to its projects. Clearing this section affects future sessions.</small
+        >Automatic mode starts the microphone after question readout. When recording stops, it
+        transcribes and submits after an 8-second correction window. Use Pause automation to review
+        or correct an answer. Recognition errors can affect scores.</small
       >
-    </p>
-  </fieldset>
-  <div class="setup-grid">
-    <div class="setup-field">
-      <label for="session-count">Questions</label
-      ><select id="session-count">
-        <option value="5">5 questions</option>
-        <option value="10">10 questions</option>
-      </select>
-    </div>
-    <div class="setup-field">
-      <label for="session-source">Question source</label
-      ><select id="session-source">
-        <option value="manual">Manual questions (no generation quota)</option>
-        <option value="gemini">Gemini</option>
-      </select>
-    </div>
-  </div>
-  <label for="session-questions"
-    >Manual question list — separate questions with a line containing ---</label
-  >
-  <textarea
-    id="session-questions"
-    placeholder="Paste your first question here.&#10;---&#10;Paste your second question here."
-  ></textarea>
-  <small
-    >Review each transcript, then submit to advance automatically. Feedback appears after the
-    session ends. Each submitted recording stays available in the final report. Download recordings
-    before refreshing or starting another session.</small
-  >
 
-  <label
-    for="camera-consent"
-    style="display: flex; align-items: flex-start; gap: 12px; color: #edf3ff"
-    ><input
-      type="checkbox"
-      id="camera-consent"
-      style="width: auto; margin-top: 6px; flex-shrink: 0"
-      aria-describedby="camera-consent-help"
-    />I agree to use my camera during this interview for face detection and head-movement
-    observations.</label
-  >
-  <small id="camera-consent-help"
-    >Required to continue. Sampled frames are processed by your local backend and are not saved.
-    Camera setup and calibration run automatically after you continue. You can turn the camera off
-    at any time.</small
-  >
-  <div class="actions">
-    <button class="primary" id="session-start" disabled>Continue to camera check</button>
-  </div>
-  <button id="open-camera-check" type="button">Camera check</button>
-  <small
-    >Completed sessions, reviewed answers and recordings are saved in this browser. Wait for the
-    saved confirmation before leaving. Clearing browser data removes them; unfinished sessions are
-    not restored. Answer scoring uses provider quota; you can continue without scoring.</small
-  >
-  <details class="single-practice">
-    <summary>Practise a single question instead</summary>
-    <small>Uses the interview preferences above.</small
-    ><button class="primary" id="generate">Generate question</button>
-    <details>
-      <summary>Practice without question generation</summary>
-      <label for="manual-question">Paste a practice question</label>
-      <textarea
-        id="manual-question"
-        maxlength="2000"
-        placeholder="Enter a question to practise without Gemini."
-      ></textarea>
-      <button id="use-manual">Use practice question</button>
+      <div class="setup-grid">
+        
+        <div class="setup-field">
+          <label for="session-source">Question source</label
+          ><select id="session-source">
+            <option value="manual">Use my own questions</option>
+            <option value="gemini">Generate with AI</option>
+          </select>
+        </div>
+      </div>
+      <div id="manual-question-fields">
+        <label for="session-questions"
+          >Manual question list — separate questions with a line containing ---</label
+        >
+        <textarea
+          id="session-questions"
+          placeholder="Paste your first question here.&#10;---&#10;Paste your second question here."
+        ></textarea>
+      </div>
       <small
-        >Readout, recording and delivery reports work without Gemini. Answer scoring requires an
-        available evaluator.</small
+        >Review each transcript, then submit to advance automatically. Feedback appears after the
+        session ends. Each submitted recording stays available in the final report. Download
+        recordings before refreshing or starting another session.</small
       >
-    </details>
-    <small>Recent questions are remembered in this browser to help avoid repeats.</small>
-  </details>
-  <p>
-    <small
-      >Recordings go through your backend to Groq for transcription when configured. Local Whisper
-      is used when Groq is unavailable or local mode is selected. Your reviewed answer is sent to
-      Gemini, or Groq when configured as fallback, for evaluation.</small
-    >
-  </p>
+
+      <label
+        for="camera-consent"
+        style="display: flex; align-items: flex-start; gap: 12px; color: #edf3ff"
+        ><input
+          type="checkbox"
+          id="camera-consent"
+          style="width: auto; margin-top: 6px; flex-shrink: 0"
+          aria-describedby="camera-consent-help"
+        />I agree to use my camera during this interview for face detection and head-movement
+        observations.</label
+      >
+      <small id="camera-consent-help"
+        >Required to continue. Sampled frames are processed by your local backend and are not saved.
+        Camera setup and calibration run automatically after you continue. You can turn the camera
+        off at any time.</small
+      >
+      <div class="actions">
+        <button class="primary" id="session-start" disabled>Continue to camera check</button>
+      </div>
+      <button id="open-camera-check" type="button">Camera check</button>
+      <small
+        >Completed sessions, reviewed answers and recordings are saved in this browser. Wait for the
+        saved confirmation before leaving. Clearing browser data removes them; unfinished sessions
+        are not restored. Answer scoring uses provider quota; you can continue without
+        scoring.</small
+      >
+    </div>
+    <aside class="session-explainer" aria-label="What to expect">
+      <span class="eyebrow">BUILT FOR PRACTICE</span>
+      <h2>A focused session.<br />A clearer next step.</h2>
+      <div class="expectation">
+        <span>01</span>
+        <div>
+          <h3>Listen &amp; answer</h3>
+          <p>Hear each question, record your response and review the transcript.</p>
+        </div>
+      </div>
+      <div class="expectation">
+        <span>02</span>
+        <div>
+          <h3>Keep your rhythm</h3>
+          <p>Move through your questions. Feedback waits until the session ends.</p>
+        </div>
+      </div>
+      <div class="expectation">
+        <span>03</span>
+        <div>
+          <h3>Review &amp; improve</h3>
+          <p>Replay answers and see specific feedback alongside delivery observations.</p>
+        </div>
+      </div>
+      <details class="setup-disclosure">
+        <summary>How your data is used</summary>
+        <p>
+          <small
+            >Recordings go through your backend to Groq for transcription when configured. Local
+            Whisper is used when Groq is unavailable or local mode is selected. Your reviewed answer
+            is sent to Gemini, or Groq when configured as fallback, for evaluation.</small
+          >
+        </p>
+      </details>
+      <details class="single-practice">
+        <summary>Practise a single question instead</summary>
+        <small>Uses the interview preferences above.</small
+        ><button class="primary" id="generate">Generate question</button>
+        <details>
+          <summary>Practice without question generation</summary>
+          <label for="manual-question">Paste a practice question</label>
+          <textarea
+            id="manual-question"
+            maxlength="2000"
+            placeholder="Enter a question to practise without Gemini."
+          ></textarea>
+          <button id="use-manual">Use practice question</button>
+          <small
+            >Readout, recording and delivery reports work without Gemini. Answer scoring requires an
+            available evaluator.</small
+          >
+        </details>
+        <small>Recent questions are remembered in this browser to help avoid repeats.</small>
+      </details>
+    </aside>
+  </div>
 </section>

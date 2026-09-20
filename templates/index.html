@@ -4,24 +4,26 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>HyperSense AI · Interview practice</title>
-    <link rel="stylesheet" href="/static/css/styles.css" />
+    <link rel="stylesheet" href="/static/css/hypersense-workspace-v2.css" />
   </head>
   <body>
-    <header><strong>HYPERSENSE AI</strong><span>Interview practice</span></header>
+    <header>
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">H</span
+        ><strong>HyperSense<span> AI</span></strong>
+      </div>
+      <span class="header-caption">Your interview practice space</span>
+    </header>
 
     <nav class="dashboard-nav" aria-label="Main navigation">
+      <span class="nav-label">WORKSPACE</span>
       <button id="nav-practice">Interview setup</button
       ><button id="nav-dashboard">Dashboard</button>
+      <p class="nav-footnote">Practise with purpose.<br />Build on every answer.</p>
     </nav>
     <main>
-      <div class="intro" id="interview-intro">
-        <div class="eyebrow">Practice with purpose</div>
-        <h1>Your next interview starts here.</h1>
-        <p class="muted">Choose a topic, record your answer, and review your feedback.</p>
-      </div>
-      <div id="status" role="status" aria-live="polite">
-        Set up your interview session below to begin.
-      </div>
+      <div class="intro" id="interview-intro"></div>
+      <div id="status" role="status" aria-live="polite"></div>
       <!-- include:dashboard -->
       <div id="interview-page">
         <!-- include:setup -->

@@ -28,6 +28,10 @@ export function showCameraCheck(offerPermission = true) {
 }
 
 export function setWorkspace(space) {
+  $("nav-dashboard").removeAttribute("aria-current");
+  $("nav-practice").removeAttribute("aria-current");
+  if (space === "setup" || space === "interview")
+    $("nav-practice").setAttribute("aria-current", "page");
   $("dashboard-page").hidden = true;
   const setup = $("session-setup");
   const interview = $("interview-workspace");
