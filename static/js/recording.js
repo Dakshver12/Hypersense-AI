@@ -1,3 +1,4 @@
+import { resetTranscriptReview } from "./transcript-review.js";
 import { state } from "./state.js";
 import { $ } from "./dom.js";
 import { renderDelivery } from "./delivery.js";
@@ -91,6 +92,7 @@ export function addRecordingPlayer(container, recording) {
 }
 
 export function clearAudio() {
+  resetTranscriptReview();
   state.deliveryAudio = null;
   const player = $("playback");
   player.pause();
@@ -147,6 +149,7 @@ export async function transcribeAnswer() {
   if (!data.text?.trim()) throw Error("No speech was returned.");
   state.deliveryAudio = data.delivery || null;
   renderDelivery();
+  resetTranscriptReview();
   $("transcript").value = data.text;
   $("result").hidden = true;
   message(
@@ -163,7 +166,7 @@ export async function transcribeAnswer() {
 }
 export function initRecording() {
   $("record").onclick = async () => {
-    if (state.interviewSession?.active && !cameraReady()) {
+    if ((state.interviewSession?.active || state.singlePractice) && !cameraReady()) {
       pauseAutomation("Camera required. Enable it and calibrate before recording.");
       return;
     }

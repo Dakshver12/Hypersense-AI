@@ -82,7 +82,51 @@ const waitFor=async fn=>{for(let i=0;i<100;i++){if(fn())return;await new Promise
     evaluate('showDashboard()');assert.equal($('dashboard-page').hidden,true);
     $('session-end').click();await waitFor(()=>$('session-storage-status').textContent==='Session and recordings saved in this browser.');
     assert.equal(evaluate('interviewSession.answers.length'),1);assert.equal(evaluate('interviewSession.total'),2);assert.equal(evaluate('cameraStream'),null);
-    $('nav-practice').click();$('manual-question').value='Single question';$('use-manual').click();assert.equal($('interview-workspace').style.display,'block');
+    $('nav-practice').click();$('manual-question').value='Single question';
+    $('camera-consent').checked=false;$('use-manual').click();assert.equal(w.state.current,null);
+    $('camera-consent').checked=true;const originalCameraOn=$('camera-on').onclick;$('camera-on').onclick=()=>{};
+    $('use-manual').click();assert.equal($('camera-check-page').hidden,false);assert.equal(w.state.current.question,'Single question');assert.equal(w.state.ticker,null);
+    w.state.cameraStream={getVideoTracks:()=>[{readyState:'live',enabled:true}],getTracks:()=>[{stop(){}}]};w.state.neutralRotation=[[1,0,0],[0,1,0],[0,0,1]];
+    await $('camera-check-continue').onclick();assert.equal($('interview-workspace').style.display,'block');assert.equal(w.state.current.question,'Single question');assert.equal(w.state.interviewSession?.active,false);
+    $('transcript').value='Preserve my answer';w.state.deadline=Date.now()+25000;
+    w.showCameraCheck(false);assert.equal(w.state.ticker,null);const remaining=w.state.singleRemaining;
+    $('camera-check-back').click();assert.equal($('interview-workspace').style.display,'block');assert.equal($('transcript').value,'Preserve my answer');assert.equal(w.state.current.question,'Single question');assert(w.state.deadline-Date.now()<=remaining);
+    $('camera-on').onclick=originalCameraOn;w.state.singlePractice=false;w.stopCamera();clearInterval(w.state.ticker);w.state.ticker=null;
+
+    const assessmentHost=w.document.createElement('div');
+    const assessed={score:50,answer:'Lists are mutable.',assessment:{strengths:[{evidence:'Lists are mutable.',explanation:'Correct.'},{evidence:'invented quote',explanation:'Must not render'}],gaps:['Explain tuple mutability.'],next_step:'Compare both in one sentence.'}};
+    w.renderAnswerAssessment(assessmentHost,assessed);
+    assert(assessmentHost.textContent.includes('Explain tuple mutability.'));
+    assert(!assessmentHost.textContent.includes('Must not render'));
+    assert(assessmentHost.textContent.includes('Compare both in one sentence.'));
+    const legacyHost=w.document.createElement('div');w.renderAnswerAssessment(legacyHost,{score:0});assert(legacyHost.textContent.includes('summary feedback only'));
+    const pendingHost=w.document.createElement('div');w.renderAnswerAssessment(pendingHost,{score:null});assert.equal(pendingHost.textContent,'');
+    const fullHost=w.document.createElement('div');w.renderAnswerAssessment(fullHost,{score:100,answer:'Correct',assessment:{strengths:[],gaps:[],next_step:'Try another question.'}});assert(fullHost.textContent.includes('Optional next practice'));
+    const exported=w.exportSessionReport({settings:{},answers:[assessed]});assert.deepEqual(exported.answers[0].assessment,assessed.assessment);
+    // Audio-derived answers require confirmation, including unscored archival.
+    w.state.interviewSession=null;w.state.current={question:'Review test',auto_flow:true};
+    w.state.speechPending=false;w.state.busy=false;w.state.answerSubmitted=false;
+    w.setAudio(new w.Blob(['audio'],{type:'audio/webm'}),'review.webm');
+    $('transcript').value='A list is mutable.';$('transcript').dispatchEvent(new w.Event('input'));
+    assert.equal($('evaluate').disabled,true);
+    await assert.rejects(()=>w.submitAnswer(),/confirm/);
+    $('transcript-confirm').checked=true;$('transcript-confirm').dispatchEvent(new w.Event('change'));
+    assert.equal(w.transcriptApproved(),true);assert.equal($('evaluate').disabled,false);
+    $('transcript').value='A tuple is immutable.';$('transcript').dispatchEvent(new w.Event('input'));
+    assert.equal(w.transcriptApproved(),false);
+    w.state.interviewSession={active:true,loaded:true,answers:[]};
+    await assert.rejects(()=>w.archiveSessionAnswer(),/confirm/);assert.equal(w.state.interviewSession.answers.length,0);
+    w.state.interviewSession=null;
+    const originalFetch=w.fetch;let evaluationRequests=0;
+    w.fetch=async url=>{if(url==='/evaluate-answer')evaluationRequests++;return {ok:true,status:200,text:async()=>JSON.stringify({text:'Recognized answer',delivery:null})};};
+    w.cancelAutomation();w.state.automationPaused=false;
+    await w.autoProcessRecording();
+    assert.equal($('transcript').value,'Recognized answer');assert.equal(evaluationRequests,0);
+    assert.equal(w.state.automationTimer,null);assert.equal($('transcript-confirm').checked,false);
+    assert($('automation-status').textContent.includes('Review, confirm'));
+    w.fetch=originalFetch;w.clearAudio();
+    assert.equal(w.transcriptApproved(),true); // Typed answers require no audio confirmation.
+    console.log('PASS: review gate, edit invalidation, unscored submission gate and automatic transcription without submission.');
     // Refresh into a new window sharing only IndexedDB, including stored audio.
     await evaluate(`draftStore('readwrite',s=>s.clear())`);
     w.state.interviewSession={id:'recovery-test',date:new Date().toISOString(),active:true,loaded:true,total:2,source:'manual',questions:['First','Second'],settings:{technology:'Python',difficulty:'easy',language:'English',interview_type:'technical',auto_flow:false,resume_text:'private resume'},answers:[{question:'First',answer:'Saved answer',score:100,recording:{blob:new Blob(['audio bytes'],{type:'audio/webm'}),name:'answer-01.webm',bytes:11,url:'blob:expired'}}]};

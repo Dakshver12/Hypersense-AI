@@ -1,3 +1,4 @@
+import { requireTranscriptReview } from "./transcript-review.js";
 import { checkpointSession, draftStore } from "./recovery.js";
 import { state } from "./state.js";
 import { $, renderQuestion } from "./dom.js";
@@ -17,7 +18,7 @@ import { finishInterviewSession } from "./results.js";
 import { updateAnswerTimer } from "./timer.js";
 import { clearAudio } from "./recording.js";
 import { api, run } from "./api.js";
-import { showCameraCheck, showInterviewPage } from "./navigation.js";
+import { returnSinglePractice, showCameraCheck, showInterviewPage } from "./navigation.js";
 
 export function releaseSessionRecordings() {
   $("session-report")
@@ -54,6 +55,7 @@ export function sessionSnapshot() {
     score: state.sessionEvaluation?.score ?? null,
     feedback: state.sessionEvaluation?.feedback ?? "Not scored",
     coaching: state.sessionEvaluation?.coaching ?? [],
+    assessment: state.sessionEvaluation?.assessment ?? null,
     provider: state.sessionEvaluation?.provider ?? null,
     model: state.sessionEvaluation?.model ?? null,
     audio: state.deliveryAudio ? JSON.parse(JSON.stringify(state.deliveryAudio)) : null,
@@ -65,6 +67,7 @@ export function sessionSnapshot() {
 
 export async function archiveSessionAnswer() {
   if (!state.interviewSession.loaded) { await checkpointSession(); return; }
+  requireTranscriptReview();
   cancelQuestionSpeech(false);
   clearInterval(state.ticker);
   state.ticker = null;
@@ -115,6 +118,7 @@ export async function loadSessionQuestion() {
 }
 
 export async function startCheckedSession() {
+  state.singlePractice = false;
   requireSessionCamera();
   const previous = await draftStore("readonly", s => s.get("active"));
   if (previous) throw Error("An unfinished interview is saved. Return to setup and resume or discard it first.");
@@ -152,7 +156,8 @@ export async function startCheckedSession() {
 }
 
 export async function submitAnswer() {
-  if (state.interviewSession?.active) requireSessionCamera();
+  requireTranscriptReview();
+  if (state.interviewSession?.active || state.singlePractice) requireSessionCamera();
   cancelQuestionSpeech(false);
   updateAnswerTimer();
   clearInterval(state.ticker);
@@ -182,6 +187,7 @@ export async function submitAnswer() {
       provider: data.provider,
       model: data.model,
       coaching: data.coaching || [],
+      assessment: data.assessment || null,
     };
     await archiveSessionAnswer();
     if (state.interviewSession.answers.length === state.interviewSession.total)
@@ -207,6 +213,7 @@ export async function submitAnswer() {
     provider: data.provider,
     model: data.model,
     coaching: data.coaching || [],
+    assessment: data.assessment || null,
   };
   state.interviewSession.answers.push(sessionSnapshot());
   finishInterviewSession();
@@ -235,6 +242,7 @@ export function initSessions() {
   $("camera-check-continue").onclick = () =>
     run(async () => {
       requireSessionCamera();
+      if (state.singlePractice && state.current && !state.interviewSession?.active) { returnSinglePractice(); return; }
       showInterviewPage();
       if (!state.interviewSession?.active) await startCheckedSession();
       else if (!state.interviewSession.loaded) await loadSessionQuestion();

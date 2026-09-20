@@ -1,14 +1,55 @@
+import { updateAnswerTimer } from "./timer.js";
 import { state } from "./state.js";
 import { $ } from "./dom.js";
 import { cancelAutomation, pauseAutomation } from "./automation.js";
-import { cancelQuestionSpeech } from "./speech.js";
+import { beginQuestionReadout, cancelQuestionSpeech } from "./speech.js";
 import { message } from "./setup.js";
 import { refresh } from "./ui.js";
-import { cameraMessage, stopCamera } from "./camera.js";
+import { cameraReady, cameraMessage, stopCamera } from "./camera.js";
 import { showDashboard } from "./dashboard.js";
 import { openSavedSession } from "./storage.js";
 
+export function openSinglePractice() {
+  state.singlePractice = true;
+  state.singleReadoutPending = true;
+  state.singleRemaining = null;
+  state.answerSubmitted = false;
+  state.answerExpired = false;
+  cancelQuestionSpeech(false);
+  clearInterval(state.ticker);
+  state.ticker = null;
+  if (cameraReady()) returnSinglePractice();
+  else showCameraCheck();
+}
+
+export function returnSinglePractice() {
+  showInterviewPage();
+  if (!cameraReady()) {
+    message("Your question is preserved. Complete the camera check to begin or continue.");
+    refresh();
+    return;
+  }
+  if (state.singleReadoutPending) {
+    state.singleReadoutPending = false;
+    beginQuestionReadout();
+  } else if (state.singleRemaining !== null && !state.answerExpired && !state.answerSubmitted) {
+    state.deadline = Date.now() + state.singleRemaining;
+    state.singleRemaining = null;
+    updateAnswerTimer();
+    state.ticker = setInterval(updateAnswerTimer, 200);
+  }
+  refresh();
+}
+
 export function showCameraCheck(offerPermission = true) {
+  if (state.singlePractice && state.current && !state.interviewSession?.active) {
+    if (state.speechPending) state.singleReadoutPending = true;
+    if (state.ticker) state.singleRemaining = Math.max(0, state.deadline - Date.now());
+    cancelQuestionSpeech(false);
+    clearInterval(state.ticker);
+    state.ticker = null;
+    pauseAutomation("Camera check open. Your question and answer are preserved.");
+  }
   $("camera-title")
     .closest("section")
     .insertBefore($("camera-preview"), $("calibrate").parentElement);
@@ -93,6 +134,7 @@ export function showSetupPage() {
   clearInterval(state.ticker);
   state.ticker = null;
   state.current = null;
+  state.singlePractice = false;
   stopCamera("Camera is off. Start a session to enable it with your consent.");
   $("session-report")
     .querySelectorAll("audio")
@@ -123,6 +165,7 @@ export async function restorePageRoute() {
     return;
   }
   if (location.pathname !== "/results") {
+    if (state.singlePractice && state.current && !state.answerSubmitted) { returnSinglePractice(); return; }
     setPageView(false);
     return;
   }
@@ -144,7 +187,9 @@ export async function restorePageRoute() {
 export function initNavigation() {
   $("back-to-interview").onclick = showSetupPage;
   $("camera-check-back").onclick = () => {
-    if (!state.busy && !state.recording) showSetupPage();
+    if (state.busy || state.recording) return;
+    if (state.singlePractice && state.current) returnSinglePractice();
+    else showSetupPage();
   };
   window.addEventListener("popstate", restorePageRoute);
 }

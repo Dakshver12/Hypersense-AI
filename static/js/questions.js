@@ -1,11 +1,10 @@
 import { state } from "./state.js";
 import { $, renderQuestion } from "./dom.js";
-import { beginQuestionReadout } from "./speech.js";
 import { message, interviewSettings, concreteSettings, modeName } from "./setup.js";
 import { refresh } from "./ui.js";
 import { clearAudio } from "./recording.js";
 import { api, run } from "./api.js";
-import { showInterviewPage } from "./navigation.js";
+import { openSinglePractice } from "./navigation.js";
 
 export const QUESTION_HISTORY_KEY = "hypersense-recent-questions-v1";
 
@@ -26,6 +25,7 @@ export function rememberQuestion(technology, question) {
 export function initQuestions() {
   $("use-manual").onclick = () => {
     if (state.busy || state.recording) return;
+    if (!$("camera-consent").checked) { message("Check the camera consent box before starting practice.", true); return; }
     const question = $("manual-question").value.trim();
     if (!question) {
       message("Enter a practice question first.", true);
@@ -48,8 +48,7 @@ export function initQuestions() {
     clearAudio();
     $("transcript").value = "";
     $("result").hidden = true;
-    showInterviewPage();
-    beginQuestionReadout();
+    openSinglePractice();
     refresh();
   };
   try {
@@ -68,6 +67,7 @@ export function initQuestions() {
   } catch {}
   $("generate").onclick = () =>
     run(async () => {
+      if (!$("camera-consent").checked) throw Error("Check the camera consent box before starting practice.");
       const technology = $("technology").value.trim();
       if (!technology) throw Error("Enter a technology first.");
       message("Generating your question…");
@@ -92,6 +92,6 @@ export function initQuestions() {
       clearAudio();
       $("transcript").value = "";
       $("result").hidden = true;
-      beginQuestionReadout();
+      openSinglePractice();
     });
 }

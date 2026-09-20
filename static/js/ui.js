@@ -1,3 +1,4 @@
+import { resetTranscriptReview, transcriptApproved, refreshTranscriptReview } from "./transcript-review.js";
 import { state } from "./state.js";
 import { $ } from "./dom.js";
 import { pauseAutomation } from "./automation.js";
@@ -18,6 +19,7 @@ export function refresh() {
   $("stop-speaking").disabled = !state.speechActive;
 
   $("record").disabled =
+    (state.singlePractice && !cameraReady()) ||
     state.busy ||
     state.recording ||
     state.speechPending ||
@@ -47,12 +49,15 @@ export function refresh() {
     state.answerSubmitted ||
     (state.answerExpired && !state.blob);
   refreshSession();
+  refreshTranscriptReview();
   $("evaluate").disabled =
+    (state.singlePractice && !cameraReady()) ||
     state.busy ||
     state.recording ||
     state.speechPending ||
     !state.current ||
     !$("transcript").value.trim() ||
+    !transcriptApproved() ||
     !$("result").hidden;
 }
 
@@ -78,7 +83,8 @@ export function refreshSession() {
   $("session-start").disabled =
     state.busy || state.recording || active || !$("camera-consent").checked;
   $("camera-check-continue").disabled = state.busy || state.recording || !cameraReady();
-  $("camera-check-continue").textContent = active ? "Return to interview" : "Start interview";
+  $("camera-check-continue").textContent = state.singlePractice && state.current ? "Return to question" : active ? "Return to interview" : "Start interview";
+  $("camera-check-back").textContent = state.singlePractice && state.current ? "Back to question" : "Back to setup";
   $("camera-check-back").disabled = state.busy || state.recording;
   $("session-next").hidden = !active;
   $("session-end").hidden = !active;
@@ -118,6 +124,7 @@ export function initUi() {
     if (!state.current) clock(Number($("duration").value));
   };
   $("transcript").oninput = () => {
+    resetTranscriptReview();
     pauseAutomation("Transcript editing: submit when ready.");
     $("result").hidden = true;
     refresh();
