@@ -86,3 +86,20 @@ def evaluation_instruction(interview_type):
         " to every employer demand. Do not require STAR for an introduction,"
         " preference or motivation answer."
     )
+
+
+ASSESSMENT_INSTRUCTION = (
+    " Also return assessment with strengths, gaps and next_step. Strengths is a list"
+    " of up to three objects: evidence is an exact contiguous quote from the reviewed"
+    " answer, and explanation states the specific correct or relevant point it supports."
+    " Use no strengths if none are supported. Gaps lists up to three actual factual"
+    " errors or unanswered parts required by this question; never optional enrichment."
+    " For score 100, gaps must be empty. For a score below 100, include the specific"
+    " required gap or error responsible for deductions. Keep assessment consistent"
+    " with score and feedback. next_step is exactly one concrete practice action"
+    " addressing a listed gap; at full credit suggest optional practice of a comparable"
+    " question and do not imply that anything required was missing. Do not write a"
+    " fabricated personal example or achievement for the candidate. Use the requested"
+    " feedback language throughout, preserving evidence quotes verbatim. This is"
+    " answer-content feedback only; do not infer confidence or emotion."
+)

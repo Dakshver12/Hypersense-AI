@@ -17,6 +17,34 @@ export function reportText(parent, tag, text) {
   return el;
 }
 
+export function renderAnswerAssessment(parent, answer) {
+  if (answer.score === null || answer.score === undefined) return;
+  const detail = answer.assessment;
+  if (!detail) {
+    reportText(parent, "p", "This saved result contains summary feedback only. Detailed strengths and gaps appear with new evaluations.");
+    return;
+  }
+  const box = reportText(parent, "section", "");
+  box.className = "answer-assessment";
+  reportText(box, "h5", "What you did well");
+  const strengths = Array.isArray(detail.strengths) ? detail.strengths.filter(s =>
+    typeof s.evidence === "string" && s.evidence.trim() && answer.answer?.includes(s.evidence)
+    && typeof s.explanation === "string") : [];
+  if (!strengths.length) reportText(box, "p", "No supported strength was returned for this answer.");
+  for (const strength of strengths) {
+    reportText(box, "p", strength.explanation);
+    reportText(box, "blockquote", strength.evidence);
+  }
+  reportText(box, "h5", "Required gaps / corrections");
+  const gaps = Array.isArray(detail.gaps) ? detail.gaps.filter(g => typeof g === "string" && g.trim()) : [];
+  if (gaps.length) {
+    const list = reportText(box, "ul", "");
+    for (const gap of gaps) reportText(list, "li", gap);
+  } else reportText(box, "p", answer.score === 100 ? "No required gaps identified." : "No detailed gap information returned; see the summary feedback.");
+  reportText(box, "h5", answer.score === 100 ? "Optional next practice" : "Try this next");
+  reportText(box, "p", detail.next_step || "No specific practice action returned.");
+}
+
 export function renderBehaviorCoaching(parent, answer) {
   reportText(parent, "h5", "Answer communication & behavior examples");
   const items = Array.isArray(answer.coaching)
@@ -210,6 +238,7 @@ export function finishInterviewSession(restored = false) {
         ? "Not scored"
         : `${modeName(a.interview_type)} ${!a.interview_type || a.interview_type === "technical" ? "accuracy" : "answer quality"}: ${a.score}/100. ${a.feedback}`,
     );
+    renderAnswerAssessment(item, a);
     if (a.provider) add(item, "p", `Evaluator: ${a.provider} (${a.model}).`);
     const audio = a.audio;
     add(
@@ -305,6 +334,7 @@ export async function scorePendingAnswers() {
       answer.score = result.score;
       answer.feedback = result.feedback;
       answer.coaching = result.coaching || [];
+      answer.assessment = result.assessment || null;
       answer.provider = result.provider || null;
       answer.model = result.model || null;
       completed++;

@@ -1,3 +1,4 @@
+import { initTranscriptReview } from "./transcript-review.js";
 import { initRecovery } from "./recovery.js";
 import { initDelivery } from "./delivery.js";
 import { initAutomation } from "./automation.js";
@@ -29,6 +30,7 @@ initLifecycle();
 initStorage();
 initDashboard();
 initNavigation();
+initTranscriptReview();
 initBoot();
 
 initRecovery();

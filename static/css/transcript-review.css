@@ -1,0 +1,9 @@
+.transcript-review { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--line); }
+.transcript-review-grid { display: grid; grid-template-columns: minmax(220px, .8fr) minmax(0, 1.2fr); gap: 20px; align-items: start; }
+.transcript-review-grid > div { min-width: 0; }
+.transcript-review audio { width: 100%; }
+.transcript-review textarea { min-height: 200px; }
+#transcript-review-confirmation:not([hidden]) { display: flex; align-items: flex-start; gap: 10px; padding: 14px; background: #142e2b; border-radius: 10px; color: #dcf7ed; }
+#transcript-review-confirmation input { flex-shrink: 0; }
+#transcript-review-status { color: var(--muted); font-size: 14px; }
+@media(max-width: 1050px) { .transcript-review-grid { grid-template-columns: minmax(0, 1fr); } }

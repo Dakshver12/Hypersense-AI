@@ -52,8 +52,7 @@
         </div>
         <small id="recording-info"></small>
         <p class="muted">
-          Replay your answer to check the transcript. Download it before starting another recording,
-          generating a new question, or refreshing this page.
+          Replay any unclear words. Submitted recordings are saved with the session; unfinished recordings are lost on refresh.
         </p>
       </div>
       <div class="upload">
@@ -61,6 +60,12 @@
         ><input id="upload" type="file" accept=".wav,.mp3,.m4a,.webm,.ogg,.flac" disabled />
       </div>
       <div class="actions"><button id="transcribe" disabled>Transcribe audio</button></div>
+      <section class="transcript-review" aria-labelledby="transcript-review-title">
+        <h3 id="transcript-review-title">Review your answer</h3>
+        <p class="muted">Listen, check the wording, and correct any misheard words before scoring.</p>
+        <div class="transcript-review-grid">
+          <div id="transcript-audio-slot"></div>
+          <div>
       <label for="transcript">Review your transcript or type your answer</label
       ><textarea
         id="transcript"
@@ -68,6 +73,11 @@
         disabled
         placeholder="Check technical words and correct recognition errors before submitting."
       ></textarea>
+          </div>
+        </div>
+        <p id="transcript-review-status" role="status"></p>
+        <label id="transcript-review-confirmation" hidden><input type="checkbox" id="transcript-confirm"> I reviewed this transcript and it matches the answer I want evaluated.</label>
+      </section>
       <label for="confidence-rating">How confident did you feel? (optional)</label>
       <select id="confidence-rating">
         <option value="">Not rated</option>

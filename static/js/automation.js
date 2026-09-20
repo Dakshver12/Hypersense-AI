@@ -2,7 +2,6 @@ import { state } from "./state.js";
 import { $ } from "./dom.js";
 import { run } from "./api.js";
 import { transcribeAnswer } from "./recording.js";
-import { submitAnswer } from "./sessions.js";
 
 export function cancelAutomation() {
   clearTimeout(state.automationTimer);
@@ -58,23 +57,8 @@ export async function autoProcessRecording() {
     $("automation-status").textContent = "Transcribing your answer…";
     await transcribeAnswer();
     if (token !== state.automationToken || question !== state.current || !autoEnabled()) return;
-    let remaining = 8;
-    const tick = () => {
-      if (token !== state.automationToken || state.current !== question || !autoEnabled()) return;
-      if (remaining > 0) {
-        $("automation-status").textContent =
-          `Submitting in ${remaining--} seconds. Edit the transcript or pause to review.`;
-        state.automationTimer = setTimeout(tick, 1000);
-        return;
-      }
-      if (state.busy) {
-        state.automationTimer = setTimeout(tick, 100);
-        return;
-      }
-      $("automation-status").textContent = "Submitting answer…";
-      run(submitAnswer);
-    };
-    tick();
+    $("automation-status").textContent = "Transcription ready. Review, confirm, then submit to continue.";
+
   });
 }
 export function initAutomation() {

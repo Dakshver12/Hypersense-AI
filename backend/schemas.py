@@ -36,7 +36,19 @@ class CoachingObservation(BaseModel):
     suggestion: str = Field(min_length=1, max_length=600)
 
 
+class AnswerStrength(BaseModel):
+    evidence: str = Field(min_length=1, max_length=300)
+    explanation: str = Field(min_length=1, max_length=600)
+
+
+class AnswerAssessment(BaseModel):
+    strengths: list[AnswerStrength] = Field(default_factory=list, max_length=3)
+    gaps: list[Annotated[str, Field(min_length=1, max_length=600)]] = Field(default_factory=list, max_length=3)
+    next_step: str = Field(min_length=1, max_length=600)
+
+
 class EvaluationResult(BaseModel):
+    assessment: AnswerAssessment | None = None
     coaching: list[CoachingObservation] = Field(default_factory=list, max_length=3)
     score: int = Field(ge=0, le=100)
     feedback: str = Field(min_length=1, max_length=1500)
