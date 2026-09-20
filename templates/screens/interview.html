@@ -1,0 +1,148 @@
+<div class="layout interview-workspace" id="interview-workspace">
+  <div>
+    <section class="card" id="session-controls" hidden aria-label="Session controls">
+      <p id="session-progress" role="status">No active session.</p>
+      <div class="actions">
+        <button id="session-next" hidden>Next question</button
+        ><button id="session-end" hidden>End session</button>
+      </div>
+      <small
+        >Submit without scoring if your provider is unavailable. You can score saved answers from
+        the final report later.</small
+      >
+    </section>
+    <section class="card">
+      <div class="eyebrow">01 · Question</div>
+      <div class="actions">
+        <button id="replay-question" disabled>Replay question</button
+        ><button id="stop-speaking" disabled>Stop speaking / start answering</button>
+      </div>
+      <p id="speech-status" role="status">
+        The question will be read aloud before your answer timer starts.
+      </p>
+      <div id="question">Your interview question will appear here.</div>
+      <small id="context"></small>
+    </section>
+    <section class="card">
+      <div class="row">
+        <h2>02 · Your answer</h2>
+        <output id="timer" aria-label="Time remaining">01:00</output>
+      </div>
+      <label for="spoken">Spoken language</label
+      ><select id="spoken">
+        <option value="auto">Auto-detect / mixed language</option>
+        <option value="en">English</option>
+        <option value="hi">Hindi</option>
+      </select>
+      <p id="automation-status" role="status"></p>
+      <button id="pause-automation" type="button">Pause automation</button>
+      <div class="actions">
+        <button class="primary" id="record" disabled>Record answer</button
+        ><button id="stop" disabled>Stop recording</button>
+      </div>
+      <p id="microphone-status" role="status" aria-live="polite">
+        Click Record answer, then wait for “Recording—speak now”.
+      </p>
+      <div id="recording-preview" hidden>
+        <label for="playback">Listen to your recorded answer</label>
+        <audio id="playback" controls preload="metadata" hidden></audio>
+        <div class="actions">
+          <a id="download-recording" class="download-button" download>Download recording</a>
+        </div>
+        <small id="recording-info"></small>
+        <p class="muted">
+          Replay your answer to check the transcript. Download it before starting another recording,
+          generating a new question, or refreshing this page.
+        </p>
+      </div>
+      <div class="upload">
+        <label for="upload">Or choose an existing recording (up to 10 MB, 2 minutes)</label
+        ><input id="upload" type="file" accept=".wav,.mp3,.m4a,.webm,.ogg,.flac" disabled />
+      </div>
+      <div class="actions"><button id="transcribe" disabled>Transcribe audio</button></div>
+      <label for="transcript">Review your transcript or type your answer</label
+      ><textarea
+        id="transcript"
+        maxlength="8000"
+        disabled
+        placeholder="Check technical words and correct recognition errors before submitting."
+      ></textarea>
+      <label for="confidence-rating">How confident did you feel? (optional)</label>
+      <select id="confidence-rating">
+        <option value="">Not rated</option>
+        <option value="1">1 — Not confident</option>
+        <option value="2">2 — Slightly confident</option>
+        <option value="3">3 — Moderately confident</option>
+        <option value="4">4 — Confident</option>
+        <option value="5">5 — Very confident</option>
+      </select>
+      <div class="actions">
+        <button class="primary" id="evaluate" disabled>Submit for feedback</button>
+      </div>
+    </section>
+    <section class="card" id="delivery-report" hidden aria-labelledby="delivery-title">
+      <h2 id="delivery-title">Delivery practice report</h2>
+      <p class="muted">Observations from this answer, separate from answer scoring.</p>
+      <h3>Voice timing</h3>
+      <p id="delivery-audio">Record and transcribe an answer to see voice timing.</p>
+      <h3>Recorded volume</h3>
+      <p id="delivery-levels"></p>
+      <small
+        >Volume variation is the gap between louder and quieter recording frames within recognized
+        words (90th–10th percentile), excluding very quiet frames. This updated measurement is not
+        directly comparable to older saved volume ranges. Microphone distance, automatic gain and
+        background noise affect it. It does not measure confidence or vocal expression.</small
+      >
+      <h3>Detected filler sounds</h3>
+      <p id="delivery-fillers"></p>
+      <small
+        >Counts spellings such as “um”, “uh”, “erm” and “hmm” in the original transcript. Whisper
+        may omit these sounds; other languages and filler phrases are not counted. Editing the
+        transcript does not change these counts.</small
+      >
+      <h3>Head movement</h3>
+      <p id="delivery-camera">No calibrated camera samples available.</p>
+      <h3>Facial movements during this answer</h3>
+      <div id="expression-summary"></div>
+      <small
+        >Sampled movement estimates describe visible features, not emotion or confidence. These
+        samples may miss brief movements. They do not affect your answer score.</small
+      >
+      <h3>Try in your next answer</h3>
+      <ul id="delivery-tips"></ul>
+      <p id="delivery-comparison" class="muted"></p>
+      <div class="actions"><button id="save-attempt" disabled>Save attempt summary</button></div>
+      <p id="save-status" role="status">Save after the timer ends or you submit your answer.</p>
+      <small
+        >Word timings are estimates from the original transcription. Pauses mean gaps of at least 1
+        second between recognized words, not measured silence. Head angles show orientation relative
+        to calibration, not eye contact, emotion, or a confidence score.</small
+      >
+    </section>
+    <section class="card" aria-labelledby="history-title">
+      <h2 id="history-title">Saved practice</h2>
+      <small
+        >Last 20 saved summaries in this browser. Recordings and transcripts are not stored here.
+        Clearing browser data removes these summaries.</small
+      >
+      <div id="practice-history"></div>
+      <div class="actions"><button id="clear-history">Clear saved summaries</button></div>
+      <p id="history-status" role="status"></p>
+    </section>
+    <section class="card" id="result" hidden>
+      <div class="eyebrow">03 · Feedback</div>
+      <div id="score"></div>
+      <small>AI assessment · out of 100</small>
+      <p id="feedback"></p>
+    </section>
+  </div>
+</div>
+<section class="card">
+  <h2>Saved interview sessions</h2>
+  <p class="muted">
+    Stored on this browser and device. Use the same localhost address to reopen them. Download
+    recordings you want to keep elsewhere.
+  </p>
+
+  <div id="saved-session-list"></div>
+</section>

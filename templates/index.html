@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>HyperSense AI · Interview practice</title>
+    <link rel="stylesheet" href="/static/css/styles.css" />
+  </head>
+  <body>
+    <header><strong>HYPERSENSE AI</strong><span>Interview practice</span></header>
+
+    <nav class="dashboard-nav" aria-label="Main navigation">
+      <button id="nav-practice">Interview setup</button
+      ><button id="nav-dashboard">Dashboard</button>
+    </nav>
+    <main>
+      <div class="intro" id="interview-intro">
+        <div class="eyebrow">Practice with purpose</div>
+        <h1>Your next interview starts here.</h1>
+        <p class="muted">Choose a topic, record your answer, and review your feedback.</p>
+      </div>
+      <div id="status" role="status" aria-live="polite">
+        Set up your interview session below to begin.
+      </div>
+      <!-- include:dashboard -->
+      <div id="interview-page">
+        <!-- include:setup -->
+        <!-- include:interview -->
+      </div>
+      <!-- include:camera-check -->
+      <!-- include:results -->
+    </main>
+    <script type="module" src="/static/js/app.js"></script>
+  </body>
+</html>

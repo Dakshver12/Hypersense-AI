@@ -35,8 +35,32 @@ main,.layout,.layout>div,#interview-page,#interview-workspace{min-width:0;max-wi
 @media(max-width:900px){.question-camera-row{grid-template-columns:minmax(0,1fr)}.question-camera-row #live-camera-dock{width:100%;max-width:280px;justify-self:start}}
 </style></head><body>
 <header><strong>HYPERSENSE AI</strong><span>Interview practice</span></header>
+<style>
+.dashboard-nav{display:flex;gap:10px;max-width:1200px;margin:16px auto;padding:0 24px}
+.dashboard-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px;margin:24px 0}
+.dashboard-stat{padding:22px;border:1px solid var(--line);border-radius:18px;background:#101c31}
+.dashboard-stat strong{display:block;font-size:32px;color:#72dfc5;margin-top:10px}
+.dashboard-table{width:100%;border-collapse:collapse;font-size:14px}
+.dashboard-table th,.dashboard-table td{text-align:left;padding:14px 10px;border-bottom:1px solid var(--line)}
+.dashboard-table th{color:var(--muted);font-weight:500}
+.dashboard-scroll{overflow-x:auto}.dashboard-bar{width:100%;height:8px;accent-color:#72dfc5}
+#dashboard-page .card{margin-top:20px}#dashboard-page h1{font-size:clamp(28px,4vw,42px)}
+@media print{body{background:white!important;color:black!important}header,nav,#status,#interview-page,#camera-check-page,#dashboard-page,#interview-intro,#results-page button,#results-page audio,#results-page a,#session-storage-status{display:none!important}main{max-width:none!important;padding:0!important}.card{background:white!important;color:black!important;border:1px solid #ccc!important;box-shadow:none!important}#results-page{display:block!important}#session-report li{break-inside:avoid}p,small,.muted{color:black!important}}
+</style>
+<nav class="dashboard-nav" aria-label="Main navigation"><button id="nav-practice">Interview setup</button><button id="nav-dashboard">Dashboard</button></nav>
 <main><div class="intro" id="interview-intro"><div class="eyebrow">Practice with purpose</div><h1>Your next interview starts here.</h1><p class="muted">Choose a topic, record your answer, and review your feedback.</p></div>
 <div id="status" role="status" aria-live="polite">Set up your interview session below to begin.</div>
+<div id="dashboard-page" hidden>
+<div class="eyebrow">Your practice journey</div><h1 id="dashboard-title" tabindex="-1">Every interview is a step forward.</h1>
+<p class="muted">Review saved sessions and choose what to practise next. Data stays in this browser.</p>
+<div class="actions"><button class="primary" id="dashboard-start">Start an interview</button><label for="dashboard-filter">Interview type</label><select id="dashboard-filter"><option value="all">All types</option><option value="technical">Technical</option><option value="behavioral">Behavioral</option><option value="hr">HR</option></select></div>
+<p id="dashboard-status" role="status"></p><div id="dashboard-stats" class="dashboard-grid"></div>
+<label for="dashboard-topic">Topic</label><select id="dashboard-topic"><option value="">All topics</option></select>
+<section class="card"><h2>Scores by interview type</h2><p class="muted">Averages use scored answers only. Each interview type has its own rubric.</p><div id="dashboard-types" class="dashboard-grid"></div></section>
+<section class="card"><h2>Recent progress</h2><p class="muted">Last 10 matching sessions, oldest first. Question difficulty and topic can differ; scores are not directly comparable across settings.</p><div id="dashboard-progress" class="dashboard-scroll"></div></section>
+<section class="card"><h2>Delivery over time</h2><p class="muted">Average pace and your own confidence ratings per session. These are practice observations, not performance scores. A higher or lower value is not automatically better.</p><div id="dashboard-delivery" class="dashboard-scroll"></div></section>
+<section class="card"><h2>Your sessions</h2><p class="muted">Open a report to review answers, feedback and recordings. Clearing browser data removes these sessions.</p><div id="dashboard-sessions" class="dashboard-scroll"></div></section>
+</div>
 <div id="interview-page"><section class="card" id="session-setup" aria-labelledby="session-title"><h2 id="session-title">Set up your interview session</h2>
 <p class="muted">Choose your interview preferences, then start your session.</p>
 <div class="setup-grid"><div class="setup-field"><label for="interview-type">Interview type</label><select id="interview-type"><option value="technical">Technical</option><option value="behavioral">Behavioral</option><option value="hr">HR</option><option value="mixed">Mixed</option></select></div>
@@ -69,9 +93,8 @@ main,.layout,.layout>div,#interview-page,#interview-workspace{min-width:0;max-wi
 
 <label for="camera-consent" style="display:flex;align-items:flex-start;gap:12px;color:#edf3ff"><input type="checkbox" id="camera-consent" style="width:auto;margin-top:6px;flex-shrink:0" aria-describedby="camera-consent-help">I agree to use my camera during this interview for face detection and head-movement observations.</label>
 <small id="camera-consent-help">Required to continue. Sampled frames are processed by your local backend and are not saved. Camera setup and calibration run automatically after you continue. You can turn the camera off at any time.</small>
-<div class="actions"><button class="primary" id="session-start" disabled>Continue to camera check</button><button id="session-next" hidden>Next question</button><button id="session-end" hidden>End session</button></div>
+<div class="actions"><button class="primary" id="session-start" disabled>Continue to camera check</button></div>
 <button id="open-camera-check" type="button">Camera check</button>
-<p id="session-progress" role="status">No active session.</p>
 <small>Completed sessions, reviewed answers and recordings are saved in this browser. Wait for the saved confirmation before leaving. Clearing browser data removes them; unfinished sessions are not restored. Answer scoring uses provider quota; you can continue without scoring.</small>
 <details class="single-practice"><summary>Practise a single question instead</summary><small>Uses the interview preferences above.</small><button class="primary" id="generate">Generate question</button>
 <details><summary>Practice without question generation</summary>
@@ -85,7 +108,8 @@ main,.layout,.layout>div,#interview-page,#interview-workspace{min-width:0;max-wi
 </section>
 
 <div class="layout interview-workspace" id="interview-workspace">
-<div><section class="card"><div class="eyebrow">01 · Question</div><div class="actions"><button id="replay-question" disabled>Replay question</button><button id="stop-speaking" disabled>Stop speaking / start answering</button></div>
+<div><section class="card" id="session-controls" hidden aria-label="Session controls"><p id="session-progress" role="status">No active session.</p><div class="actions"><button id="session-next" hidden>Next question</button><button id="session-end" hidden>End session</button></div><small>Submit without scoring if your provider is unavailable. You can score saved answers from the final report later.</small></section>
+<section class="card"><div class="eyebrow">01 · Question</div><div class="actions"><button id="replay-question" disabled>Replay question</button><button id="stop-speaking" disabled>Stop speaking / start answering</button></div>
 <p id="speech-status" role="status">The question will be read aloud before your answer timer starts.</p>
 <div id="question">Your interview question will appear here.</div><small id="context"></small></section>
 <section class="card"><div class="row"><h2>02 · Your answer</h2><output id="timer" aria-label="Time remaining">01:00</output></div>
@@ -103,6 +127,8 @@ main,.layout,.layout>div,#interview-page,#interview-workspace{min-width:0;max-wi
 <div class="upload"><label for="upload">Or choose an existing recording (up to 10 MB, 2 minutes)</label><input id="upload" type="file" accept=".wav,.mp3,.m4a,.webm,.ogg,.flac" disabled></div>
 <div class="actions"><button id="transcribe" disabled>Transcribe audio</button></div>
 <label for="transcript">Review your transcript or type your answer</label><textarea id="transcript" maxlength="8000" disabled placeholder="Check technical words and correct recognition errors before submitting."></textarea>
+<label for="confidence-rating">How confident did you feel? (optional)</label>
+<select id="confidence-rating"><option value="">Not rated</option><option value="1">1 — Not confident</option><option value="2">2 — Slightly confident</option><option value="3">3 — Moderately confident</option><option value="4">4 — Confident</option><option value="5">5 — Very confident</option></select>
 <div class="actions"><button class="primary" id="evaluate" disabled>Submit for feedback</button></div></section>
 <section class="card" id="delivery-report" hidden aria-labelledby="delivery-title">
 <h2 id="delivery-title">Delivery practice report</h2>
@@ -118,12 +144,6 @@ main,.layout,.layout>div,#interview-page,#interview-workspace{min-width:0;max-wi
 <small>Sampled movement estimates describe visible features, not emotion or confidence. These samples may miss brief movements. They do not affect your answer score.</small>
 <h3>Try in your next answer</h3><ul id="delivery-tips"></ul>
 <p id="delivery-comparison" class="muted"></p>
-<label for="confidence-rating">How confident did you feel? (optional)</label>
-<select id="confidence-rating">
-<option value="">Not rated</option><option value="1">1 — Not confident</option>
-<option value="2">2 — Slightly confident</option><option value="3">3 — Moderately confident</option>
-<option value="4">4 — Confident</option><option value="5">5 — Very confident</option>
-</select>
 <div class="actions"><button id="save-attempt" disabled>Save attempt summary</button></div>
 <p id="save-status" role="status">Save after the timer ends or you submit your answer.</p>
 <small>Word timings are estimates from the original transcription. Pauses mean gaps of at least 1 second between recognized words, not measured silence. Head angles show orientation relative to calibration, not eye contact, emotion, or a confidence score.</small>
@@ -159,6 +179,7 @@ main,.layout,.layout>div,#interview-page,#interview-workspace{min-width:0;max-wi
 <div class="row"><h1 id="results-title" tabindex="-1">Your interview results</h1><button id="back-to-interview">Back to interview setup</button></div>
 <p id="session-storage-status" role="status"></p><button id="retry-session-save" hidden>Retry saving session</button>
 <p id="results-empty">Choose a completed session from Saved interview sessions to view its feedback.</p>
+<div class="actions"><button id="export-report" disabled>Download report (JSON)</button><button id="print-report" disabled>Print / save as PDF</button></div>
 <div class="card" id="session-report" hidden></div>
 </section></main>
 <script>
@@ -464,6 +485,7 @@ function speakQuestion(initial){
     refresh();
 }
 function beginQuestionReadout(){
+    if(!interviewSession?.active)showInterviewPage();
     cancelAutomation(); automationPaused=false;
     clearTimeout(microphoneReadyTimer);
     $('microphone-status').textContent='Click Record answer, then wait for “Recording—speak now”.';
@@ -490,7 +512,7 @@ $('use-manual').onclick=()=>{
     $('context').textContent=modeName(current.interview_type)+' · '+current.technology+' · Manual practice question';
     $('spoken').value=current.language==='Hindi'?'hi':current.language==='English'?'en':'auto';
     clearAudio();$('transcript').value='';$('result').hidden=true;
-    beginQuestionReadout();refresh();
+    showInterviewPage();beginQuestionReadout();refresh();
 };
 
 const QUESTION_HISTORY_KEY='hypersense-recent-questions-v1';
@@ -560,6 +582,12 @@ function cameraReady(){return Boolean(cameraStream?.getVideoTracks().some(track=
 function requireSessionCamera(){if(!cameraReady())throw Error('Enable the camera and calibrate your neutral position before continuing the session.');}
 function refreshSession(){
     const active=Boolean(interviewSession?.active);
+    $('session-controls').hidden=!active;
+    $('nav-dashboard').disabled=active||busy||recording;
+    $('nav-practice').disabled=busy||recording;
+    $('nav-practice').textContent=active?'Return to interview':'Interview setup';
+    $('confidence-rating').disabled=busy||recording||!current||answerSubmitted;
+    for(const id of ['export-report','print-report'])$(id).disabled=active||busy||recording||!interviewSession;
     document.querySelectorAll('[data-session-history]').forEach(button=>button.disabled=active||busy||recording);
     $('retry-session-save').disabled=active||busy||recording;
     const pendingButton=$('score-pending');
@@ -801,11 +829,13 @@ $('camera-check-continue').onclick=()=>run(async()=>{
 $('open-camera-check').onclick=()=>{if(!busy&&!recording)showCameraCheck();};
 $('camera-check-back').onclick=()=>{if(!busy&&!recording)showInterviewPage();};
 $('session-next').onclick=()=>run(async()=>{
+    if(!interviewSession?.active||speechPending)return;
+    cancelAutomation();
     archiveSessionAnswer();
     if(interviewSession.answers.length===interviewSession.total)finishInterviewSession();
     else await loadSessionQuestion();
 });
-$('session-end').onclick=()=>{archiveSessionAnswer();finishInterviewSession();};
+$('session-end').onclick=()=>{if(busy||recording||!interviewSession?.active)return;cancelAutomation();archiveSessionAnswer();finishInterviewSession();};
 
 function startAnswerTimer() {
     clearInterval(ticker);
@@ -868,7 +898,7 @@ function setAudio(data,name){
     if(!$('delivery-report').hidden)renderDelivery();
 }
 async function api(path,body,isForm=false){const response=await fetch(path,{method:'POST',headers:isForm?{}:{'Content-Type':'application/json'},body:isForm?body:JSON.stringify(body)});const text=await response.text();let data;try{data=JSON.parse(text);}catch{throw Error('Server returned '+response.status+'. Check the backend terminal.');}if(!response.ok){let detail=data.detail;throw Error(typeof detail==='string'?detail:JSON.stringify(detail||data));}return data;}
-async function run(task){if(busy)return;busy=true;refresh();try{await task();}catch(err){pauseAutomation('Automatic flow paused: '+(err.message||'The request failed.'));message(err.message||'The request failed.',true);}finally{busy=false;refresh();}}
+async function run(task){if(busy)return;busy=true;refresh();try{await task();}catch(err){if(current&&(!interviewSession||interviewSession.loaded))answerSubmitted=false;pauseAutomation('Automatic flow paused: '+(err.message||'The request failed.'));message(err.message||'The request failed.',true);}finally{busy=false;refresh();}}
 $('generate').onclick=()=>run(async()=>{const technology=$('technology').value.trim();if(!technology)throw Error('Enter a technology first.');message('Generating your question…');const settings=concreteSettings(interviewSettings());const data=await api('/generate-question',{...settings,recent_questions:recentQuestionsFor(technology)});if(!data.question)throw Error('No question returned.');rememberQuestion(technology,data.question);current={...settings,question:data.question};renderQuestion(current.question);$('context').textContent=[modeName(settings.interview_type),technology,settings.difficulty,settings.language].join(' · ');$('question').lang=settings.language==='Hindi'?'hi':'en';$('spoken').value=settings.language==='Hindi'?'hi':settings.language==='English'?'en':'auto';clearAudio();$('transcript').value='';$('result').hidden=true;beginQuestionReadout();});
 $('duration').onchange=()=>{if(!current)clock(Number($('duration').value));};
 $('transcript').oninput=()=>{pauseAutomation('Transcript editing: submit when ready.');$('result').hidden=true;refresh();};
@@ -1243,6 +1273,87 @@ async function saveFinishedSession(session){
         return false;
     }
 }
+function dashboardSummary(sessions,filter='all'){
+    const rows=sessions.map(session=>({...session,selected:(session.answers||[]).filter(a=>filter==='all'||(a.interview_type||'technical')===filter)})).filter(s=>filter==='all'||s.selected.length);
+    const answers=rows.flatMap(s=>s.selected);
+    const valid=a=>typeof a.score==='number'&&Number.isFinite(a.score)&&a.score>=0&&a.score<=100;
+    const groups=['technical','behavioral','hr'].map(type=>{
+        const scored=answers.filter(a=>(a.interview_type||'technical')===type&&valid(a));
+        return {type,count:scored.length,average:scored.length?scored.reduce((n,a)=>n+a.score,0)/scored.length:null};
+    });
+    return {rows,groups,answers:answers.length,scored:answers.filter(valid).length,pending:answers.filter(a=>!valid(a)).length};
+}
+function deliveryAverages(answers){
+    const pace=answers.map(a=>a.audio?.words_per_minute).filter(v=>typeof v==='number'&&Number.isFinite(v)&&v>0);
+    const confidence=answers.map(a=>Number(a.confidence)).filter(v=>Number.isInteger(v)&&v>=1&&v<=5);
+    const mean=values=>values.length?values.reduce((n,v)=>n+v,0)/values.length:null;
+    return {pace:mean(pace),paceCount:pace.length,confidence:mean(confidence),confidenceCount:confidence.length};
+}
+let dashboardLoad=0;
+async function renderDashboard(){
+    const load=++dashboardLoad;
+    const status=$('dashboard-status');status.textContent='Loading saved sessions…';
+    for(const id of ['dashboard-stats','dashboard-types','dashboard-progress','dashboard-sessions','dashboard-delivery'])$(id).replaceChildren();
+    try{
+        const sessions=await sessionStore('readonly',store=>store.getAll());
+        if(load!==dashboardLoad)return;
+        sessions.sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+        const topic=$('dashboard-topic').value;
+        $('dashboard-topic').replaceChildren();
+        for(const name of ['',...new Set(sessions.map(s=>s.settings?.technology||'General'))].sort()){
+            const option=document.createElement('option');option.value=name;option.textContent=name||'All topics';$('dashboard-topic').appendChild(option);
+        }
+        $('dashboard-topic').value=[...$('dashboard-topic').options].some(o=>o.value===topic)?topic:'';
+        const filtered=sessions.filter(s=>!$('dashboard-topic').value||(s.settings?.technology||'General')===$('dashboard-topic').value);
+        const summary=dashboardSummary(filtered,$('dashboard-filter').value);
+        const add=(parent,tag,text)=>{const node=document.createElement(tag);node.textContent=text;parent.appendChild(node);return node;};
+        status.textContent=summary.rows.length?'Updated from saved sessions.':sessions.length?'No sessions match this filter.':'Your dashboard will fill up after your first saved interview.';
+        for(const [label,value] of [['Saved sessions',summary.rows.length],['Answers practised',summary.answers],['Answers scored',summary.scored],['Pending scores',summary.pending]]){
+            const card=add($('dashboard-stats'),'div','');card.className='dashboard-stat';add(card,'span',label);add(card,'strong',String(value));
+        }
+        for(const group of summary.groups){
+            if($('dashboard-filter').value!=='all'&&$('dashboard-filter').value!==group.type)continue;
+            const card=add($('dashboard-types'),'div','');card.className='dashboard-stat';add(card,'span',modeName(group.type));
+            add(card,'strong',group.average===null?'—':group.average.toFixed(1)+'/100');
+            add(card,'p',group.count+' scored answers');
+            if(group.average!==null){const bar=add(card,'meter','');bar.min=0;bar.max=100;bar.value=group.average;bar.className='dashboard-bar';bar.setAttribute('aria-label',modeName(group.type)+' average score');}
+        }
+        const table=(parent,headers)=>{const t=add(parent,'table','');t.className='dashboard-table';const head=add(t,'thead','');const row=add(head,'tr','');for(const h of headers){const th=add(row,'th',h);th.scope='col';}return add(t,'tbody','');};
+        const progress=table($('dashboard-progress'),['Date','Topic / difficulty','Technical','Behavioral','HR']);
+        for(const session of summary.rows.slice(0,10).reverse()){
+            const row=add(progress,'tr','');add(row,'td',new Date(session.date).toLocaleDateString());add(row,'td',(session.settings?.technology||'General')+' / '+(session.settings?.difficulty||'—'));
+            for(const group of dashboardSummary([session],$('dashboard-filter').value).groups)add(row,'td',group.average===null?'—':group.average.toFixed(1));
+        }
+        const delivery=table($('dashboard-delivery'),['Date','Pace (words/min)','Self-rated confidence','Samples (pace / rating)']);
+        for(const session of summary.rows.slice(0,10).reverse()){
+            const values=deliveryAverages(session.selected),row=add(delivery,'tr','');
+            add(row,'td',new Date(session.date).toLocaleDateString());add(row,'td',values.pace===null?'Unavailable':values.pace.toFixed(1));
+            add(row,'td',values.confidence===null?'Not rated':values.confidence.toFixed(1)+'/5');add(row,'td',values.paceCount+' / '+values.confidenceCount);
+        }
+        const history=table($('dashboard-sessions'),['Session','Type','Answers','Review']);
+        for(const session of summary.rows){
+            const row=add(history,'tr','');add(row,'td',new Date(session.date).toLocaleString()+' · '+(session.settings?.technology||'General'));
+            add(row,'td',modeName(session.settings?.interview_type||'technical'));add(row,'td',session.answers.length+'/'+session.total);
+            const cell=add(row,'td','');const button=add(cell,'button','Open report');button.onclick=()=>{if(!busy&&!recording&&!interviewSession?.active)openSavedSession(session.id);};
+            button.dataset.sessionHistory='true';
+            const remove=add(cell,'button','Delete');remove.dataset.sessionHistory='true';remove.onclick=()=>deleteSavedSession(session.id);
+        }
+        refresh();
+    }catch{if(load===dashboardLoad)status.textContent='Could not load saved sessions. Browser storage may be unavailable. Reopen the dashboard to retry.';}
+}
+function showDashboard(){
+    if(busy||recording||interviewSession?.active){message('Finish your current interview before opening the dashboard.');return;}
+    cancelQuestionSpeech(false);stopCamera('Camera is off.');
+    $('session-report').querySelectorAll('audio').forEach(player=>player.pause());
+    setPageView(false);$('interview-page').hidden=true;$('interview-intro').hidden=true;$('dashboard-page').hidden=false;
+    if(location.pathname+location.search!=='/interview?view=dashboard')history.pushState({},'','/interview?view=dashboard');
+    document.title='HyperSense AI · Dashboard';message('Your saved interview progress.');renderDashboard();$('dashboard-title').focus();window.scrollTo({top:0});
+}
+$('nav-dashboard').onclick=showDashboard;
+$('nav-practice').onclick=()=>{if(!busy&&!recording)showSetupPage();};
+$('dashboard-start').onclick=showSetupPage;
+$('dashboard-filter').onchange=renderDashboard;
+$('dashboard-topic').onchange=renderDashboard;
 async function renderSavedSessions(){
     const list=$('saved-session-list');
     try{
@@ -1320,9 +1431,25 @@ async function deleteSavedSession(id){
         if(sessionSavePending?.id===id){sessionSavePending=null;$('retry-session-save').hidden=true;}
         $('session-storage-status').textContent='Saved session deleted.';
         await renderSavedSessions();
+        await renderDashboard();
     });
 }
 $('retry-session-save').onclick=()=>{if(sessionSavePending&&!busy&&!recording&&!interviewSession?.active)saveFinishedSession(sessionSavePending);};
+function exportSessionReport(session){
+    const {resume_text,...settings}=session.settings||{};
+    return {format:'hypersense-report-v1',id:session.id,date:session.date,total:session.total,settings,
+        note:'Recordings are downloaded separately. Confidence is self-rated; facial and voice observations are not emotion or confidence measurements.',
+        answers:session.answers.map(({recording,...answer})=>({...answer,recording:recording?{name:recording.name,bytes:recording.bytes}:null}))};
+}
+$('export-report').onclick=()=>{
+    if(busy||recording||!interviewSession||interviewSession.active)return;
+    const url=URL.createObjectURL(new Blob([JSON.stringify(exportSessionReport(interviewSession),null,2)],{type:'application/json'}));
+    const link=document.createElement('a');link.href=url;link.download='hypersense-report-'+interviewSession.id+'.json';link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+};
+$('print-report').onclick=()=>{if(!busy&&!recording&&interviewSession&&!interviewSession.active)window.print();};
+window.addEventListener('beforeunload',event=>{
+    if(interviewSession?.active||recording||sessionSavePending){event.preventDefault();event.returnValue='';}
+});
 
 function showCameraCheck(offerPermission=true){
     $('camera-title').closest('section').insertBefore($('camera-preview'),$('calibrate').parentElement);
@@ -1334,6 +1461,7 @@ function showCameraCheck(offerPermission=true){
     if(offerPermission)$('camera-on').onclick();
 }
 function setWorkspace(space){
+    $('dashboard-page').hidden=true;
     const setup=$('session-setup');
     const interview=$('interview-workspace');
     const history=[...(document.querySelectorAll?.('section.card')||[])].find(x=>x.querySelector('h2')?.textContent.trim()==='Saved interview sessions');
@@ -1368,6 +1496,9 @@ function showInterviewPage(){
 }
 function showSetupPage(){
     if(interviewSession?.active){showInterviewPage();return;}
+    cancelAutomation();cancelQuestionSpeech(false);clearInterval(ticker);ticker=null;current=null;
+    stopCamera('Camera is off. Start a session to enable it with your consent.');
+    $('session-report').querySelectorAll('audio').forEach(player=>player.pause());
     if(location.pathname!=='/interview'||location.search)history.pushState({},'','/interview');
     setPageView(false);message('Set up your next interview.');
     $('session-title').scrollIntoView({behavior:'smooth',block:'start'});
@@ -1375,6 +1506,8 @@ function showSetupPage(){
 $('back-to-interview').onclick=showSetupPage;
 $('camera-check-back').onclick=()=>{if(!busy&&!recording)showSetupPage();};
 async function restorePageRoute(){
+    if(interviewSession?.active&&location.pathname!=='/camera-check'){history.replaceState({},'','/interview');setPageView(false);setWorkspace('interview');return;}
+    if(location.pathname==='/interview'&&new URLSearchParams(location.search).get('view')==='dashboard'){showDashboard();return;}
     if(location.pathname==='/camera-check'){showCameraCheck();return;}
     if(location.pathname!=='/results'){setPageView(false);return;}
     if(interviewSession?.active){history.replaceState({},'','/interview');setPageView(false);return;}

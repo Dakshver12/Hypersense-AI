@@ -1,0 +1,8 @@
+fastapi
+httpx
+python-dotenv
+python-multipart
+pydantic>=2
+google-genai
+groq
+numpy

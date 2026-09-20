@@ -1,0 +1,55 @@
+<section id="camera-check-page" hidden aria-labelledby="camera-check-title">
+  <h1 id="camera-check-title" tabindex="-1">Check your camera</h1>
+  <p>
+    Allow browser camera access if prompted, then look toward the camera and hold still. Calibration
+    starts automatically when one face is detected. Your camera stays on when you continue.
+  </p>
+  <section class="session-camera" aria-labelledby="camera-title">
+    <div class="row">
+      <h3 id="camera-title">Session camera</h3>
+      <span class="muted">Required</span>
+    </div>
+    <small
+      >Enable the camera and calibrate your neutral position before starting a session. Sampled
+      images go only to your local backend and are not saved. Detection does not measure emotion or
+      confidence.</small
+    >
+    <div class="actions">
+      <button id="camera-on">Allow camera / retry</button
+      ><button id="camera-off" disabled>Turn camera off</button
+      ><button id="retry-detection" hidden>Retry face detection</button>
+    </div>
+    <div class="camera-preview" id="camera-preview" hidden>
+      <video id="camera-video" autoplay muted playsinline></video
+      ><canvas id="face-overlay" aria-hidden="true"></canvas>
+    </div>
+    <div class="actions"><button id="calibrate" disabled>Recalibrate if needed</button></div>
+    <p id="pose-status" role="status" aria-live="polite">
+      Enable the camera, then look toward it and calibrate.
+    </p>
+    <div class="row" style="flex-wrap: wrap">
+      <span>Turn: <strong id="yaw">—</strong></span
+      ><span>Nod: <strong id="pitch">—</strong></span
+      ><span>Tilt: <strong id="roll">—</strong></span>
+    </div>
+    <small
+      >Approximate rotation from your calibrated position. These measurements are not eye contact or
+      a confidence score. Your camera and calibration stay active between questions until you turn
+      the camera off or leave this page. Recalibrate if you move your camera or seat.</small
+    >
+    <h3>Live facial movements</h3>
+    <div id="expression-live">Enable the camera to see facial movement estimates.</div>
+    <small
+      >Model signals from 0 to 1, not probabilities of feelings. Mouth movement also changes while
+      speaking. No extra calibration is needed for these signals.</small
+    >
+    <p id="camera-status" role="status" aria-live="polite">
+      Camera is required. Enable it and calibrate before starting a session.
+    </p>
+  </section>
+  <div class="actions">
+    <button id="camera-check-back">Back to setup</button
+    ><button class="primary" id="camera-check-continue" disabled>Start interview</button>
+  </div>
+  <p>Camera access and calibration are required. Reloading this page requires calibration again.</p>
+</section>

@@ -1,0 +1,82 @@
+// Full-page integration test: npm ci, then npm test.
+// All camera, audio and provider responses are simulated. No API keys needed.
+const fs=require('node:fs');
+const path=require('node:path');
+const assert=require('node:assert/strict');
+const {JSDOM,VirtualConsole}=require('jsdom');
+const {indexedDB,IDBKeyRange}=require('fake-indexeddb');
+const esbuild=require('esbuild');
+const root=path.resolve(__dirname,'..');
+let shell=fs.readFileSync(path.join(root,'templates/index.html'),'utf8');
+for(const name of ['setup','interview','dashboard','camera-check','results'])shell=shell.replace('<!-- include:'+name+' -->',fs.readFileSync(path.join(root,'templates/screens',name+'.html'),'utf8'));
+const modules=fs.readdirSync(path.join(root,'static/js')).filter(n=>n.endsWith('.js')&&n!=='app.js');
+const entry=`import './app.js';\n`+modules.map((n,i)=>`import * as m${i} from './${n}';`).join('\n')+modules.map((n,i)=>`Object.assign(window,m${i});`).join('\n')+`\nfor(const key of Object.keys(window.state))Object.defineProperty(window,key,{configurable:true,get:()=>window.state[key],set:value=>{window.state[key]=value}});`;
+const bundle=esbuild.buildSync({stdin:{contents:entry,resolveDir:path.join(root,'static/js')},bundle:true,write:false,format:'iife'}).outputFiles[0].text;
+shell=shell.replace(/<script type="module"[\s\S]*?<\/script>/,'');
+const errors=[];
+const virtualConsole=new VirtualConsole();
+virtualConsole.on('jsdomError',e=>errors.push(e.message));
+let denyEvaluation=false;
+const dom=new JSDOM(shell,{
+    url:'http://localhost:8000/interview',runScripts:'dangerously',pretendToBeVisual:true,virtualConsole,
+    beforeParse(w){
+        w.indexedDB=indexedDB;w.IDBKeyRange=IDBKeyRange;w.structuredClone=structuredClone;
+        w.scrollTo=()=>{};w.HTMLElement.prototype.scrollIntoView=()=>{};
+        w.HTMLMediaElement.prototype.pause=()=>{};w.HTMLMediaElement.prototype.load=()=>{};w.HTMLMediaElement.prototype.play=async()=>{};
+        w.HTMLCanvasElement.prototype.getContext=()=>({clearRect(){},strokeRect(){},drawImage(){}});
+        w.URL.createObjectURL=()=> 'blob:test';w.URL.revokeObjectURL=()=>{};w.confirm=()=>true;
+        w.fetch=async(url)=>({ok:!denyEvaluation,status:denyEvaluation?429:200,text:async()=>JSON.stringify(denyEvaluation?{detail:'Quota reached'}:{score:0,feedback:'Missing the required explanation.',provider:'Test',model:'mock',coaching:[]})});
+    }
+});
+dom.window.eval(bundle);
+const w=dom.window,$=id=>w.document.getElementById(id),evaluate=code=>w.eval(code);
+const waitFor=async fn=>{for(let i=0;i<100;i++){if(fn())return;await new Promise(r=>setTimeout(r,10));}throw Error('UI condition timed out');};
+(async()=>{
+    await waitFor(()=>$('saved-session-list').textContent.includes('No completed'));
+    await $('camera-on').onclick();assert.equal(evaluate('state.cameraStream'),null);
+    evaluate(`cameraStream={getVideoTracks:()=>[{readyState:'live',enabled:true}],getTracks:()=>[{stop(){}}]};`);
+    evaluate('updatePose([[1,0,0],[0,1,0],[0,0,1]],2)');assert.equal(evaluate('state.neutralRotation'),null);
+    for(let i=0;i<5;i++)evaluate('updatePose([[1,0,0],[0,1,0],[0,0,1]],1)');
+    assert.equal(evaluate('cameraReady()'),true);evaluate('stopCamera()');
+    evaluate('renderQuestion("Example: `items`\\n\\n```python\\nif items:\\n    print(items)\\n```\\n\\n<script>bad()</script>")');
+    assert.equal($('question').querySelector('pre code').textContent,'if items:\n    print(items)');assert.equal($('question').querySelector('script'),null);
+    $('nav-dashboard').click();await waitFor(()=>$('dashboard-status').textContent.includes('first saved'));
+    assert.equal($('dashboard-page').hidden,false);
+    await evaluate(`sessionStore('readwrite',s=>s.put({id:'seed',date:'2026-01-01T12:00:00Z',settings:{technology:'Python',difficulty:'easy',interview_type:'mixed'},total:2,answers:[{score:0,interview_type:'technical',answer:'A',question:'Q',feedback:'Test',audio:{words_per_minute:120},confidence:'2'},{score:null,interview_type:'hr',question:'HR',answer:'B'}]}))`);
+    await evaluate('renderDashboard()');assert($('dashboard-types').textContent.includes('0.0/100'));
+    $('dashboard-filter').value='hr';$('dashboard-filter').onchange();await waitFor(()=>$('dashboard-status').textContent.startsWith('Updated'));
+    assert($('dashboard-stats').textContent.includes('Pending scores1'));
+    await evaluate('openSavedSession("seed")');assert.equal($('results-page').hidden,false);
+    assert($('session-report').textContent.includes('Not scored'));
+    assert.equal($('export-report').disabled,false);
+    $('nav-dashboard').click();await waitFor(()=>$('dashboard-status').textContent.startsWith('Updated'));
+    $('dashboard-start').click();assert.equal($('dashboard-page').hidden,true);
+    assert.equal($('session-setup').style.display,'block');
+    // A one-question manual session with a simulated calibrated camera.
+    evaluate(`cameraStream={getVideoTracks:()=>[{readyState:'live',enabled:true}],getTracks:()=>[{stop(){window.cameraStopped=true;}}]};neutralRotation=[[1,0,0],[0,1,0],[0,0,1]];`);
+    $('session-count').appendChild(new w.Option('1','1'));$('session-count').value='1';$('session-source').value='manual';$('session-questions').value='Explain a Python list.';$('auto-flow').value='manual';
+    evaluate('showInterviewPage()');await evaluate('startCheckedSession()');evaluate('refresh()');
+    assert.equal($('session-controls').hidden,false);assert.equal($('nav-dashboard').disabled,true);
+    $('transcript').value='A list stores items.';$('confidence-rating').value='4';evaluate('refresh()');
+    denyEvaluation=true;await evaluate('run(submitAnswer)');assert.equal($('transcript').value,'A list stores items.');assert.equal($('transcript').disabled,false);
+    assert.equal(evaluate('interviewSession.answers.length'),0);
+    // Browser Back must keep the active interview visible.
+    w.history.pushState({},'','/results?session=seed');await evaluate('restorePageRoute()');assert.equal($('interview-workspace').style.display,'block');
+    // Continue without quota; completion releases camera and preserves rating.
+    await $('session-next').onclick();await waitFor(()=>$('session-storage-status').textContent==='Session and recordings saved in this browser.');
+    assert.equal(w.cameraStopped,true);assert.equal($('results-page').hidden,false);assert.equal(evaluate('interviewSession.answers[0].confidence'),'4');
+    assert.equal(evaluate('interviewSession.answers[0].score'),null);
+    denyEvaluation=false;await evaluate('scorePendingAnswers()');assert.equal(evaluate('interviewSession.answers[0].score'),0);
+    const id=evaluate('interviewSession.id');await evaluate(`openSavedSession(${JSON.stringify(id)})`);assert($('session-report').textContent.includes('0/100'));
+    await evaluate(`deleteSavedSession(${JSON.stringify(id)})`);assert.equal(await evaluate(`sessionStore('readonly',s=>s.get(${JSON.stringify(id)}))`),undefined);
+    // Early completion and a blocked navigation while the session is active.
+    evaluate(`cameraStream={getVideoTracks:()=>[{readyState:'live',enabled:true}],getTracks:()=>[{stop(){window.cameraStopped=true;}}]};neutralRotation=[[1,0,0],[0,1,0],[0,0,1]];`);
+    $('session-count').appendChild(new w.Option('2','2'));$('session-count').value='2';$('session-questions').value='First question\n---\nSecond question';
+    evaluate('showInterviewPage()');await evaluate('startCheckedSession()');evaluate('refresh()');$('transcript').value='Early answer';
+    evaluate('showDashboard()');assert.equal($('dashboard-page').hidden,true);
+    $('session-end').click();await waitFor(()=>$('session-storage-status').textContent==='Session and recordings saved in this browser.');
+    assert.equal(evaluate('interviewSession.answers.length'),1);assert.equal(evaluate('interviewSession.total'),2);assert.equal(evaluate('cameraStream'),null);
+    $('nav-practice').click();$('manual-question').value='Single question';$('use-manual').click();assert.equal($('interview-workspace').style.display,'block');
+    assert.deepEqual(errors,[]);
+    console.log('PASS: empty dashboard, filters, zero/pending scores, reports, quota recovery, session navigation, completion, camera cleanup, confidence persistence, retry scoring, deletion and single practice.');
+})().catch(e=>{console.error(e);process.exitCode=1;}).finally(()=>w.close());

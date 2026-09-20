@@ -1,0 +1,52 @@
+<div id="dashboard-page" hidden>
+  <div class="eyebrow">Your practice journey</div>
+  <h1 id="dashboard-title" tabindex="-1">Every interview is a step forward.</h1>
+  <p class="muted">
+    Review saved sessions and choose what to practise next. Data stays in this browser.
+  </p>
+  <div class="actions">
+    <button class="primary" id="dashboard-start">Start an interview</button
+    ><label for="dashboard-filter">Interview type</label
+    ><select id="dashboard-filter">
+      <option value="all">All types</option>
+      <option value="technical">Technical</option>
+      <option value="behavioral">Behavioral</option>
+      <option value="hr">HR</option>
+    </select>
+  </div>
+  <p id="dashboard-status" role="status"></p>
+  <div id="dashboard-stats" class="dashboard-grid"></div>
+  <label for="dashboard-topic">Topic</label
+  ><select id="dashboard-topic">
+    <option value="">All topics</option>
+  </select>
+  <section class="card">
+    <h2>Scores by interview type</h2>
+    <p class="muted">Averages use scored answers only. Each interview type has its own rubric.</p>
+    <div id="dashboard-types" class="dashboard-grid"></div>
+  </section>
+  <section class="card">
+    <h2>Recent progress</h2>
+    <p class="muted">
+      Last 10 matching sessions, oldest first. Question difficulty and topic can differ; scores are
+      not directly comparable across settings.
+    </p>
+    <div id="dashboard-progress" class="dashboard-scroll"></div>
+  </section>
+  <section class="card">
+    <h2>Delivery over time</h2>
+    <p class="muted">
+      Average pace and your own confidence ratings per session. These are practice observations, not
+      performance scores. A higher or lower value is not automatically better.
+    </p>
+    <div id="dashboard-delivery" class="dashboard-scroll"></div>
+  </section>
+  <section class="card">
+    <h2>Your sessions</h2>
+    <p class="muted">
+      Open a report to review answers, feedback and recordings. Clearing browser data removes these
+      sessions.
+    </p>
+    <div id="dashboard-sessions" class="dashboard-scroll"></div>
+  </section>
+</div>
