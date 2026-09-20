@@ -1,3 +1,4 @@
+import { checkpointSession, draftStore } from "./recovery.js";
 import { state } from "./state.js";
 import { $, renderQuestion } from "./dom.js";
 import { renderDelivery, summarizeExpressions, poseSummary } from "./delivery.js";
@@ -62,8 +63,8 @@ export function sessionSnapshot() {
   };
 }
 
-export function archiveSessionAnswer() {
-  if (!state.interviewSession.loaded) return;
+export async function archiveSessionAnswer() {
+  if (!state.interviewSession.loaded) { await checkpointSession(); return; }
   cancelQuestionSpeech(false);
   clearInterval(state.ticker);
   state.ticker = null;
@@ -72,6 +73,7 @@ export function archiveSessionAnswer() {
   state.interviewSession.answers.push(sessionSnapshot());
   state.interviewSession.loaded = false;
   state.current = null;
+  await checkpointSession();
 }
 
 export async function loadSessionQuestion() {
@@ -79,7 +81,8 @@ export async function loadSessionQuestion() {
   const session = state.interviewSession;
   const settings = concreteSettings(session.settings, session.answers.length);
   let question;
-  if (session.source === "manual") question = session.questions[session.answers.length];
+  if (session.pendingQuestion) question = session.pendingQuestion.question;
+  else if (session.source === "manual") question = session.questions[session.answers.length];
   else {
     message("Generating the next interview question…");
     const data = await api("/generate-question", {
@@ -106,11 +109,15 @@ export async function loadSessionQuestion() {
   clearAudio();
   $("transcript").value = "";
   $("result").hidden = true;
+  await checkpointSession();
+  session.pendingQuestion = null;
   beginQuestionReadout();
 }
 
 export async function startCheckedSession() {
   requireSessionCamera();
+  const previous = await draftStore("readonly", s => s.get("active"));
+  if (previous) throw Error("An unfinished interview is saved. Return to setup and resume or discard it first.");
   const total = Number($("session-count").value),
     source = $("session-source").value;
   const questions = $("session-questions")
@@ -140,6 +147,7 @@ export async function startCheckedSession() {
     answers: [],
   };
   $("session-report").hidden = true;
+  await checkpointSession();
   await loadSessionQuestion();
 }
 
@@ -175,7 +183,7 @@ export async function submitAnswer() {
       model: data.model,
       coaching: data.coaching || [],
     };
-    archiveSessionAnswer();
+    await archiveSessionAnswer();
     if (state.interviewSession.answers.length === state.interviewSession.total)
       finishInterviewSession();
     else await loadSessionQuestion();
@@ -229,6 +237,7 @@ export function initSessions() {
       requireSessionCamera();
       showInterviewPage();
       if (!state.interviewSession?.active) await startCheckedSession();
+      else if (!state.interviewSession.loaded) await loadSessionQuestion();
       else message("Camera ready. Continue your current answer or load the next question.");
     });
   $("open-camera-check").onclick = () => {
@@ -241,17 +250,17 @@ export function initSessions() {
     run(async () => {
       if (!state.interviewSession?.active || state.speechPending) return;
       cancelAutomation();
-      archiveSessionAnswer();
+      await archiveSessionAnswer();
       if (state.interviewSession.answers.length === state.interviewSession.total)
         finishInterviewSession();
       else await loadSessionQuestion();
     });
-  $("session-end").onclick = () => {
-    if (state.busy || state.recording || !state.interviewSession?.active) return;
+  $("session-end").onclick = () => run(async () => {
+    if (state.recording || !state.interviewSession?.active) return;
     cancelAutomation();
-    archiveSessionAnswer();
+    await archiveSessionAnswer();
     finishInterviewSession();
-  };
+  });
   $("evaluate").onclick = () => {
     cancelAutomation();
     return run(submitAnswer);

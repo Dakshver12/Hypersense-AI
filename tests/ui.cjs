@@ -17,7 +17,7 @@ const errors=[];
 const virtualConsole=new VirtualConsole();
 virtualConsole.on('jsdomError',e=>errors.push(e.message));
 let denyEvaluation=false;
-const dom=new JSDOM(shell,{
+function createBrowser(){ return new JSDOM(shell,{
     url:'http://localhost:8000/interview',runScripts:'dangerously',pretendToBeVisual:true,virtualConsole,
     beforeParse(w){
         w.indexedDB=indexedDB;w.IDBKeyRange=IDBKeyRange;w.structuredClone=structuredClone;
@@ -27,7 +27,8 @@ const dom=new JSDOM(shell,{
         w.URL.createObjectURL=()=> 'blob:test';w.URL.revokeObjectURL=()=>{};w.confirm=()=>true;
         w.fetch=async(url)=>({ok:!denyEvaluation,status:denyEvaluation?429:200,text:async()=>JSON.stringify(denyEvaluation?{detail:'Quota reached'}:{score:0,feedback:'Missing the required explanation.',provider:'Test',model:'mock',coaching:[]})});
     }
-});
+}); }
+const dom=createBrowser();
 dom.window.eval(bundle);
 const w=dom.window,$=id=>w.document.getElementById(id),evaluate=code=>w.eval(code);
 const waitFor=async fn=>{for(let i=0;i<100;i++){if(fn())return;await new Promise(r=>setTimeout(r,10));}throw Error('UI condition timed out');};
@@ -82,6 +83,35 @@ const waitFor=async fn=>{for(let i=0;i<100;i++){if(fn())return;await new Promise
     $('session-end').click();await waitFor(()=>$('session-storage-status').textContent==='Session and recordings saved in this browser.');
     assert.equal(evaluate('interviewSession.answers.length'),1);assert.equal(evaluate('interviewSession.total'),2);assert.equal(evaluate('cameraStream'),null);
     $('nav-practice').click();$('manual-question').value='Single question';$('use-manual').click();assert.equal($('interview-workspace').style.display,'block');
+    // Refresh into a new window sharing only IndexedDB, including stored audio.
+    await evaluate(`draftStore('readwrite',s=>s.clear())`);
+    w.state.interviewSession={id:'recovery-test',date:new Date().toISOString(),active:true,loaded:true,total:2,source:'manual',questions:['First','Second'],settings:{technology:'Python',difficulty:'easy',language:'English',interview_type:'technical',auto_flow:false,resume_text:'private resume'},answers:[{question:'First',answer:'Saved answer',score:100,recording:{blob:new Blob(['audio bytes'],{type:'audio/webm'}),name:'answer-01.webm',bytes:11,url:'blob:expired'}}]};
+    w.state.current={...w.state.interviewSession.settings,question:'Second'};
+    await w.checkpointSession();
+    const draft=await w.draftStore('readonly',s=>s.get('active'));
+    assert.equal(draft.settings.resume_text,undefined);assert.equal(draft.pendingQuestion.resume_text,undefined);
+    assert.equal(draft.answers[0].recording.url,undefined);
+    const reloaded=createBrowser(),rw=reloaded.window;
+    rw.eval(bundle);
+    await waitFor(()=>!rw.document.getElementById('session-recovery').hidden);
+    await assert.rejects(()=>rw.resumeSessionDraft(),/consent/);
+    rw.document.getElementById('recovery-consent').checked=true;
+    rw.document.getElementById('camera-on').onclick=()=>{};
+    await rw.resumeSessionDraft();
+    assert.equal(rw.state.interviewSession.answers[0].answer,'Saved answer');
+    assert.equal(await rw.state.interviewSession.answers[0].recording.blob.text(),'audio bytes');
+    assert.equal(rw.state.neutralRotation,null);
+    rw.state.cameraStream={getVideoTracks:()=>[{readyState:'live',enabled:true}],getTracks:()=>[{stop(){}}]};
+    rw.state.neutralRotation=[[1,0,0],[0,1,0],[0,0,1]];
+    await rw.loadSessionQuestion();
+    assert.equal(rw.state.current.question,'Second');assert.equal(rw.state.interviewSession.answers.length,1);
+    const workingDB=rw.indexedDB;rw.indexedDB={open(){throw Error('Storage unavailable')}};
+    await assert.rejects(()=>rw.checkpointSession(),/Could not save progress/);
+    assert.equal(rw.state.interviewSession.answers[0].answer,'Saved answer');rw.indexedDB=workingDB;
+    await rw.clearSessionDraft('different-session');assert(await rw.draftStore('readonly',s=>s.get('active')));
+    await rw.clearSessionDraft('recovery-test');assert.equal(await rw.draftStore('readonly',s=>s.get('active')),undefined);
+    reloaded.window.close();
+    console.log('PASS: refresh recovery, audio persistence, consent gate, question continuation, résumé exclusion and storage failures.');
     assert.deepEqual(errors,[]);
     console.log('PASS: empty dashboard, filters, zero/pending scores, reports, quota recovery, session navigation, completion, camera cleanup, confidence persistence, retry scoring, deletion and single practice.');
 })().catch(e=>{console.error(e);process.exitCode=1;}).finally(()=>w.close());

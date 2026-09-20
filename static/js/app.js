@@ -1,3 +1,4 @@
+import { initRecovery } from "./recovery.js";
 import { initDelivery } from "./delivery.js";
 import { initAutomation } from "./automation.js";
 import { initSpeech } from "./speech.js";
@@ -29,3 +30,5 @@ initStorage();
 initDashboard();
 initNavigation();
 initBoot();
+
+initRecovery();

@@ -1,3 +1,4 @@
+import { clearSessionDraft } from "./recovery.js";
 import { state } from "./state.js";
 import { $ } from "./dom.js";
 import { cancelQuestionSpeech } from "./speech.js";
@@ -78,6 +79,7 @@ export async function saveFinishedSession(session) {
       state.sessionSavePending = null;
       $("session-storage-status").textContent = "Session and recordings saved in this browser.";
     }
+    await clearSessionDraft(record.id).catch(() => {});
     await renderSavedSessions();
     return true;
   } catch {
