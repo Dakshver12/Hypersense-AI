@@ -328,6 +328,7 @@ export function initCamera() {
   };
   $("camera-off").onclick = () => stopCamera();
   $("camera-consent").onchange = () => {
+    if ($("single-camera-consent")) $("single-camera-consent").checked = $("camera-consent").checked;
     if (!$("camera-consent").checked && (state.cameraStream || state.cameraStarting))
       stopCamera("Camera consent withdrawn. Camera is off.");
     refresh();

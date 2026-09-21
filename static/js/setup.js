@@ -21,6 +21,10 @@ export const controls = [
 export function message(text, error = false) {
   $("status").textContent = text;
   $("status").className = error ? "error" : "";
+  if ($("single-practice-status")) {
+    $("single-practice-status").textContent = text;
+    $("single-practice-status").className = error ? "error" : "muted";
+  }
 }
 
 export function interviewSettings() {
