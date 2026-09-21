@@ -26,6 +26,13 @@
     <div id="dashboard-types" class="dashboard-grid"></div>
   </section>
   <section class="card">
+    <h2>Progress by topic</h2>
+    <p class="muted">Grouped by topic, interview type, difficulty and language. Change compares the latest 3 scored answers with the previous 3; at least 6 dated, scored answers are needed. Latest 3 uses the available answers when there are fewer.</p>
+    <label style="display:flex;align-items:center;gap:10px"><input id="dashboard-include-retries" type="checkbox" style="width:16px"> Include retries in topic trends</label>
+    <p class="muted">Retries are excluded by default because you have already seen the question and feedback. Pending scores are excluded from averages. Questions and evaluators can still differ within a group; these trends describe practice results, not a mastery rating.</p>
+    <div id="dashboard-topics" class="dashboard-scroll"></div>
+  </section>
+  <section class="card">
     <h2>Recent progress</h2>
     <p class="muted">
       Last 10 matching sessions, oldest first. Question difficulty and topic can differ; scores are

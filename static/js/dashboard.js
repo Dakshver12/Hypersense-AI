@@ -1,3 +1,4 @@
+import { renderTopicProgress } from './topic-progress.js';
 import { state } from "./state.js";
 import { $ } from "./dom.js";
 import { cancelQuestionSpeech } from "./speech.js";
@@ -58,6 +59,7 @@ export async function renderDashboard() {
   const status = $("dashboard-status");
   status.textContent = "Loading saved sessions…";
   for (const id of [
+    "dashboard-topics",
     "dashboard-stats",
     "dashboard-types",
     "dashboard-progress",
@@ -89,6 +91,7 @@ export async function renderDashboard() {
         (s.settings?.technology || "General") === $("dashboard-topic").value,
     );
     const summary = dashboardSummary(filtered, $("dashboard-filter").value);
+    renderTopicProgress($("dashboard-topics"), filtered, $("dashboard-filter").value, $("dashboard-include-retries").checked);
     const add = (parent, tag, text) => {
       const node = document.createElement(tag);
       node.textContent = text;
@@ -238,4 +241,5 @@ export function initDashboard() {
   $("dashboard-start").onclick = showSetupPage;
   $("dashboard-filter").onchange = renderDashboard;
   $("dashboard-topic").onchange = renderDashboard;
+  $("dashboard-include-retries").onchange = renderDashboard;
 }
