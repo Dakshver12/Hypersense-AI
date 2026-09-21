@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 
 
 class QuestionRequest(BaseModel):
+    practice_focus: str = Field(default="", max_length=1800)
     candidate_level: Literal[
         "unspecified", "student", "entry", "experienced", "senior"
     ] = "unspecified"

@@ -1,3 +1,4 @@
+import { prepareFocusedPractice } from './practice-plan.js';
 import { openSavedSession } from './storage.js';
 import { modeName } from './setup.js';
 
@@ -49,6 +50,8 @@ export function renderTopicProgress(parent, sessions, filter, includeRetries) {
     add(row,'td',group.change===null?'Need 6 dated, scored answers':`${group.change>0?'+':''}${group.change.toFixed(1)} points`);
     const cell=add(row,'td','');
     if (!group.recent.length) { add(cell,'span','No dated, scored answers yet.'); continue; }
+    const plan=add(cell,'button','Plan focused practice');plan.type='button';
+    plan.onclick=()=>prepareFocusedPractice(group);
     const detail=add(cell,'details','');add(detail,'summary','Review recent answers');
     for(const answer of group.recent) {
       add(detail,'p',`${new Date(answer.date).toLocaleDateString()} · ${answer.score}/100 · ${answer.question || 'Question'}`);

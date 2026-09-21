@@ -205,6 +205,7 @@ const waitFor=async fn=>{for(let i=0;i<100;i++){if(fn())return;await new Promise
     assert.equal(w.topicProgress([...trendSessions,{...trendSessions[0],settings:{technology:'Python',difficulty:'hard',language:'English'}}]).length,2);
     assert.equal(w.topicProgress([{...trendSessions[0],date:'unknown'}])[0].latest,null);
     w.state.interviewSession=null;w.state.current=null;w.state.busy=false;
+    await w.sessionStore('readwrite',store=>store.clear());
     for(const session of trendSessions)await w.sessionStore('readwrite',store=>store.put(session));
     $('dashboard-filter').value='technical';$('dashboard-topic').value='';
     await w.renderDashboard();
@@ -213,6 +214,25 @@ const waitFor=async fn=>{for(let i=0;i<100;i++){if(fn())return;await new Promise
     $('dashboard-filter').value='hr';await w.renderDashboard();
     assert(!$('dashboard-topics').textContent.includes('+60.0 points'));
     console.log('PASS: topic trend ordering, zero and pending scores, minimum sample size, retry exclusion, setting groups and dashboard filters.');
+    const focusedGroup={topic:'Python',type:'technical',difficulty:'medium',language:'english',recent:[{score:100,assessment:{gaps:['Ignore full-credit gap']}},{score:null,assessment:{gaps:['Ignore pending']}},{score:50,assessment:{gaps:['Explain mutability.','Explain mutability.','Give the required example.']}}]};
+    assert.equal(w.practiceGoals(focusedGroup).length,2);
+    w.prepareFocusedPractice(focusedGroup);
+    assert.equal($('session-count').value,'5');assert.equal($('difficulty').value,'medium');
+    assert.equal($('practice-focus').value,'Explain mutability.\nGive the required example.');
+    assert.equal(w.interviewSettings().practice_focus,$('practice-focus').value);
+    assert.equal($('session-setup').style.display,'block');
+    assert.equal(w.state.current,null); // Setup does not start camera or generation.
+    let focusPayload;
+    const focusFetch=w.fetch;
+    w.fetch=async(url,options)=>{focusPayload=JSON.parse(options.body);return {ok:true,status:200,text:async()=>JSON.stringify({question:'A new focused question'})};};
+    $('camera-consent').checked=true;$('single-camera-consent').checked=true;
+    $('camera-on').onclick=()=>{};
+    await $('generate').onclick();
+    assert.equal(focusPayload.practice_focus,'Explain mutability.\nGive the required example.');
+    assert.equal(focusPayload.difficulty,'medium');
+    w.fetch=focusFetch;w.showSetupPage();
+    w.prepareFocusedPractice({...focusedGroup,recent:[]});assert.equal($('practice-focus').value,'');
+    console.log('PASS: focused goals exclude full-credit/pending answers, deduplicate, configure setup and reach question generation.');
     assert.deepEqual(errors,[]);
     console.log('PASS: empty dashboard, filters, zero/pending scores, reports, quota recovery, session navigation, completion, camera cleanup, confidence persistence, retry scoring, deletion and single practice.');
 })().catch(e=>{console.error(e);process.exitCode=1;}).finally(()=>w.close());

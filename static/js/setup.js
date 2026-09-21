@@ -3,6 +3,7 @@ import { $ } from "./dom.js";
 import { run } from "./api.js";
 
 export const controls = [
+  "practice-focus",
   "auto-flow",
   "candidate-level",
   "resume-text",
@@ -29,6 +30,7 @@ export function message(text, error = false) {
 
 export function interviewSettings() {
   return {
+    practice_focus: $("practice-focus").value.trim(),
     technology: $("technology").value.trim() || "General",
     difficulty: $("difficulty").value,
     language: $("language").value,
