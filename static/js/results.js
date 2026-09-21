@@ -1,3 +1,4 @@
+import { renderRetry } from './retry.js';
 import { state } from "./state.js";
 import { $ } from "./dom.js";
 import { cancelAutomation } from "./automation.js";
@@ -239,6 +240,7 @@ export function finishInterviewSession(restored = false) {
         : `${modeName(a.interview_type)} ${!a.interview_type || a.interview_type === "technical" ? "accuracy" : "answer quality"}: ${a.score}/100. ${a.feedback}`,
     );
     renderAnswerAssessment(item, a);
+    renderRetry(item, state.interviewSession, answers.indexOf(a));
     if (a.provider) add(item, "p", `Evaluator: ${a.provider} (${a.model}).`);
     const audio = a.audio;
     add(

@@ -50,6 +50,7 @@ export function sessionSnapshot() {
   return {
     interview_type: state.current.interview_type || "technical",
     question: state.current.question,
+    retryOf: state.retryContext?.question === state.current.question ? { ...state.retryContext } : null,
     answer: $("transcript").value.trim(),
     recording,
     score: state.sessionEvaluation?.score ?? null,
@@ -118,6 +119,7 @@ export async function loadSessionQuestion() {
 }
 
 export async function startCheckedSession() {
+  state.retryContext = null;
   state.singlePractice = false;
   requireSessionCamera();
   const previous = await draftStore("readonly", s => s.get("active"));

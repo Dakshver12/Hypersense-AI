@@ -22,15 +22,30 @@ export function rememberQuestion(technology, question) {
     localStorage.setItem(QUESTION_HISTORY_KEY, JSON.stringify(state.recentQuestionHistory));
   } catch {}
 }
+export function singlePracticeConsent() {
+  if ($("single-camera-consent").checked) $("camera-consent").checked = true;
+  if ($("camera-consent").checked) return true;
+  const notice = "Please check camera consent above, then click the practice button again.";
+  $("single-practice-status").textContent = notice;
+  $("single-camera-consent").focus();
+  message(notice, true);
+  return false;
+}
 export function initQuestions() {
+  $("single-camera-consent").onchange = () => {
+    $("camera-consent").checked = $("single-camera-consent").checked;
+    $("camera-consent").dispatchEvent(new Event("change"));
+    $("single-practice-status").textContent = $("single-camera-consent").checked ? "Ready. Generate a question or paste your own below." : "Camera consent is required for practice.";
+  };
   $("use-manual").onclick = () => {
     if (state.busy || state.recording) return;
-    if (!$("camera-consent").checked) { message("Check the camera consent box before starting practice.", true); return; }
+    if (!singlePracticeConsent()) return;
     const question = $("manual-question").value.trim();
     if (!question) {
       message("Enter a practice question first.", true);
       return;
     }
+    state.retryContext = null;
     state.current = { ...concreteSettings(interviewSettings()), question };
     renderQuestion(question);
     $("question").lang = state.current.language === "Hindi" ? "hi" : "en";
@@ -67,7 +82,7 @@ export function initQuestions() {
   } catch {}
   $("generate").onclick = () =>
     run(async () => {
-      if (!$("camera-consent").checked) throw Error("Check the camera consent box before starting practice.");
+      if (!singlePracticeConsent()) return;
       const technology = $("technology").value.trim();
       if (!technology) throw Error("Enter a technology first.");
       message("Generating your question…");
@@ -78,7 +93,8 @@ export function initQuestions() {
       });
       if (!data.question) throw Error("No question returned.");
       rememberQuestion(technology, data.question);
-      state.current = { ...settings, question: data.question };
+      state.retryContext = null;
+    state.current = { ...settings, question: data.question };
       renderQuestion(state.current.question);
       $("context").textContent = [
         modeName(settings.interview_type),

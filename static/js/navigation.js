@@ -135,6 +135,7 @@ export function showSetupPage() {
   state.ticker = null;
   state.current = null;
   state.singlePractice = false;
+  state.retryContext = null;
   stopCamera("Camera is off. Start a session to enable it with your consent.");
   $("session-report")
     .querySelectorAll("audio")
