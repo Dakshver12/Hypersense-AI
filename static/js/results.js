@@ -1,3 +1,4 @@
+import { addSaveQuestionButton } from './saved-questions.js';
 import { renderRetry } from './retry.js';
 import { state } from "./state.js";
 import { $ } from "./dom.js";
@@ -241,6 +242,7 @@ export function finishInterviewSession(restored = false) {
     );
     renderAnswerAssessment(item, a);
     renderRetry(item, state.interviewSession, answers.indexOf(a));
+    addSaveQuestionButton(item, state.interviewSession, a);
     if (a.provider) add(item, "p", `Evaluator: ${a.provider} (${a.model}).`);
     const audio = a.audio;
     add(

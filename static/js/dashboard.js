@@ -1,3 +1,4 @@
+import { renderSavedQuestions } from './saved-questions.js';
 import { searchSavedAnswers } from './history-search.js';
 import { renderTopicProgress } from './topic-progress.js';
 import { state } from "./state.js";
@@ -117,6 +118,7 @@ export function deliveryAverages(answers) {
 }
 
 export async function renderDashboard() {
+  renderSavedQuestions();
   const load = ++state.dashboardLoad;
   historyRows = null;
   const status = $("dashboard-status");
