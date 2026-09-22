@@ -1,3 +1,4 @@
+import { readPresets, savePreset, validatePreset, renderPresets } from "./presets.js";
 import { sessionStore, sessionDB, storedSession } from './storage.js';
 import { readSavedQuestions, saveQuestion, questionBookmark } from './saved-questions.js';
 import { renderDashboard } from './dashboard.js';
@@ -35,6 +36,8 @@ export function parseBackup(text) {
   require(data?.format === 'hypersense-backup' && data.version === 1, 'Choose a HyperSense backup version 1 file.');
   require(Array.isArray(data.sessions) && data.sessions.length <= 1000, 'Invalid session list (maximum 1,000).');
   require(Array.isArray(data.savedQuestions) && data.savedQuestions.length <= 100, 'Invalid saved questions.');
+  require(data.savedSetups === undefined || (Array.isArray(data.savedSetups) && data.savedSetups.length <= 20), "Invalid saved setups.");
+  data.savedSetups = (data.savedSetups || []).map(validatePreset);
   const ids = new Set();
   for (const session of data.sessions) {
     require(object(session) && typeof session.id === 'string' && session.id.length > 0 && session.id.length <= 200 && !ids.has(session.id), 'Invalid or duplicate session ID.');
@@ -68,6 +71,7 @@ export function parseBackup(text) {
 export async function buildBackup() {
   const sessions = await sessionStore('readonly', store => store.getAll());
   const savedQuestions = readSavedQuestions();
+  const savedSetups = readPresets();
   require(sessions.length <= 1000, 'This backup supports up to 1,000 sessions.');
   let estimatedBytes = 0;
   const records = [];
@@ -84,7 +88,7 @@ export async function buildBackup() {
     }
     records.push(session);
   }
-  const text = JSON.stringify({format:'hypersense-backup',version:1,createdAt:new Date().toISOString(),sessions:records,savedQuestions});
+  const text = JSON.stringify({format:'hypersense-backup',version:1,createdAt:new Date().toISOString(),sessions:records,savedQuestions,savedSetups});
   require(new Blob([text]).size <= MAX_BYTES, 'Backup exceeds the 100 MB limit.');
   return text;
 }
@@ -108,7 +112,10 @@ export async function restoreBackup(data) {
       if (saveQuestion(item)) questionsAdded++; else questionsSkipped++;
     }
   } catch (error) { questionError = error.message; }
-  return {...counts, questionsAdded, questionsSkipped, questionError};
+  let setupsAdded = 0, setupsSkipped = 0, setupError = '';
+  try {for(const item of data.savedSetups || []) {if(savePreset(item))setupsAdded++;else setupsSkipped++;}}
+  catch(error) {setupError=error.message;}
+  return {...counts, questionsAdded, questionsSkipped, questionError, setupsAdded, setupsSkipped, setupError};
 }
 export function initBackup() {
   const exportButton = $('backup-export'), importButton = $('backup-import'), fileInput = $('backup-file'), status = $('backup-status');
@@ -133,10 +140,12 @@ export function initBackup() {
     require(file.size <= MAX_BYTES, 'Backup exceeds the 100 MB limit.');
     status.textContent = 'Checking backup…';
     const data = parseBackup(await readBlob(file,'readAsText'));
-    if (!window.confirm(`Restore ${data.sessions.length} sessions and ${data.savedQuestions.length} saved questions? Existing sessions will be kept. Duplicate session IDs will be skipped.`)) {status.textContent='Restore cancelled.';return;}
+    if (!window.confirm(`Restore ${data.sessions.length} sessions and ${data.savedQuestions.length} saved questions and ${data.savedSetups.length} setups? Existing sessions will be kept. Duplicate session IDs will be skipped.`)) {status.textContent='Restore cancelled.';return;}
     status.textContent = 'Restoring backup… Keep this page open.';
     const result = await restoreBackup(data);
     status.textContent = `Restored ${result.added} sessions; skipped ${result.skipped} existing sessions. Added ${result.questionsAdded} saved questions; skipped ${result.questionsSkipped} duplicates.` + (result.questionError ? ` Sessions are saved, but some questions were not restored: ${result.questionError} You can retry this backup.` : '');
+    status.textContent += ` Added ${result.setupsAdded} setups; skipped ${result.setupsSkipped} existing names.` + (result.setupError ? ` Some setups could not be restored: ${result.setupError}` : '');
+    try {renderPresets();} catch {}
     fileInput.value = '';
     await renderSavedSessions();await renderDashboard();
   });

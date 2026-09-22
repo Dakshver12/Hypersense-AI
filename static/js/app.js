@@ -1,3 +1,4 @@
+import { initPresets } from "./presets.js";
 import { initBackup } from "./backup.js";
 import { initTranscriptReview } from "./transcript-review.js";
 import { initRecovery } from "./recovery.js";
@@ -37,3 +38,5 @@ initBoot();
 initRecovery();
 
 initBackup();
+
+initPresets();

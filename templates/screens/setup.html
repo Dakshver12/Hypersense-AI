@@ -19,6 +19,22 @@
     <li><b>2</b> Check camera</li>
     <li><b>3</b> Start interview</li>
   </ol>
+  <details class="setup-disclosure">
+    <summary>Saved interview setups <span>Reuse your preferences</span></summary>
+    <p class="muted">Save up to 20 setups: interview type, topic, difficulty, language, answer time, question count, target role, experience level and answer workflow. Loading a setup fills these fields without starting an interview.</p>
+    <div class="setup-grid">
+      <div class="setup-field"><label for="saved-setup">Your saved setups</label><select id="saved-setup"><option value="">Choose a saved setup</option></select></div>
+      <div class="setup-field"><label for="preset-name">Name for a new setup</label><input id="preset-name" maxlength="60" placeholder="Python interview — 5 questions"></div>
+    </div>
+    <div class="actions">
+      <button id="preset-load" type="button">Load selected</button>
+      <button id="preset-save" type="button">Save as new</button>
+      <button id="preset-update" type="button">Update selected</button>
+      <button id="preset-delete" type="button">Delete selected</button>
+    </div>
+    <p class="muted">Résumé, job description, practice focus, question source, manual questions and camera consent are not saved in a setup. Review those fields separately. Setups stay in this browser and are included in dashboard backups.</p>
+    <p id="preset-status" role="status" aria-live="polite"></p>
+  </details>
   <div class="setup-columns">
     <div class="setup-form">
       <div class="section-heading">
