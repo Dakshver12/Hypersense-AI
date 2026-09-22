@@ -1,3 +1,4 @@
+import { setComparisonSessions } from "./comparison.js";
 import { renderSavedQuestions } from './saved-questions.js';
 import { searchSavedAnswers } from './history-search.js';
 import { renderTopicProgress } from './topic-progress.js';
@@ -137,6 +138,7 @@ export async function renderDashboard() {
     const sessions = await sessionStore("readonly", (store) => store.getAll());
     if (load !== state.dashboardLoad) return;
     sessions.sort((a, b) => String(b.date).localeCompare(String(a.date)));
+    setComparisonSessions(sessions);
     const topic = $("dashboard-topic").value;
     $("dashboard-topic").replaceChildren();
     for (const name of [

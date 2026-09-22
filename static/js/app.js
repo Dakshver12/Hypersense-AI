@@ -1,3 +1,4 @@
+import { initComparison } from "./comparison.js";
 import { initPresets } from "./presets.js";
 import { initBackup } from "./backup.js";
 import { initTranscriptReview } from "./transcript-review.js";
@@ -40,3 +41,5 @@ initRecovery();
 initBackup();
 
 initPresets();
+
+initComparison();

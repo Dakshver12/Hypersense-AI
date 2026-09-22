@@ -33,6 +33,17 @@
     <div id="dashboard-topics" class="dashboard-scroll"></div>
   </section>
   <section class="card">
+    <h2>Compare two sessions</h2>
+    <p class="muted">Review two saved interviews side by side. Choose similar settings for a more useful comparison. Scores are grouped by interview type.</p>
+    <div class="setup-grid">
+      <div class="setup-field"><label for="compare-left">Session A</label><select id="compare-left"><option value="">Choose a session</option></select></div>
+      <div class="setup-field"><label for="compare-right">Session B</label><select id="compare-right"><option value="">Choose a session</option></select></div>
+    </div>
+    <button id="compare-sessions" type="button">Compare sessions</button>
+    <p id="comparison-status" role="status" aria-live="polite"></p>
+    <div id="comparison-output" class="dashboard-scroll"></div>
+  </section>
+  <section class="card">
     <h2>Recent progress</h2>
     <p class="muted">
       Last 10 matching sessions, oldest first. Question difficulty and topic can differ; scores are

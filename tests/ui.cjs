@@ -375,6 +375,36 @@ const waitFor=async fn=>{for(let i=0;i<100;i++){if(fn())return;await new Promise
     assert.throws(()=>w.validatePreset({...preset,settings:{...preset.settings,duration:'bad'}}));
     w.localStorage.setItem(w.PRESETS_KEY,'bad JSON');$('preset-save').click();assert($('preset-status').textContent);w.localStorage.removeItem(w.PRESETS_KEY);
     console.log('PASS: saved setups load/update/delete, private-data exclusion, consent preservation, active-session guard, backups and legacy backup support.');
+    {
+    // Session comparison separates rubrics and keeps zero scores, missing data and retries explicit.
+    const compareSettings={technology:'Python',interview_type:'mixed',difficulty:'easy',language:'English'};
+    const first={id:'compare-a',date:'2026-09-20T12:00:00Z',settings:compareSettings,total:3,answers:[
+      {question:'Q1',answer:'A',interview_type:'technical',score:0,audio:{words_per_minute:120},confidence:'2',provider:'Test',model:'v1'},
+      {question:'Q2',answer:'B',interview_type:'hr',score:80,provider:'Test',model:'v1'},
+      {question:'Q3',answer:'',interview_type:'technical',score:null}]};
+    const second={id:'compare-b',date:'2026-09-22T12:00:00Z',settings:{...compareSettings},total:2,answers:[
+      {question:'Q1',answer:'C',interview_type:'technical',score:60,audio:{words_per_minute:140},confidence:'4',retryOf:{sessionId:'compare-a'},provider:'Test',model:'v2'},
+      {question:'Q2',answer:'D',interview_type:'hr',score:null}]};
+    const stats=w.comparisonStats(first);assert.equal(stats.groups.technical.average,0);assert.equal(stats.groups.hr.average,80);
+    assert.equal(stats.answered,2);assert.equal(stats.unscored,1);assert.equal(stats.pace,120);assert.equal(stats.confidence,2);
+    assert.equal(w.comparisonDifferences(stats,w.comparisonStats(second)).length,0);
+    w.setComparisonSessions([second,first]);$('compare-left').value='compare-a';$('compare-right').value='compare-b';$('compare-sessions').click();
+    assert($('comparison-output').textContent.includes('+60.0 points'));
+    assert($('comparison-output').textContent.includes('Evaluator information differs'));
+    assert($('comparison-output').textContent.includes('include retries'));
+    assert($('comparison-output').textContent.includes('No scored answers'));
+    const foreign={...second,settings:{...compareSettings,difficulty:'hard'}};
+    w.setComparisonSessions([first,foreign]);assert.equal($('compare-left').value,'compare-a');$('compare-sessions').click();
+    assert($('comparison-status').textContent.includes('difficulty'));assert(!$('comparison-output').textContent.includes('+60.0 points'));
+    $('compare-right').value='compare-a';$('compare-sessions').click();assert($('comparison-status').textContent.includes('two different'));assert.equal($('comparison-output').children.length,0);
+    w.setComparisonSessions([first]);assert.equal($('compare-right').value,'compare-a');assert($('comparison-status').textContent.includes('at least two'));
+    w.setComparisonSessions([]);assert.equal($('compare-left').value,'');assert.equal($('compare-right').value,'');
+    await w.sessionStore('readwrite',store=>store.put(first));await w.sessionStore('readwrite',store=>store.put(second));
+    await w.renderDashboard();$('compare-left').value='compare-a';$('compare-right').value='compare-b';$('compare-sessions').click();
+    $('comparison-output').querySelector('button').click();await waitFor(()=>w.state.interviewSession?.id==='compare-a');
+    assert.equal($('results-page').hidden,false);w.state.interviewSession=null;
+    console.log('PASS: session comparison zero/pending scores, separate rubrics, settings warnings, retry/evaluator caveats, selection handling and report links.');
+    }
     assert.deepEqual(errors,[]);
     console.log('PASS: empty dashboard, filters, zero/pending scores, reports, quota recovery, session navigation, completion, camera cleanup, confidence persistence, retry scoring, deletion and single practice.');
 })().catch(e=>{console.error(e);process.exitCode=1;}).finally(()=>w.close());
