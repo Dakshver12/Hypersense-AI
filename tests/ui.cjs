@@ -318,6 +318,39 @@ const waitFor=async fn=>{for(let i=0;i<100;i++){if(fn())return;await new Promise
     assert($('saved-questions-list').textContent.includes('unavailable'));
     w.localStorage.removeItem(w.SAVED_QUESTIONS_KEY);
     console.log('PASS: saved question deduplication, privacy, setup handoff, removal and invalid storage handling.');
+    // Backup round-trip uses real structured-clone-compatible Blobs with simulated file reads.
+    w.Blob=Blob;
+    w.FileReader=class {
+      readAsDataURL(blob){blob.arrayBuffer().then(bytes=>{this.result='data:'+blob.type+';base64,'+Buffer.from(bytes).toString('base64');this.onload();}).catch(()=>this.onerror());}
+      readAsText(blob){blob.text().then(text=>{this.result=text;this.onload();}).catch(()=>this.onerror());}
+    };
+    await w.sessionStore('readwrite',store=>store.clear());
+    const backupSession={id:'backup-test',date:'2026-09-22T12:00:00Z',total:1,settings:{technology:'Python',interview_type:'technical',resume_text:'SECRET RESUME'},answers:[{question:'Explain a list.',answer:'It is mutable.',score:80,feedback:'Explain with an example.',recording:{blob:new Blob(['audio bytes'],{type:'audio/webm'}),name:'answer.webm',bytes:11}}]};
+    await w.sessionStore('readwrite',store=>store.put(backupSession));
+    w.saveQuestion(w.questionBookmark(backupSession,backupSession.answers[0]));
+    const backupText=await w.buildBackup();
+    assert(!backupText.includes('SECRET RESUME'));
+    const parsed=w.parseBackup(backupText);
+    assert.equal(await parsed.sessions[0].answers[0].recording.blob.text(),'audio bytes');
+    await w.sessionStore('readwrite',store=>store.clear());w.localStorage.removeItem(w.SAVED_QUESTIONS_KEY);
+    const restored=await w.restoreBackup(parsed);assert.equal(restored.added,1);assert.equal(restored.questionsAdded,1);
+    const loaded=await w.sessionStore('readonly',store=>store.get('backup-test'));
+    assert.equal(await loaded.answers[0].recording.blob.text(),'audio bytes');assert.equal(loaded.answers[0].score,80);
+    parsed.sessions[0].answers[0].score=1;
+    const twice=await w.restoreBackup(parsed);assert.equal(twice.added,0);assert.equal(twice.skipped,1);assert.equal(twice.questionsSkipped,1);
+    assert.equal((await w.sessionStore('readonly',store=>store.get('backup-test'))).answers[0].score,80);
+    for(const mutate of [d=>d.version=99,d=>d.sessions[0].answers[0].score=101,d=>d.sessions[0].answers[0].recording.base64='!bad',d=>d.sessions.push(d.sessions[0]),d=>d.savedQuestions=[null]]){
+      const bad=JSON.parse(backupText);mutate(bad);assert.throws(()=>w.parseBackup(JSON.stringify(bad)));
+    }
+    assert.throws(()=>w.parseBackup('invalid JSON'));
+    assert.throws(()=>w.parseBackup('{"__proto__":{}}'));
+    w.state.busy=true;await $('backup-export').onclick();assert($('backup-status').textContent.includes('Finish'));w.state.busy=false;
+    await $('backup-import').onclick();assert($('backup-status').textContent.includes('Choose a backup'));
+    // Bookmark storage failure reports partial completion without rolling back saved sessions.
+    w.localStorage.setItem(w.SAVED_QUESTIONS_KEY,'invalid');
+    const partial=await w.restoreBackup(w.parseBackup(backupText));assert(partial.questionError);assert.equal(partial.skipped,1);
+    w.localStorage.removeItem(w.SAVED_QUESTIONS_KEY);
+    console.log('PASS: backup audio round-trip, resume exclusion, restore deduplication, invalid input, busy guard and partial question-storage failure.');
     assert.deepEqual(errors,[]);
     console.log('PASS: empty dashboard, filters, zero/pending scores, reports, quota recovery, session navigation, completion, camera cleanup, confidence persistence, retry scoring, deletion and single practice.');
 })().catch(e=>{console.error(e);process.exitCode=1;}).finally(()=>w.close());

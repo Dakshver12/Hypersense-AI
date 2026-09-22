@@ -67,4 +67,14 @@
     <p id="history-search-status" role="status" aria-live="polite">Enter a word or phrase, then click Search.</p>
     <div id="dashboard-sessions" class="dashboard-scroll"></div>
   </section>
+  <section class="card">
+    <h2>Back up your practice</h2>
+    <p class="muted">Download all saved sessions, transcripts, feedback, recordings and saved questions, regardless of dashboard filters. Restore them in another browser. Current unfinished interviews, resume text and app preferences are not included.</p>
+    <p class="muted">Backups contain personal information and are not encrypted. Keep the file private. Maximum backup size: 100 MB; up to 1,000 sessions. Restore keeps existing sessions and skips matching session IDs.</p>
+    <button id="backup-export" type="button">Download backup</button>
+    <label for="backup-file">Choose a HyperSense backup (.json)</label>
+    <input id="backup-file" type="file" accept=".json,application/json">
+    <button id="backup-import" type="button">Restore backup</button>
+    <p id="backup-status" role="status" aria-live="polite"></p>
+  </section>
 </div>

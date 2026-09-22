@@ -1,3 +1,4 @@
+import { initBackup } from "./backup.js";
 import { initTranscriptReview } from "./transcript-review.js";
 import { initRecovery } from "./recovery.js";
 import { initDelivery } from "./delivery.js";
@@ -34,3 +35,5 @@ initTranscriptReview();
 initBoot();
 
 initRecovery();
+
+initBackup();
