@@ -979,3 +979,48 @@ button.primary {
 #status:empty{display:none}
 input[type="checkbox"]{min-height:0;width:16px;height:16px;margin-top:3px!important}
 .brand span{display:inline}.brand .brand-mark{display:grid}
+
+/* Dashboard sections keep one workspace visible at a time. */
+.dashboard-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  padding: 6px;
+  margin: 24px 0;
+  border: 1px solid #304259;
+  border-radius: 16px;
+  background: #0b1424;
+}
+.dashboard-tabs [role="tab"] {
+  min-width: 0;
+  margin: 0;
+  padding: 14px 12px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #b6c5dd;
+}
+.dashboard-tabs [role="tab"][aria-selected="true"] {
+  color: #ecfffb;
+  background: #193a40;
+  border-color: #64dfc5;
+}
+.dashboard-tabs [role="tab"]:focus-visible,
+#dashboard-page [role="tabpanel"]:focus-visible {
+  outline: 3px solid #64dfc5;
+  outline-offset: 3px;
+}
+.dashboard-filter-bar {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 20px;
+  padding: 18px;
+  border: 1px solid #304259;
+  border-radius: 16px;
+}
+.dashboard-filter-bar label { display: block; margin-bottom: 8px; }
+.dashboard-filter-bar p { grid-column: 1 / -1; margin: 0; }
+#dashboard-page [role="tabpanel"] { min-width: 0; }
+@media (max-width: 600px) {
+  .dashboard-tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .dashboard-filter-bar { grid-template-columns: minmax(0, 1fr); }
+}

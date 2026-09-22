@@ -1,25 +1,29 @@
 <div id="dashboard-page" hidden>
-  <div class="eyebrow">Your practice journey</div>
-  <h1 id="dashboard-title" tabindex="-1">Every interview is a step forward.</h1>
-  <p class="muted">
-    Review saved sessions and choose what to practise next. Data stays in this browser.
-  </p>
-  <div class="actions">
-    <button class="primary" id="dashboard-start">Start an interview</button
-    ><label for="dashboard-filter">Interview type</label
-    ><select id="dashboard-filter">
-      <option value="all">All types</option>
-      <option value="technical">Technical</option>
-      <option value="behavioral">Behavioral</option>
-      <option value="hr">HR</option>
-    </select>
+  <div class="dashboard-heading">
+    <div class="dashboard-heading-copy">
+      <div class="eyebrow">YOUR PRACTICE SPACE</div>
+      <h1 id="dashboard-title" tabindex="-1">Your progress, at a glance.</h1>
+      <p class="muted">Review your interviews. Find your next focus.</p>
+    </div>
+    <button class="primary" id="dashboard-start" type="button"><span aria-hidden="true">＋</span> Start an interview</button>
+  </div>
+  <div class="dashboard-tabs" role="tablist" aria-label="Dashboard sections">
+    <button type="button" role="tab" id="dashboard-tab-overview" aria-controls="dashboard-panel-overview" aria-selected="true" tabindex="0">Overview</button>
+    <button type="button" role="tab" id="dashboard-tab-sessions" aria-controls="dashboard-panel-sessions" aria-selected="false" tabindex="-1">Sessions</button>
+    <button type="button" role="tab" id="dashboard-tab-questions" aria-controls="dashboard-panel-questions" aria-selected="false" tabindex="-1">Saved questions</button>
+    <button type="button" role="tab" id="dashboard-tab-backup" aria-controls="dashboard-panel-backup" aria-selected="false" tabindex="-1">Backup & restore</button>
+  </div>
+  <div id="dashboard-shared-filters" class="dashboard-filter-bar">
+    <div><label for="dashboard-filter">Interview type</label><select id="dashboard-filter">
+      <option value="all">All types</option><option value="technical">Technical</option>
+      <option value="behavioral">Behavioral</option><option value="hr">HR</option>
+    </select></div>
+    <div><label for="dashboard-topic">Topic</label><select id="dashboard-topic"><option value="">All topics</option></select></div>
+    <p class="muted">Filters apply to overview charts and session history. Comparison offers all saved sessions.</p>
   </div>
   <p id="dashboard-status" role="status"></p>
-  <div id="dashboard-stats" class="dashboard-grid"></div>
-  <label for="dashboard-topic">Topic</label
-  ><select id="dashboard-topic">
-    <option value="">All topics</option>
-  </select>
+  <div id="dashboard-panel-overview" role="tabpanel" aria-labelledby="dashboard-tab-overview" tabindex="0">
+    <div id="dashboard-stats" class="dashboard-grid"></div>
   <section class="card">
     <h2>Scores by interview type</h2>
     <p class="muted">Averages use scored answers only. Each interview type has its own rubric.</p>
@@ -31,17 +35,6 @@
     <label style="display:flex;align-items:center;gap:10px"><input id="dashboard-include-retries" type="checkbox" style="width:16px"> Include retries in topic trends</label>
     <p class="muted">Retries are excluded by default because you have already seen the question and feedback. Pending scores are excluded from averages. Questions and evaluators can still differ within a group; these trends describe practice results, not a mastery rating.</p>
     <div id="dashboard-topics" class="dashboard-scroll"></div>
-  </section>
-  <section class="card">
-    <h2>Compare two sessions</h2>
-    <p class="muted">Review two saved interviews side by side. Choose similar settings for a more useful comparison. Scores are grouped by interview type.</p>
-    <div class="setup-grid">
-      <div class="setup-field"><label for="compare-left">Session A</label><select id="compare-left"><option value="">Choose a session</option></select></div>
-      <div class="setup-field"><label for="compare-right">Session B</label><select id="compare-right"><option value="">Choose a session</option></select></div>
-    </div>
-    <button id="compare-sessions" type="button">Compare sessions</button>
-    <p id="comparison-status" role="status" aria-live="polite"></p>
-    <div id="comparison-output" class="dashboard-scroll"></div>
   </section>
   <section class="card">
     <h2>Recent progress</h2>
@@ -59,11 +52,8 @@
     </p>
     <div id="dashboard-delivery" class="dashboard-scroll"></div>
   </section>
-  <section class="card">
-    <h2>Saved questions</h2>
-    <p class="muted">Your personal practice list, up to 100 questions, saved in this browser. These are independent of dashboard filters. Reusing a question needs no generation request; evaluating your answer still uses API quota. Removing a bookmark keeps its original report.</p>
-    <div id="saved-questions-list"></div>
-  </section>
+  </div>
+  <div id="dashboard-panel-sessions" role="tabpanel" aria-labelledby="dashboard-tab-sessions" tabindex="0" hidden>
   <section class="card">
     <h2>Your sessions</h2>
     <p class="muted">
@@ -79,6 +69,26 @@
     <div id="dashboard-sessions" class="dashboard-scroll"></div>
   </section>
   <section class="card">
+    <h2>Compare two sessions</h2>
+    <p class="muted">Review two saved interviews side by side. Choose similar settings for a more useful comparison. Scores are grouped by interview type.</p>
+    <div class="setup-grid">
+      <div class="setup-field"><label for="compare-left">Session A</label><select id="compare-left"><option value="">Choose a session</option></select></div>
+      <div class="setup-field"><label for="compare-right">Session B</label><select id="compare-right"><option value="">Choose a session</option></select></div>
+    </div>
+    <button id="compare-sessions" type="button">Compare sessions</button>
+    <p id="comparison-status" role="status" aria-live="polite"></p>
+    <div id="comparison-output" class="dashboard-scroll"></div>
+  </section>
+  </div>
+  <div id="dashboard-panel-questions" role="tabpanel" aria-labelledby="dashboard-tab-questions" tabindex="0" hidden>
+  <section class="card">
+    <h2>Saved questions</h2>
+    <p class="muted">Your personal practice list, up to 100 questions, saved in this browser. These are independent of dashboard filters. Reusing a question needs no generation request; evaluating your answer still uses API quota. Removing a bookmark keeps its original report.</p>
+    <div id="saved-questions-list"></div>
+  </section>
+  </div>
+  <div id="dashboard-panel-backup" role="tabpanel" aria-labelledby="dashboard-tab-backup" tabindex="0" hidden>
+  <section class="card">
     <h2>Back up your practice</h2>
     <p class="muted">Download all saved sessions, transcripts, feedback, recordings, saved questions and saved interview setups, regardless of dashboard filters. Restore them in another browser. Current unfinished interviews, resume text and other app preferences are not included.</p>
     <p class="muted">Backups contain personal information and are not encrypted. Keep the file private. Maximum backup size: 100 MB; up to 1,000 sessions. Restore keeps existing sessions and skips matching session IDs.</p>
@@ -88,4 +98,5 @@
     <button id="backup-import" type="button">Restore backup</button>
     <p id="backup-status" role="status" aria-live="polite"></p>
   </section>
+  </div>
 </div>

@@ -1,3 +1,4 @@
+import { initDashboardTabs } from "./dashboard-tabs.js";
 import { initComparison } from "./comparison.js";
 import { initPresets } from "./presets.js";
 import { initBackup } from "./backup.js";
@@ -43,3 +44,5 @@ initBackup();
 initPresets();
 
 initComparison();
+
+initDashboardTabs();

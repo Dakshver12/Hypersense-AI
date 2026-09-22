@@ -405,6 +405,35 @@ const waitFor=async fn=>{for(let i=0;i<100;i++){if(fn())return;await new Promise
     assert.equal($('results-page').hidden,false);w.state.interviewSession=null;
     console.log('PASS: session comparison zero/pending scores, separate rubrics, settings warnings, retry/evaluator caveats, selection handling and report links.');
     }
+    // Tab switching preserves live controls/results instead of rebuilding the dashboard.
+    {
+      const sections=['overview','sessions','questions','backup'];
+      const shown=()=>sections.filter(name=>!$('dashboard-panel-'+name).hidden);
+      assert.deepEqual(shown(),['overview']);
+      $('history-search').value='preserve my search';
+      const comparisonNode=$('comparison-output');
+      const originalOpen=w.indexedDB.open;let tabDbReads=0;
+      w.indexedDB.open=function(...args){tabDbReads++;return originalOpen.apply(this,args);};
+      for(const name of sections){
+        $('dashboard-tab-'+name).click();assert.deepEqual(shown(),[name]);
+        assert.equal($('dashboard-tab-'+name).getAttribute('aria-selected'),'true');
+        assert.equal(sections.filter(s=>$('dashboard-tab-'+s).tabIndex===0).length,1);
+        assert.equal($('dashboard-shared-filters').hidden,!['overview','sessions'].includes(name));
+      }
+      assert.equal(tabDbReads,0);w.indexedDB.open=originalOpen;
+      assert.equal($('history-search').value,'preserve my search');assert.equal($('comparison-output'),comparisonNode);
+      $('dashboard-tab-backup').dispatchEvent(new w.KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}));
+      assert.deepEqual(shown(),['overview']);assert.equal(w.document.activeElement.id,'dashboard-tab-overview');
+      $('dashboard-tab-overview').dispatchEvent(new w.KeyboardEvent('keydown',{key:'ArrowLeft',bubbles:true}));assert.deepEqual(shown(),['backup']);
+      $('dashboard-tab-backup').dispatchEvent(new w.KeyboardEvent('keydown',{key:'Home',bubbles:true}));assert.deepEqual(shown(),['overview']);
+      $('dashboard-tab-overview').dispatchEvent(new w.KeyboardEvent('keydown',{key:'End',bubbles:true}));assert.deepEqual(shown(),['backup']);
+      w.selectDashboardTab('invalid');assert.deepEqual(shown(),['backup']);
+      assert($('dashboard-panel-sessions').contains($('history-search')));assert($('dashboard-panel-sessions').contains($('compare-sessions')));
+      assert($('dashboard-panel-questions').contains($('saved-questions-list')));assert($('dashboard-panel-backup').contains($('backup-export')));
+      $('history-search').value='';await w.renderDashboard();assert.deepEqual(shown(),['backup']);
+      w.selectDashboardTab('overview');
+      console.log('PASS: dashboard tab isolation, keyboard navigation, retained search/results, scoped filters and zero storage reads on tab switches.');
+    }
     assert.deepEqual(errors,[]);
     console.log('PASS: empty dashboard, filters, zero/pending scores, reports, quota recovery, session navigation, completion, camera cleanup, confidence persistence, retry scoring, deletion and single practice.');
 })().catch(e=>{console.error(e);process.exitCode=1;}).finally(()=>w.close());
