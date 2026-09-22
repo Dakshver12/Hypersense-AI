@@ -54,6 +54,12 @@
       Open a report to review answers, feedback and recordings. Clearing browser data removes these
       sessions.
     </p>
+    <label for="history-search">Search by interview type, question, answer or feedback</label>
+    <input id="history-search" type="search" maxlength="200" placeholder="For example: mutable default arguments">
+    <button id="history-search-submit" type="button">Search</button>
+    <button id="history-search-clear" type="button">Clear search</button>
+    <p class="muted">Enter Technical, Behavioral, HR or Mixed to search by category. Other phrases search saved text. Search filters the session list below, within your selected topic and interview type. Dashboard averages and trends stay based on those topic/type filters.</p>
+    <p id="history-search-status" role="status" aria-live="polite">Enter a word or phrase, then click Search.</p>
     <div id="dashboard-sessions" class="dashboard-scroll"></div>
   </section>
 </div>

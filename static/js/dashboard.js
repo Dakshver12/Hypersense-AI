@@ -1,3 +1,4 @@
+import { searchSavedAnswers } from './history-search.js';
 import { renderTopicProgress } from './topic-progress.js';
 import { state } from "./state.js";
 import { $ } from "./dom.js";
@@ -7,6 +8,67 @@ import { refresh } from "./ui.js";
 import { stopCamera } from "./camera.js";
 import { sessionStore, openSavedSession, deleteSavedSession } from "./storage.js";
 import { setPageView, showSetupPage } from "./navigation.js";
+
+let historyRows = null;
+
+export function renderHistorySearch() {
+  if (historyRows === null) return renderDashboard();
+  try {
+    const fragment = document.createDocumentFragment();
+    const add = (parent, tag, text) => {
+      const node = document.createElement(tag); node.textContent = text;
+      parent.appendChild(node); return node;
+    };
+    const table = (parent, headers) => {
+      const node = add(parent, 'table', ''); node.className = 'dashboard-table';
+      const row = add(add(node, 'thead', ''), 'tr', '');
+      for (const title of headers) add(row, 'th', title).scope = 'col';
+      return add(node, 'tbody', '');
+    };
+    const history = table(fragment, ["Session", "Type", "Answers", "Review"]);
+    const query = $("history-search").value.trim();
+    const found = searchSavedAnswers(historyRows, query);
+    $("history-search-status").textContent = query
+      ? `${found.length} matching sessions · ${found.reduce((n,s)=>n+s.matches.length,0)} matching answers.`
+      : `${found.length} sessions shown. Enter a phrase to search saved text.`;
+    for (const session of found) {
+      const row = add(history, "tr", "");
+      add(
+        row,
+        "td",
+        new Date(session.date).toLocaleString() +
+          " · " +
+          (session.settings?.technology || "General"),
+      );
+      add(row, "td", modeName(session.settings?.interview_type || "technical"));
+      add(row, "td", session.answers.length + "/" + session.total);
+      const cell = add(row, "td", "");
+      const button = add(cell, "button", "Open report");
+      button.onclick = () => {
+        if (!state.busy && !state.recording && !state.interviewSession?.active)
+          openSavedSession(session.id);
+      };
+      button.dataset.sessionHistory = "true";
+      if (query) {
+        const matches = add(cell, "details", "");
+        add(matches, "summary", `${session.matches.length} matching answers`);
+        for (const match of session.matches) {
+          add(matches, "p", match.question);
+          add(matches, "p", `${match.field}: ${match.excerpt}`);
+        }
+      }
+      const remove = add(cell, "button", "Delete");
+      remove.dataset.sessionHistory = "true";
+      remove.onclick = () => deleteSavedSession(session.id);
+    }
+
+    // Build offscreen, then replace only the session results in one operation.
+    $('dashboard-sessions').replaceChildren(fragment);
+    refresh();
+  } catch (error) {
+    $('history-search-status').textContent = 'Search could not complete: ' + (error.message || 'Please retry.');
+  }
+}
 
 export function dashboardSummary(sessions, filter = "all") {
   const rows = sessions
@@ -56,8 +118,10 @@ export function deliveryAverages(answers) {
 
 export async function renderDashboard() {
   const load = ++state.dashboardLoad;
+  historyRows = null;
   const status = $("dashboard-status");
   status.textContent = "Loading saved sessions…";
+  $("history-search-status").textContent = "Searching saved sessions…";
   for (const id of [
     "dashboard-topics",
     "dashboard-stats",
@@ -178,34 +242,14 @@ export async function renderDashboard() {
       );
       add(row, "td", values.paceCount + " / " + values.confidenceCount);
     }
-    const history = table($("dashboard-sessions"), ["Session", "Type", "Answers", "Review"]);
-    for (const session of summary.rows) {
-      const row = add(history, "tr", "");
-      add(
-        row,
-        "td",
-        new Date(session.date).toLocaleString() +
-          " · " +
-          (session.settings?.technology || "General"),
-      );
-      add(row, "td", modeName(session.settings?.interview_type || "technical"));
-      add(row, "td", session.answers.length + "/" + session.total);
-      const cell = add(row, "td", "");
-      const button = add(cell, "button", "Open report");
-      button.onclick = () => {
-        if (!state.busy && !state.recording && !state.interviewSession?.active)
-          openSavedSession(session.id);
-      };
-      button.dataset.sessionHistory = "true";
-      const remove = add(cell, "button", "Delete");
-      remove.dataset.sessionHistory = "true";
-      remove.onclick = () => deleteSavedSession(session.id);
-    }
+    historyRows = summary.rows;
+    renderHistorySearch();
     refresh();
-  } catch {
-    if (load === state.dashboardLoad)
-      status.textContent =
-        "Could not load saved sessions. Browser storage may be unavailable. Reopen the dashboard to retry.";
+  } catch (error) {
+    if (load === state.dashboardLoad) {
+      status.textContent = "Could not load saved sessions.";
+      $("history-search-status").textContent = "Search could not complete: " + (error.message || "Browser storage is unavailable.") + " Click Search to retry.";
+    }
   }
 }
 
@@ -234,6 +278,25 @@ export function showDashboard() {
   window.scrollTo({ top: 0 });
 }
 export function initDashboard() {
+  let searchTimer;
+  const searchNow = () => {
+    clearTimeout(searchTimer);
+    return renderHistorySearch();
+  };
+  $("history-search-submit").onclick = searchNow;
+  $("history-search").addEventListener("keydown", event => {
+    if (event.key === "Enter") { event.preventDefault(); searchNow(); }
+  });
+  $("history-search").addEventListener("input", () => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(renderHistorySearch, 250);
+  });
+  $("history-search-clear").onclick = () => {
+    clearTimeout(searchTimer);
+    $("history-search").value = "";
+    renderHistorySearch();
+    $("history-search").focus();
+  };
   $("nav-dashboard").onclick = showDashboard;
   $("nav-practice").onclick = () => {
     if (!state.busy && !state.recording) showSetupPage();
