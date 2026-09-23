@@ -512,6 +512,43 @@ const waitFor=async fn=>{for(let i=0;i<100;i++){if(fn())return;await new Promise
       w.setPageView(false);
       console.log('PASS: microphone selection, input meter, timed sample/playback, no-signal feedback, permission denial, disconnect and late-permission cleanup.');
     }
+    {
+      let track,activeRecorder,withData=true,requestedAudio,networkCalls=0;
+      const originalFetch=w.fetch;w.fetch=async()=>{networkCalls++;throw Error('Unexpected automatic network call');};
+      w.navigator.mediaDevices.getUserMedia=async constraints=>{
+        requestedAudio=constraints;track=new w.EventTarget();track.stop=()=>{};
+        return {getAudioTracks:()=>[track],getTracks:()=>[track]};
+      };
+      w.MediaRecorder=class {
+        static isTypeSupported(){return true;}
+        constructor(stream,options){activeRecorder=this;this.mimeType=options.mimeType;this.state='inactive';}
+        start(timeslice){assert.equal(timeslice,250);this.state='recording';this.onstart?.();}
+        stop(){this.state='inactive';if(withData)this.ondataavailable?.({data:new w.Blob(['partial recording'],{type:this.mimeType})});this.onstop?.();}
+      };
+      const prepare=()=>{
+        w.state.singlePractice=false;w.state.interviewSession=null;w.state.busy=false;w.state.recording=false;
+        w.state.current={question:'Explain Python lists.',technology:'Python',interview_type:'technical',auto_flow:true};
+        w.state.speechPending=false;w.state.answerSubmitted=false;w.state.answerExpired=false;w.state.deadline=Date.now()+60000;
+        w.state.automationPaused=false;
+      };
+      prepare();await $('record').onclick();assert.equal(w.state.recording,true);
+      assert.equal(requestedAudio.audio.deviceId.exact,'usb-mic');
+      track.dispatchEvent(new w.Event('ended'));
+      assert.equal(w.state.recording,false);assert.equal(w.state.stream,null);assert.equal(w.state.media,null);
+      assert.equal(await w.state.blob.text(),'partial recording');assert.equal(w.state.automationPaused,true);
+      assert($('microphone-status').textContent.includes('may be incomplete'));assert.equal(networkCalls,0);
+      const retained=w.state.blob;track.dispatchEvent(new w.Event('ended'));assert.equal(w.state.blob,retained);
+      prepare();await $('record').onclick();track.dispatchEvent(new w.Event('mute'));
+      assert.equal(w.state.recording,true);assert($('microphone-status').textContent.includes('temporarily unavailable'));
+      track.dispatchEvent(new w.Event('unmute'));assert($('microphone-status').textContent.includes('resumed'));
+      w.stopRecording();assert.equal(w.state.recording,false);assert.equal(networkCalls,0);
+      prepare();await $('record').onclick();activeRecorder.onerror();assert($('microphone-status').textContent.includes('recording error'));assert(w.state.blob.size>0);
+      withData=false;prepare();await $('record').onclick();track.dispatchEvent(new w.Event('ended'));
+      assert.equal(w.state.blob,null);assert($('microphone-status').textContent.includes('No audio was captured'));
+      assert.equal(networkCalls,0);
+      w.fetch=originalFetch;w.state.current=null;w.state.automationPaused=true;
+      console.log('PASS: interview microphone disconnect preserves partial audio, pauses automation, reports empty capture, handles mute/resume and cleans up streams.');
+    }
     assert.deepEqual(errors,[]);
     console.log('PASS: empty dashboard, filters, zero/pending scores, reports, quota recovery, session navigation, completion, camera cleanup, confidence persistence, retry scoring, deletion and single practice.');
 })().catch(e=>{console.error(e);process.exitCode=1;}).finally(()=>w.close());

@@ -186,6 +186,7 @@ export function initRecording() {
     clearTimeout(state.microphoneReadyTimer);
     $("microphone-status").textContent = "Preparing microphone… Please wait before speaking.";
     message("Preparing microphone… Allow microphone access if prompted.");
+    let cleanupInputListeners = () => {};
     try {
       if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder)
         throw Error(
@@ -206,6 +207,41 @@ export function initRecording() {
         ? new MediaRecorder(state.stream, { mimeType: mime })
         : new MediaRecorder(state.stream);
       state.media = recorder;
+      const input = state.stream;
+      const tracks = input.getAudioTracks();
+      let interrupted = '', finalized = false;
+      const interrupt = reason => {
+        if (finalized || state.media !== recorder || interrupted) return;
+        interrupted = reason;
+        recorder.failed = true;
+        pauseAutomation(reason + ' Automatic transcription is paused.');
+        clearTimeout(state.microphoneReadyTimer);
+        $('microphone-status').textContent = reason + ' Finishing the captured audio…';
+        if (recorder.state !== 'inactive') recorder.stop();
+      };
+      const ended = () => interrupt('Microphone disconnected or access ended.');
+      const muted = () => {
+        if (finalized || recorder.state !== 'recording') return;
+        pauseAutomation('Microphone input was interrupted. Review the recording before transcribing.');
+        $('microphone-status').textContent = 'Microphone input is temporarily unavailable. Check your device; recording and the timer are still running.';
+      };
+      const unmuted = () => {
+        if (!finalized && recorder.state === 'recording')
+          $('microphone-status').textContent = 'Microphone input resumed. Review the recording for any missing audio.';
+      };
+      const detach = () => {
+        for (const track of tracks) {
+          track.removeEventListener('ended', ended);
+          track.removeEventListener('mute', muted);
+          track.removeEventListener('unmute', unmuted);
+        }
+      };
+      cleanupInputListeners = detach;
+      for (const track of tracks) {
+        track.addEventListener('ended', ended);
+        track.addEventListener('mute', muted);
+        track.addEventListener('unmute', unmuted);
+      }
       const chunks = [];
       recorder.ondataavailable = (e) => {
         if (e.data.size) chunks.push(e.data);
@@ -225,37 +261,48 @@ export function initRecording() {
         }, 500);
       };
       recorder.onstop = () => {
+        if (finalized) return;
+        finalized = true;
+        detach();
         clearTimeout(state.microphoneReadyTimer);
-        state.stream?.getTracks().forEach((t) => t.stop());
+        input.getTracks().forEach((track) => track.stop());
+        if (state.media !== recorder) return;
+        state.stream = null;
+        state.media = null;
         state.recording = false;
-        $("microphone-status").textContent =
-          "Recording stopped. Replay the audio to check your opening.";
-        const type = recorder.mimeType;
-        const ext = type.includes("ogg") ? "ogg" : type.includes("mp4") ? "m4a" : "webm";
-        setAudio(new Blob(chunks, { type }), `answer.${ext}`);
+        const type = chunks.find(chunk => chunk.type)?.type || recorder.mimeType || mime || 'audio/webm';
+        const ext = type.includes('ogg') ? 'ogg' : type.includes('mp4') ? 'm4a' : 'webm';
+        const blob = new Blob(chunks, {type});
+        if (blob.size) setAudio(blob, `answer.${ext}`);
         renderDelivery();
-        message(
-          state.answerExpired
-            ? "Time is up. Recording saved; transcribe it and review recognition errors."
-            : "Recording saved. Your answer timer is still running.",
-        );
+        let notice;
+        if (interrupted) {
+          notice = interrupted + (blob.size
+            ? ' Audio captured so far is available below. Replay or download it, then transcribe manually. It may be incomplete.'
+            : ' No audio was captured. Reconnect your microphone or type your answer.');
+          notice += state.answerExpired ? ' The answer time has ended.' : ' The answer timer is still running. You can record again before time ends; a new recording replaces this one.';
+        } else if (!blob.size) {
+          notice = 'No audio was captured. Check your microphone and try again, or type your answer.';
+          pauseAutomation(notice);
+        } else {
+          notice = state.answerExpired
+            ? 'Time is up. Recording saved; transcribe it and review recognition errors.'
+            : 'Recording saved. Your answer timer is still running.';
+        }
+        $('microphone-status').textContent = notice;
+        message(notice, Boolean(interrupted) || !blob.size);
         refresh();
-        if (state.blob?.size && !recorder.failed) autoProcessRecording();
+        if (blob.size && !recorder.failed) autoProcessRecording();
       };
-      recorder.onerror = () => {
-        recorder.failed = true;
-        pauseAutomation("Recording failed. Review or record again.");
-        clearTimeout(state.microphoneReadyTimer);
-        $("microphone-status").textContent = "Recording failed. Try again or upload audio.";
-        message("Recording failed. Try again or upload audio.", true);
-        stopRecording();
-      };
+      recorder.onerror = () => interrupt('The browser reported a recording error.');
       clearAudio();
       $("transcript").value = "";
       $("result").hidden = true;
-      recorder.start();
+      recorder.start(250);
       state.recording = true;
     } catch (err) {
+      cleanupInputListeners();
+      state.media = null;
       pauseAutomation("Microphone unavailable. Allow access, then use Record answer.");
       clearTimeout(state.microphoneReadyTimer);
       state.recording = false;
@@ -263,7 +310,11 @@ export function initRecording() {
       const text =
         err.name === "NotAllowedError"
           ? "Microphone permission was denied. Allow access or upload a recording."
-          : err.message;
+          : err.name === 'NotFoundError' || err.name === 'OverconstrainedError'
+            ? 'The selected microphone is unavailable. Reconnect it or choose another input in Camera check.'
+            : err.name === 'NotReadableError'
+              ? 'The microphone could not be opened. Check other apps using it, then retry.'
+              : err.message;
       $("microphone-status").textContent = text;
       message(text, true);
     } finally {
