@@ -1,3 +1,4 @@
+import { initMicrophoneCheck } from "./microphone-check.js";
 import { initDashboardTabs } from "./dashboard-tabs.js";
 import { initComparison } from "./comparison.js";
 import { initPresets } from "./presets.js";
@@ -46,3 +47,5 @@ initPresets();
 initComparison();
 
 initDashboardTabs();
+
+initMicrophoneCheck();

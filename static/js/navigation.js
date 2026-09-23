@@ -1,3 +1,4 @@
+import { stopMicrophoneCheck, listMicrophones } from "./microphone-check.js";
 import { updateAnswerTimer } from "./timer.js";
 import { state } from "./state.js";
 import { $ } from "./dom.js";
@@ -61,6 +62,7 @@ export function showCameraCheck(offerPermission = true) {
   $("results-page").hidden = true;
   setWorkspace("setup");
   $("camera-check-page").hidden = false;
+  listMicrophones().catch(() => {});
   document.title = "HyperSense AI · Camera check";
   refresh();
   $("camera-check-title").focus();
@@ -93,6 +95,7 @@ export function setWorkspace(space) {
 }
 
 export function setPageView(results) {
+  stopMicrophoneCheck();
   $("camera-check-page").hidden = true;
   $("interview-page").hidden = results;
   $("interview-intro").hidden = results;

@@ -4,6 +4,25 @@
     Allow browser camera access if prompted, then look toward the camera and hold still. Calibration
     starts automatically when one face is detected. Your camera stays on when you continue.
   </p>
+  <section class="card microphone-check" aria-labelledby="mic-check-title">
+    <h2 id="mic-check-title">Check your microphone</h2>
+    <p class="muted">Choose an input, check the volume meter and play back a five-second sample before your interview. First click Allow microphone, then Record 5-second sample. When recording finishes, click Play sample.</p>
+    <label for="mic-check-device">Microphone for test and interview</label>
+    <select id="mic-check-device"><option value="">System default microphone</option></select>
+    <div class="actions">
+      <button id="mic-check-enable" type="button">Allow microphone</button>
+      <button id="mic-check-record" type="button" disabled>Record 5-second sample</button>
+      <button id="mic-check-stop" type="button" disabled>Stop test</button>
+    </div>
+    <label for="mic-check-level">Live input level</label>
+    <meter id="mic-check-level" min="0" max="100" value="0" style="width:100%;height:24px"></meter>
+    <p id="mic-check-level-text" class="muted">Microphone off</p>
+    <p id="mic-check-playback-help" class="muted">Your test playback will appear here after recording. It does not require a download.</p>
+    <button id="mic-check-play" type="button" disabled>Play sample</button>
+    <audio id="mic-check-playback" controls style="width:100%" aria-label="Microphone test playback"></audio>
+    <p id="mic-check-status" role="status" aria-live="polite">Microphone test has not started.</p>
+    <small>The sample stays in this page, is not uploaded or scored, and is discarded when you leave the check page. The meter detects sound, not speech quality. Microphone selection resets on page reload. This check is optional; camera requirements still apply.</small>
+  </section>
   <section class="session-camera" aria-labelledby="camera-title">
     <div class="row">
       <h3 id="camera-title">Session camera</h3>

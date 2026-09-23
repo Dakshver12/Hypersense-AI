@@ -1,3 +1,4 @@
+import { microphoneConstraints, stopMicrophoneCheck } from "./microphone-check.js";
 import { resetTranscriptReview } from "./transcript-review.js";
 import { state } from "./state.js";
 import { $ } from "./dom.js";
@@ -190,7 +191,8 @@ export function initRecording() {
         throw Error(
           "Microphone recording is unavailable. Open this page on localhost in Chrome or Edge, or upload audio.",
         );
-      state.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stopMicrophoneCheck();
+      state.stream = await navigator.mediaDevices.getUserMedia(microphoneConstraints());
       updateAnswerTimer();
       if (state.answerExpired || state.answerSubmitted)
         throw Error("Answer time has expired. Start another question.");

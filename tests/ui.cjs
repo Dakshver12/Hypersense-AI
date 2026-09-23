@@ -9,7 +9,7 @@ const esbuild=require('esbuild');
 const root=path.resolve(__dirname,'..');
 let shell=fs.readFileSync(path.join(root,'templates/index.html'),'utf8');
 for(const name of ['setup','interview','dashboard','camera-check','results'])shell=shell.replace('<!-- include:'+name+' -->',fs.readFileSync(path.join(root,'templates/screens',name+'.html'),'utf8'));
-const modules=fs.readdirSync(path.join(root,'static/js')).filter(n=>n.endsWith('.js')&&n!=='app.js');
+const modules=fs.readdirSync(path.join(root,'static/js')).filter(n=>n.endsWith('.js')&&n!=='app.js'&&!n.endsWith('-worklet.js'));
 const entry=`import './app.js';\n`+modules.map((n,i)=>`import * as m${i} from './${n}';`).join('\n')+modules.map((n,i)=>`Object.assign(window,m${i});`).join('\n')+`\nfor(const key of Object.keys(window.state))Object.defineProperty(window,key,{configurable:true,get:()=>window.state[key],set:value=>{window.state[key]=value}});`;
 const bundle=esbuild.buildSync({stdin:{contents:entry,resolveDir:path.join(root,'static/js')},bundle:true,write:false,format:'iife'}).outputFiles[0].text;
 shell=shell.replace(/<script type="module"[\s\S]*?<\/script>/,'');
@@ -433,6 +433,84 @@ const waitFor=async fn=>{for(let i=0;i<100;i++){if(fn())return;await new Promise
       $('history-search').value='';await w.renderDashboard();assert.deepEqual(shown(),['backup']);
       w.selectDashboardTab('overview');
       console.log('PASS: dashboard tab isolation, keyboard navigation, retained search/results, scoped filters and zero storage reads on tab switches.');
+    }
+    // Microphone test uses simulated permission, stream, recorder and volume samples.
+    {
+      w.state.busy=false;w.state.recording=false;w.state.interviewSession=null;
+      $('camera-check-page').hidden=false;
+      let stops=0,lastConstraints,permissionMode='ok',resolvePending,latestRecorder;
+      const track={stop(){stops++;},onended:null};
+      const input={getTracks:()=>[track],getAudioTracks:()=>[track]};
+      Object.defineProperty(w.navigator,'mediaDevices',{configurable:true,value:{
+        enumerateDevices:async()=>[{kind:'audioinput',deviceId:'usb-mic',label:'USB microphone'}],
+        getUserMedia:async constraints=>{lastConstraints=constraints;if(permissionMode==='denied')throw Object.assign(Error('denied'),{name:'NotAllowedError'});if(permissionMode==='pending')return new Promise(resolve=>resolvePending=resolve);return input;},
+        addEventListener(){}
+      }});
+      let amplitude=.05;
+      w.AudioContext=class {async resume(){}async close(){}createAnalyser(){return {fftSize:1024,getFloatTimeDomainData(samples){samples.fill(amplitude);}};}createMediaStreamSource(){return {connect(){}};}};
+      w.MediaRecorder=class {
+        static isTypeSupported(){return true;}
+        constructor(stream,options){this.state='inactive';this.mimeType=options?.mimeType || 'audio/webm';latestRecorder=this;}
+        start(){this.state='recording';this.onstart?.();}
+        stop(){this.state='inactive';this.ondataavailable?.({data:new w.Blob(['sample'],{type:this.mimeType})});this.onstop?.();}
+      };
+      await w.listMicrophones();$('mic-check-device').value='usb-mic';$('mic-check-device').onchange();
+      assert.equal(w.microphoneConstraints().audio.deviceId.exact,'usb-mic');
+      await w.enableMicrophoneCheck();assert.equal(lastConstraints.audio.deviceId.exact,'usb-mic');
+      assert.equal($('mic-check-record').disabled,false);assert($('mic-check-level').value>0);
+      const oldTimeout=w.setTimeout;let sampleTimeout;
+      w.setTimeout=(fn,delay,...args)=>{if(delay===5000){sampleTimeout=fn;return 123456;}return oldTimeout(fn,delay,...args);};
+      w.recordMicrophoneSample();assert.equal(latestRecorder.state,'recording');assert($('mic-check-status').textContent.includes('five seconds'));
+      await new Promise(resolve=>setTimeout(resolve,40));sampleTimeout();w.setTimeout=oldTimeout;
+      assert.equal($('mic-check-play').disabled,true);$('mic-check-playback').dispatchEvent(new w.Event('canplay'));
+      assert.equal($('mic-check-playback').hidden,false);assert.equal($('mic-check-record').disabled,true);assert(stops>0);
+      assert.equal($('mic-check-play').disabled,false);await $('mic-check-play').onclick();
+      w.setPageView(false);assert.equal($('mic-check-play').disabled,true);assert.equal($('mic-check-playback').hasAttribute('src'),false);
+      $('camera-check-page').hidden=false;permissionMode='denied';await w.enableMicrophoneCheck();assert($('mic-check-status').textContent.includes('permission denied'));
+      assert.equal($('mic-check-enable').disabled,false);
+      permissionMode='pending';const pending=w.enableMicrophoneCheck();const previousStops=stops;
+      w.setPageView(false);resolvePending(input);await pending;assert(stops>previousStops);assert.equal($('mic-check-record').disabled,true);
+      $('camera-check-page').hidden=false;permissionMode='ok';amplitude=0;await w.enableMicrophoneCheck();
+      w.recordMicrophoneSample();latestRecorder.stop();$('mic-check-playback').dispatchEvent(new w.Event('canplay'));assert($('mic-check-status').textContent.includes('little or no sound'));
+      w.stopMicrophoneCheck();assert.equal($('mic-check-play').disabled,true);
+      assert.equal(w.microphoneLevel(new Float32Array([0,0])),0);assert.equal(w.microphoneLevel(new Float32Array([1,-1])),1);
+      w.AudioContext.prototype.resume=()=>new Promise(()=>{});
+      await w.enableMicrophoneCheck();assert.equal($('mic-check-record').disabled,false);track.onended();assert($('mic-check-status').textContent.includes('disconnected'));
+      w.setPageView(false);
+      // Worklets execute in the audio thread, not in the page module bundle.
+      let Processor;const messages=[];
+      require('node:vm').runInNewContext(fs.readFileSync(path.join(root,'static/js/microphone-pcm-worklet.js'),'utf8'),{
+        AudioWorkletProcessor:class {constructor(){this.port={postMessage:message=>messages.push(message)};}},
+        sampleRate:48000,registerProcessor:(name,klass)=>{Processor=klass;},Float32Array
+      });
+      const processor=new Processor();processor.process([[new Float32Array([1,0]),new Float32Array([-1,1])]]);
+      assert.deepEqual(Array.from(messages[0].samples),[0,.5]);processor.port.onmessage({data:'finish'});assert.equal(messages[1].done,true);
+      // WAV output has real PCM framing and a duration derived from actual sample count.
+      const wav=await w.encodeMicrophoneWav([new Float32Array([-1,0,1]),new Float32Array([.5])],48000).arrayBuffer();
+      const pcm=new DataView(wav);assert.equal(Buffer.from(wav).toString('ascii',0,4),'RIFF');
+      assert.equal(Buffer.from(wav).toString('ascii',8,12),'WAVE');assert.equal(pcm.getUint32(24,true),48000);
+      assert.equal(pcm.getUint32(40,true),8);assert.equal(pcm.getInt16(44,true),-32768);assert.equal(pcm.getInt16(48,true),32767);
+      assert.throws(()=>w.encodeMicrophoneWav([],48000));
+      // Exercise the WAV path with synthetic audio processor messages.
+      $('camera-check-page').hidden=false;
+      w.AudioContext.prototype.resume=async function(){this.state='running';};
+      w.AudioContext.prototype.sampleRate=48000;
+      w.AudioContext.prototype.audioWorklet={addModule:async()=>{}};
+      w.AudioContext.prototype.createGain=()=>({gain:{value:1},connect(){},disconnect(){}});
+      w.AudioContext.prototype.createMediaStreamSource=()=>({connect(){},disconnect(){}});
+      let pcmNode;
+      w.AudioWorkletNode=class {
+        constructor(){pcmNode=this;this.port={onmessage:null,postMessage:()=>this.port.onmessage?.({data:{done:true}})};}
+        connect(){}disconnect(){}
+      };
+      await w.enableMicrophoneCheck();w.setTimeout=(fn,delay,...args)=>{if(delay===5000){sampleTimeout=fn;return 123456;}return oldTimeout(fn,delay,...args);};
+      await w.recordMicrophoneSample();
+      pcmNode.port.onmessage({data:{samples:new Float32Array([.1,.2,.1])}});sampleTimeout();w.setTimeout=oldTimeout;
+      assert.equal($('mic-check-play').disabled,true);$('mic-check-playback').dispatchEvent(new w.Event('canplay'));assert.equal($('mic-check-play').disabled,false);
+      Object.defineProperty($('mic-check-playback'),'error',{configurable:true,value:{code:4}});
+      $('mic-check-playback').dispatchEvent(new w.Event('error'));assert.equal($('mic-check-play').disabled,true);assert($('mic-check-status').textContent.includes('audio/wav'));
+      w.setPageView(false);
+      console.log('PASS: microphone selection, input meter, timed sample/playback, no-signal feedback, permission denial, disconnect and late-permission cleanup.');
     }
     assert.deepEqual(errors,[]);
     console.log('PASS: empty dashboard, filters, zero/pending scores, reports, quota recovery, session navigation, completion, camera cleanup, confidence persistence, retry scoring, deletion and single practice.');
