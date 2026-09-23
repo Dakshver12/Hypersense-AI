@@ -63,17 +63,17 @@ class AppTests(unittest.TestCase):
         self.assertEqual(len(parser.ids), len(set(parser.ids)))
         ids = set(parser.ids) | {"score-pending", "live-camera-dock"}
         for path in (PROJECT_ROOT / "static/js").glob("*.js"):
-            for name in re.findall(r'\$\(["\']([^"\']+)["\']\)', path.read_text()):
+            for name in re.findall(r'\$\(["\']([^"\']+)["\']\)', path.read_text(encoding="utf-8-sig")):
                 self.assertIn(name, ids, path.name)
 
     def test_module_imports_resolve(self):
         for path in (PROJECT_ROOT / "static/js").glob("*.js"):
-            for module in re.findall(r'from ["\']([^"\']+)["\']', path.read_text()):
+            for module in re.findall(r'from ["\']([^"\']+)["\']', path.read_text(encoding="utf-8-sig")):
                 self.assertTrue((path.parent / module).is_file(), module)
 
     def test_python_syntax(self):
         for path in (PROJECT_ROOT / "backend").rglob("*.py"):
-            ast.parse(path.read_text())
+            ast.parse(path.read_text(encoding="utf-8-sig"))
 
     def test_invalid_question_payload(self):
         self.assertEqual(
@@ -136,9 +136,9 @@ class AppTests(unittest.TestCase):
             self.assertTrue(
                 (PROJECT_ROOT / "templates/screens" / f"{name}.html").is_file()
             )
-        self.assertLess(len((PROJECT_ROOT / "main.py").read_text().splitlines()), 30)
+        self.assertLess(len((PROJECT_ROOT / "main.py").read_text(encoding="utf-8-sig").splitlines()), 30)
         self.assertNotIn(
-            "function ", (PROJECT_ROOT / "templates/index.html").read_text()
+            "function ", (PROJECT_ROOT / "templates/index.html").read_text(encoding="utf-8-sig")
         )
 
 
