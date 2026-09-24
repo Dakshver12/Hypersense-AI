@@ -75,6 +75,10 @@ export function refreshSession() {
     .querySelectorAll("[data-session-history]")
     .forEach((button) => (button.disabled = active || state.busy || state.recording));
   $("retry-session-save").disabled = active || state.busy || state.recording;
+  for (const id of ["save-session-notes", "session-notes-input"]) {
+    const control = $(id);
+    if (control) control.disabled = active || state.busy || state.recording;
+  }
   const pendingButton = $("score-pending");
   if (pendingButton) pendingButton.disabled = active || state.busy || state.recording;
   $("evaluate").textContent = active ? "Submit answer & continue" : "Submit for feedback";
@@ -86,6 +90,8 @@ export function refreshSession() {
   $("camera-check-continue").textContent = state.singlePractice && state.current ? "Return to question" : active ? "Return to interview" : "Start interview";
   $("camera-check-back").textContent = state.singlePractice && state.current ? "Back to question" : "Back to setup";
   $("camera-check-back").disabled = state.busy || state.recording;
+  $("session-skip").hidden = !active;
+  $("session-skip").disabled = !active || !state.interviewSession?.loaded || state.busy || state.recording;
   $("session-next").hidden = !active;
   $("session-end").hidden = !active;
   $("session-next").disabled = state.busy || state.recording || state.speechPending;
@@ -110,8 +116,8 @@ export function refreshSession() {
       $(id).disabled = true;
     const n = state.interviewSession.answers.length;
     $("session-progress").textContent = state.interviewSession.loaded
-      ? `Question ${n + 1} of ${state.interviewSession.total} · ${n} completed`
-      : `${n} of ${state.interviewSession.total} completed · ready to load the next question`;
+      ? `Question ${n + 1} of ${state.interviewSession.total} · ${n} processed`
+      : `${n} of ${state.interviewSession.total} processed · ready to load the next question`;
     $("session-next").textContent = !state.interviewSession.loaded
       ? "Load / retry next question"
       : n + 1 === state.interviewSession.total

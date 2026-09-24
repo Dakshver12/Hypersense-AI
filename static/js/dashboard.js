@@ -43,7 +43,7 @@ export function renderHistorySearch() {
           (session.settings?.technology || "General"),
       );
       add(row, "td", modeName(session.settings?.interview_type || "technical"));
-      add(row, "td", session.answers.length + "/" + session.total);
+      add(row, "td", session.answers.filter(a => !a.skipped).length + "/" + session.total + (session.answers.some(a => a.skipped) ? ` · ${session.answers.filter(a => a.skipped).length} skipped` : ""));
       const cell = add(row, "td", "");
       const button = add(cell, "button", "Open report");
       button.onclick = () => {
@@ -77,7 +77,7 @@ export function dashboardSummary(sessions, filter = "all") {
     .map((session) => ({
       ...session,
       selected: (session.answers || []).filter(
-        (a) => filter === "all" || (a.interview_type || "technical") === filter,
+        (a) => !a.skipped && (filter === "all" || (a.interview_type || "technical") === filter),
       ),
     }))
     .filter((s) => filter === "all" || s.selected.length);

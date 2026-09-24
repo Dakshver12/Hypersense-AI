@@ -1,8 +1,9 @@
+import { renderSessionNotes } from "./session-notes.js";
 import { downloadReportDocument } from "./report-document.js";
 import { addSaveQuestionButton } from './saved-questions.js';
 import { renderRetry } from './retry.js';
 import { state } from "./state.js";
-import { $ } from "./dom.js";
+import { $, renderQuestion } from "./dom.js";
 import { cancelAutomation } from "./automation.js";
 import { cancelQuestionSpeech } from "./speech.js";
 import { message, candidateLevelName, modeName, evaluationContext } from "./setup.js";
@@ -172,7 +173,9 @@ export function finishInterviewSession(restored = false) {
   state.ticker = null;
   state.current = null;
   const answers = state.interviewSession.answers;
-  const scored = answers.filter((a) => a.score !== null);
+  const scored = answers.filter((a) => !a.skipped && Number.isInteger(a.score) && a.score >= 0 && a.score <= 100);
+  const skipped = answers.filter(a => a.skipped).length;
+  const answered = answers.filter(a => !a.skipped && (a.answer?.trim() || a.recording)).length;
   const report = $("session-report");
   report.querySelectorAll("audio").forEach((player) => player.pause());
   report.replaceChildren();
@@ -183,11 +186,20 @@ export function finishInterviewSession(restored = false) {
     parent.appendChild(el);
     return el;
   };
-  add(report, "h3", "Interview session report");
+  const summary = add(report, "section", "");
+  summary.className = "results-summary";
+  add(summary, "p", "SESSION OVERVIEW").className = "eyebrow";
+  add(summary, "h2", "Your practice, at a glance");
+  const metrics = add(summary, "div", "");
+  metrics.className = "results-metrics";
+  for (const [title, value] of [["Questions", state.interviewSession.total], ["Answered", answered], ["Scored", scored.length], ["Skipped", skipped]]) {
+    const metric = add(metrics, "div", "");
+    add(metric, "strong", String(value)); add(metric, "span", title);
+  }
   add(
     report,
     "p",
-    `${answers.length} of ${state.interviewSession.total} questions completed. Target role: ${state.interviewSession.settings.target_role || "Not specified"}.`,
+    `${answers.length} of ${state.interviewSession.total} questions processed. Target role: ${state.interviewSession.settings.target_role || "Not specified"}.`,
   );
   add(
     report,
@@ -211,7 +223,7 @@ export function finishInterviewSession(restored = false) {
     "p",
     "Unscored answers are excluded. Each interview type uses its own rubric; delivery observations remain separate.",
   );
-  const pending = answers.filter((answer) => answer.score === null && answer.answer?.trim());
+  const pending = answers.filter((answer) => !answer.skipped && answer.score === null && answer.answer?.trim());
   if (pending.length) {
     add(
       report,
@@ -223,13 +235,35 @@ export function finishInterviewSession(restored = false) {
     button.type = "button";
     button.onclick = scorePendingAnswers;
   }
-  const empty = answers.filter((answer) => answer.score === null && !answer.answer?.trim()).length;
+  const empty = answers.filter((answer) => !answer.skipped && answer.score === null && !answer.answer?.trim()).length;
   if (empty)
     add(report, "p", `${empty} unscored answers have no transcript and cannot be evaluated.`);
+  add(report, "h2", "Question review");
+  add(report, "p", "Expand a question to review your answer, feedback and recording.").className = "muted";
   const list = add(report, "ol", "");
-  for (const a of answers) {
-    const item = add(list, "li", "");
-    add(item, "h4", modeName(a.interview_type) + " · " + a.question);
+  list.className = "results-answers";
+  for (const [index, a] of answers.entries()) {
+    const row = add(list, "li", "");
+    const details = add(row, "details", "");
+    details.className = "answer-card";
+    const heading = add(details, "summary", "");
+    add(heading, "span", String(index + 1).padStart(2,"0")).className = "answer-number";
+    const caption = add(heading, "span", "");
+    add(caption, "small", modeName(a.interview_type));
+    add(caption, "strong", String(a.question || "Question").replace(/[*`]/g, ""));
+    const status = a.skipped ? "Skipped" : Number.isInteger(a.score) ? `${a.score}/100` : "Not scored";
+    add(heading, "span", status).className = "answer-status" + (a.skipped ? " is-skipped" : "");
+    const item = add(details, "div", ""); item.className = "answer-content";
+    const question = add(item,"div",""); question.className = "report-question";
+    renderQuestion(a.question, question);
+    if (a.skipped) {
+      add(item, "p", "You skipped this question. It is excluded from scores and pending evaluations.");
+      renderRetry(item, state.interviewSession, index);
+      addSaveQuestionButton(item, state.interviewSession, a);
+      continue;
+    }
+    if (index === 0) details.open = true;
+    add(item, "h4", "Your answer");
     if (a.recording) {
       addRecordingPlayer(item, a.recording);
     } else add(item, "p", "No recording was captured or uploaded for this answer.");
@@ -279,7 +313,11 @@ export function finishInterviewSession(restored = false) {
       );
     if (a.confidence) add(item, "p", `Self-rated confidence: ${a.confidence}/5.`);
   }
-  renderInterviewDelivery(report, answers);
+  const deliveryPanel = add(report, "details", "");
+  deliveryPanel.className = "results-delivery";
+  add(deliveryPanel, "summary", "Delivery observations · separate from answer scores");
+  renderInterviewDelivery(deliveryPanel, answers.filter(a => !a.skipped));
+  renderSessionNotes(report, state.interviewSession);
   add(report, "h4", "Next practice");
   add(
     report,
@@ -306,7 +344,7 @@ export async function scorePendingAnswers() {
     return;
   const session = state.interviewSession;
   const pending = session.answers.filter(
-    (answer) => answer.score === null && answer.answer?.trim(),
+    (answer) => !answer.skipped && answer.score === null && answer.answer?.trim(),
   );
   if (!pending.length) return;
   state.busy = true;
@@ -366,6 +404,7 @@ export function exportSessionReport(session) {
   const { resume_text, ...settings } = session.settings || {};
   return {
     format: "hypersense-report-v1",
+    notes: typeof session.notes === "string" ? session.notes : "",
     id: session.id,
     date: session.date,
     total: session.total,
@@ -378,6 +417,15 @@ export function exportSessionReport(session) {
   };
 }
 export function initResults() {
+  let printDetails = [];
+  window.addEventListener("beforeprint", () => {
+    printDetails = [...$("session-report").querySelectorAll("details")].filter(node => !node.open);
+    printDetails.forEach(node => { node.open = true; });
+  });
+  window.addEventListener("afterprint", () => {
+    printDetails.forEach(node => { node.open = false; });
+    printDetails = [];
+  });
   $("download-readable-report").onclick = () => {
     if (state.busy || state.recording || !state.interviewSession || state.interviewSession.active) return;
     downloadReportDocument(state.interviewSession);

@@ -1,3 +1,4 @@
+import { discardSessionNotes } from "./session-notes.js";
 import { clearSessionDraft } from "./recovery.js";
 import { state } from "./state.js";
 import { $ } from "./dom.js";
@@ -48,6 +49,7 @@ export function storedSession(session) {
   const { resume_text, ...savedSettings } = session.settings;
   return {
     id: session.id,
+    notes: typeof session.notes === "string" ? session.notes.slice(0, 2000) : "",
     date: session.date,
     total: session.total,
     settings: savedSettings,
@@ -120,6 +122,7 @@ export async function deleteSavedSession(id) {
   if (!window.confirm("Delete this saved session, including its answers and recordings?")) return;
   await run(async () => {
     await sessionStore("readwrite", (store) => store.delete(id));
+    discardSessionNotes(id);
     if (state.interviewSession?.id === id) {
       releaseSessionRecordings();
       state.interviewSession = null;

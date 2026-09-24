@@ -55,6 +55,31 @@ const waitFor=async fn=>{for(let i=0;i<100;i++){if(fn())return;await new Promise
     await evaluate('openSavedSession("seed")');assert.equal($('results-page').hidden,false);
     assert($('session-report').textContent.includes('Not scored'));
     assert.equal($('export-report').disabled,false);
+    {
+      const note='Practise a clearer example. <script>unsafe()</script> हिंदी';
+      $('session-notes-input').value=note;$('session-notes-input').dispatchEvent(new w.Event('input'));
+      const leaving=new w.Event('beforeunload',{cancelable:true});w.dispatchEvent(leaving);assert(leaving.defaultPrevented);
+      await w.openSavedSession('seed');assert.equal($('session-notes-input').value,note);
+      await $('save-session-notes').onclick();
+      assert($('session-notes-status').textContent.includes('Notes saved'));
+      assert.equal((await w.sessionStore('readonly',store=>store.get('seed'))).notes,note);
+      assert.equal(w.exportSessionReport(w.state.interviewSession).notes,note);
+      const exported=new JSDOM(w.buildReportDocument(w.state.interviewSession)).window.document;
+      assert(exported.body.textContent.includes(note));assert.equal(exported.querySelector('script'),null);
+      const backup=w.parseBackup(await w.buildBackup());assert.equal(backup.sessions.find(s=>s.id==='seed').notes,note);
+      const oldOpen=w.indexedDB.open;
+      $('session-notes-input').value='Retry this note';$('session-notes-input').dispatchEvent(new w.Event('input'));
+      w.indexedDB.open=()=>{throw Error('storage unavailable');};
+      await $('save-session-notes').onclick();assert($('session-notes-status').textContent.includes('could not be saved'));
+      assert.equal($('session-notes-input').value,'Retry this note');
+      w.indexedDB.open=oldOpen;
+      await $('save-session-notes').onclick();
+      $('session-notes-input').value='';$('session-notes-input').dispatchEvent(new w.Event('input'));await $('save-session-notes').onclick();
+      assert.equal((await w.sessionStore('readonly',store=>store.get('seed'))).notes,'');
+      assert($('session-notes-status').textContent.includes('cleared'));
+      console.log('PASS: session notes persist, survive navigation, export safely, round-trip backups and retain edits after storage failure.');
+    }
+
     assert.equal($('download-readable-report').disabled,false);
     {
       const snapshot={date:'2026-09-24T12:00:00Z',total:3,settings:{technology:'Python',resume_text:'PRIVATE RESUME',job_description:'PRIVATE JD'},answers:[
@@ -578,6 +603,44 @@ const waitFor=async fn=>{for(let i=0;i<100;i++){if(fn())return;await new Promise
       assert.equal(networkCalls,0);
       w.fetch=originalFetch;w.state.current=null;w.state.automationPaused=true;
       console.log('PASS: interview microphone disconnect preserves partial audio, pauses automation, reports empty capture, handles mute/resume and cleans up streams.');
+    }
+    {
+      const b=createBrowser();b.window.eval(bundle);const v=b.window,d=id=>v.document.getElementById(id);
+      try {
+        await new Promise(r=>setTimeout(r,20));
+        let evaluations=0;
+        v.fetch=async url=>{if(url.includes('evaluate')) evaluations++;throw Error('Provider unavailable');};
+        v.state.cameraStream={getVideoTracks:()=>[{readyState:'live',enabled:true}],getTracks:()=>[{stop(){}}]};
+        v.state.neutralRotation=[[1,0,0],[0,1,0],[0,0,1]];
+        const settings={technology:'Python',interview_type:'technical',difficulty:'easy',language:'English',auto_flow:false};
+        v.state.interviewSession={id:'skip-test',date:new Date().toISOString(),active:true,loaded:true,total:2,source:'manual',settings,questions:['First **question**','Second `question`'],answers:[]};
+        v.state.current={...settings,question:'First **question**'};v.state.recording=false;v.state.busy=false;
+        d('transcript').value='Unsubmitted text';v.state.blob=new v.Blob(['draft'],{type:'audio/webm'});
+        v.confirm=()=>false;await d('session-skip').onclick();assert.equal(v.state.interviewSession.answers.length,0);assert.equal(d('transcript').value,'Unsubmitted text');
+        v.confirm=()=>true;v.state.recording=true;await d('session-skip').onclick();assert.equal(v.state.interviewSession.answers.length,0);v.state.recording=false;
+        await d('session-skip').onclick();assert.equal(v.state.interviewSession.answers.length,1);assert.equal(v.state.current.question,'Second `question`');
+        assert.equal(v.state.interviewSession.answers[0].skipped,true);assert.equal(v.state.interviewSession.answers[0].recording,null);assert.equal(v.state.blob,null);
+        assert.equal((await v.draftStore('readonly',s=>s.get('active'))).answers[0].skipped,true);
+        await d('session-skip').onclick();assert.equal(v.state.interviewSession.active,false);assert.equal(v.state.cameraStream,null);assert.equal(evaluations,0);
+        await waitFor(()=>v.state.sessionSavePending===null);
+        assert.equal(d('session-report').querySelectorAll('.answer-card').length,2);assert.equal(d('score-pending'),null);
+        assert.equal(v.dashboardSummary([v.state.interviewSession]).pending,0);assert.equal(v.dashboardSummary([v.state.interviewSession]).scored,0);
+        const cards=[...d('session-report').querySelectorAll('details')];assert(cards.every(x=>!x.open));
+        v.dispatchEvent(new v.Event('beforeprint'));assert(cards.every(x=>x.open));v.dispatchEvent(new v.Event('afterprint'));assert(cards.every(x=>!x.open));
+        assert(d('session-report').querySelector('.report-question strong'));assert.equal(d('session-report').querySelector('.answer-content script'),null);
+        const doc=new JSDOM(v.buildReportDocument(v.state.interviewSession)).window.document;assert(doc.body.textContent.includes('2 skipped'));
+        // Next-question failure retains exactly one skipped record for retry.
+        v.state.interviewSession={id:'skip-fail',date:new Date().toISOString(),active:true,loaded:true,total:2,source:'gemini',settings,answers:[]};
+        v.state.current={...settings,question:'Skip during outage'};
+        v.state.cameraStream={getVideoTracks:()=>[{readyState:'live',enabled:true}],getTracks:()=>[{stop(){}}]};v.state.neutralRotation=[[1,0,0],[0,1,0],[0,0,1]];
+        await d('session-skip').onclick();assert.equal(v.state.interviewSession.answers.length,1);assert.equal(v.state.interviewSession.loaded,false);
+        await d('session-skip').onclick();assert.equal(v.state.interviewSession.answers.length,1);
+        v.fetch=async()=>({ok:true,status:200,text:async()=>JSON.stringify({question:'Recovered question'})});
+        await d('session-next').onclick();assert.equal(v.state.current.question,'Recovered question');assert.equal(v.state.interviewSession.answers.length,1);
+        v.cancelQuestionSpeech(false);clearInterval(v.state.ticker);v.stopCamera();
+        await v.draftStore('readwrite',s=>s.delete('active'));
+        console.log('PASS: skip confirmation, recording guard, draft discard, checkpoint, final completion, provider failure retry, no evaluation, separate counts and expandable printable cards.');
+      } finally { b.window.close(); }
     }
     assert.deepEqual(errors,[]);
     console.log('PASS: empty dashboard, filters, zero/pending scores, reports, quota recovery, session navigation, completion, camera cleanup, confidence persistence, retry scoring, deletion and single practice.');

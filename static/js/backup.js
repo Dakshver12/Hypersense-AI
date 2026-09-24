@@ -42,6 +42,7 @@ export function parseBackup(text) {
   for (const session of data.sessions) {
     require(object(session) && typeof session.id === 'string' && session.id.length > 0 && session.id.length <= 200 && !ids.has(session.id), 'Invalid or duplicate session ID.');
     ids.add(session.id);
+    require(session.notes === undefined || (typeof session.notes === "string" && session.notes.length <= 2000), "Invalid session notes.");
     require(typeof session.date === 'string' && Number.isFinite(Date.parse(session.date)), 'Invalid session date.');
     require(object(session.settings) && Array.isArray(session.answers) && session.answers.length <= 100, 'Invalid session contents.');
     require(Number.isInteger(session.total) && session.total >= session.answers.length && session.total <= 100, 'Invalid question count.');

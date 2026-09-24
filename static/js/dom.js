@@ -1,7 +1,6 @@
 export const $ = (id) => document.getElementById(id);
 
-export function renderQuestion(text) {
-  const target = $("question");
+export function renderQuestion(text, target = $("question")) {
   target.replaceChildren();
   const lines = String(text || "")
     .replace(/\r\n/g, "\n")

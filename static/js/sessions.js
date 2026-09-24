@@ -220,7 +220,34 @@ export async function submitAnswer() {
   state.interviewSession.answers.push(sessionSnapshot());
   finishInterviewSession();
 }
+export async function skipSessionQuestion() {
+  const session = state.interviewSession;
+  if (state.recording || !session?.active || !session.loaded || !state.current) return;
+  const hasDraft = Boolean(state.blob?.size || $("transcript").value.trim());
+  if (!window.confirm(hasDraft
+    ? "Skip this question? The current recording and transcript will be discarded. It will not receive a score."
+    : "Skip this question and continue? It will be marked as skipped and will not receive a score.")) return;
+  cancelAutomation();
+  cancelQuestionSpeech(false);
+  clearInterval(state.ticker);
+  state.ticker = null;
+  session.answers.push({question:state.current.question, interview_type:state.current.interview_type || "technical",
+    skipped:true, answer:"", score:null, feedback:"Skipped by you", recording:null,
+    audio:null, head:null, expressions:null, confidence:null, coaching:[], assessment:null});
+  session.loaded = false;
+  session.pendingQuestion = null;
+  state.current = null;
+  state.sessionEvaluation = null;
+  state.answerSubmitted = true;
+  clearAudio();
+  $("transcript").value = "";
+  await checkpointSession();
+  if (session.answers.length >= session.total) finishInterviewSession();
+  else await loadSessionQuestion();
+}
+
 export function initSessions() {
+  $("session-skip").onclick = () => run(skipSessionQuestion);
   $("session-start").onclick = () => {
     if (state.busy || state.recording || state.interviewSession?.active) return;
     if (!$("camera-consent").checked) {

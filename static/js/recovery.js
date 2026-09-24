@@ -33,7 +33,7 @@ export async function checkpointSession() {
     savedAt: new Date().toISOString() };
   try {
     await draftStore("readwrite", s => s.put(draft, "active"));
-    $("checkpoint-status").textContent = `${draft.answers.length} submitted answer(s) saved on this browser. The unfinished answer is not saved.`;
+    $("checkpoint-status").textContent = `${draft.answers.length} processed question(s) saved on this browser. The unfinished answer is not saved.`;
   } catch {
     $("checkpoint-status").textContent = "Progress could not be saved. Keep this tab open and retry before continuing.";
     throw Error("Could not save progress. Browser storage may be full or unavailable. Use Load / retry next question to retry.");
@@ -56,7 +56,7 @@ export async function offerSessionRecovery() {
     if (!draft || state.interviewSession?.active) return;
     const finished = await sessionStore("readonly", s => s.get(draft.id));
     if (finished) { await clearSessionDraft(draft.id); return; }
-    $("recovery-description").textContent = `${draft.answers.length} of ${draft.total} answers saved. Resume at question ${Math.min(draft.answers.length + 1, draft.total)}. The unfinished answer restarts with a fresh timer. Camera permission and calibration are required again. Résumé text is not retained.`;
+    $("recovery-description").textContent = `${draft.answers.length} of ${draft.total} questions processed. Resume at question ${Math.min(draft.answers.length + 1, draft.total)}. The unfinished answer restarts with a fresh timer. Camera permission and calibration are required again. Résumé text is not retained.`;
     $("session-recovery").hidden = false;
   } catch {
     $("checkpoint-status").textContent = "Session recovery is unavailable in this browser.";

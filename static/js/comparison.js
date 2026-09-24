@@ -9,7 +9,7 @@ const average = values => values.length ? values.reduce((a,b)=>a+b,0)/values.len
 const clean = value => String(value || '').trim().toLowerCase();
 const add = (parent, tag, text) => {const node=document.createElement(tag);node.textContent=text;parent.appendChild(node);return node;};
 export function comparisonStats(session) {
-  const answers = (session.answers || []).filter(a=>a && typeof a==='object');
+  const answers = (session.answers || []).filter(a=>a && typeof a==='object' && !a.skipped);
   const groups = {};
   for(const type of ['technical','behavioral','hr']) {
     const scores = answers.filter(a=>(a.interview_type || (session.settings?.interview_type !== 'mixed' ? session.settings?.interview_type : null))===type && validScore(a.score)).map(a=>a.score);
