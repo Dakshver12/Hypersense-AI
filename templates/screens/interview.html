@@ -3,15 +3,6 @@
     <section class="card" id="session-controls" hidden aria-label="Session controls">
       <p id="checkpoint-status" role="status"></p>
       <p id="session-progress" role="status">No active session.</p>
-      <div class="actions">
-        <button id="session-skip" type="button" hidden>Skip question</button>
-        <button id="session-next" hidden>Next question</button
-        ><button id="session-end" hidden>End session</button>
-      </div>
-      <small
-        >Submit without scoring if your provider is unavailable. You can score saved answers from
-        the final report later.</small
-      >
     </section>
     <section class="card">
       <div class="eyebrow">01 · Question</div>
@@ -38,10 +29,7 @@
       </select>
       <p id="automation-status" role="status"></p>
       <button id="pause-automation" type="button">Pause automation</button>
-      <div class="actions">
-        <button class="primary" id="record" disabled>Record answer</button
-        ><button id="stop" disabled>Stop recording</button>
-      </div>
+
       <p id="microphone-status" role="status" aria-live="polite">
         Click Record answer, then wait for “Recording—speak now”.
       </p>
@@ -60,7 +48,7 @@
         <label for="upload">Or choose an existing recording (up to 10 MB, 2 minutes)</label
         ><input id="upload" type="file" accept=".wav,.mp3,.m4a,.webm,.ogg,.flac" disabled />
       </div>
-      <div class="actions"><button id="transcribe" disabled>Transcribe audio</button></div>
+
       <section class="transcript-review" aria-labelledby="transcript-review-title">
         <h3 id="transcript-review-title">Review your answer</h3>
         <p class="muted">Listen, check the wording, and correct any misheard words before scoring.</p>
@@ -88,10 +76,29 @@
         <option value="4">4 — Confident</option>
         <option value="5">5 — Very confident</option>
       </select>
-      <div class="actions">
-        <button class="primary" id="evaluate" disabled>Submit for feedback</button>
-      </div>
+
     </section>
+    <div id="interview-action-bar" hidden role="region" aria-label="Answer actions">
+      <div class="action-bar-context">
+        <span id="action-progress">Your answer</span>
+        <small id="action-hint">Record, review your transcript, then submit.</small>
+      </div>
+      <div class="action-bar-buttons">
+        <button id="record" type="button" disabled>Record answer</button>
+        <button id="stop" type="button" disabled hidden>Stop recording</button>
+        <button id="transcribe" type="button" disabled>Transcribe audio</button>
+        <button class="primary" id="evaluate" type="button" disabled>Submit for feedback</button>
+        <button id="session-skip" type="button" hidden>Skip question</button>
+        <details id="session-more-actions">
+          <summary>More actions</summary>
+          <div class="session-more-menu">
+            <button id="session-next" type="button" hidden>Next question</button>
+            <p>Submit without scoring when the evaluator is unavailable. Score reviewed answers later.</p>
+            <button id="session-end" type="button" hidden>End session</button>
+          </div>
+        </details>
+      </div>
+    </div>
     <section class="card" id="delivery-report" hidden aria-labelledby="delivery-title">
       <h2 id="delivery-title">Delivery practice report</h2>
       <p class="muted">Observations from this answer, separate from answer scoring.</p>

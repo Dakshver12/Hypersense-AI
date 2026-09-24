@@ -25,6 +25,12 @@ function createBrowser(){ return new JSDOM(shell,{
         w.HTMLMediaElement.prototype.pause=()=>{};w.HTMLMediaElement.prototype.load=()=>{};w.HTMLMediaElement.prototype.play=async()=>{};
         w.HTMLCanvasElement.prototype.getContext=()=>({clearRect(){},strokeRect(){},drawImage(){}});
         w.URL.createObjectURL=()=> 'blob:test';w.URL.revokeObjectURL=()=>{};w.confirm=()=>true;
+        w.HTMLDialogElement.prototype.showModal=function(){
+          this.open=true;
+          if (!w.manualDialogTest) queueMicrotask(()=>this.querySelector(w.confirm() ? '[data-choice="skip"]' : '[data-choice="keep"]')?.click());
+        };
+        w.HTMLDialogElement.prototype.close=function(){this.open=false;this.dispatchEvent(new w.Event('close'));};
+
         w.fetch=async(url)=>({ok:!denyEvaluation,status:denyEvaluation?429:200,text:async()=>JSON.stringify(denyEvaluation?{detail:'Quota reached'}:{score:0,feedback:'Missing the required explanation.',provider:'Test',model:'mock',coaching:[]})});
     }
 }); }
@@ -35,6 +41,12 @@ const waitFor=async fn=>{for(let i=0;i<100;i++){if(fn())return;await new Promise
 (async()=>{
     await waitFor(()=>$('saved-session-list').textContent.includes('No completed'));
     assert.equal($('nav-practice').getAttribute('aria-current'),'page');
+    for (const id of ['record','stop','transcribe','evaluate','session-skip','session-next','session-end']) {
+      assert.equal(w.document.querySelectorAll('#'+id).length,1);
+      assert($('interview-action-bar').contains($(id)));
+    }
+    assert(!$('session-controls').contains($('session-skip')));
+
     $('session-questions').value='Keep my questions';$('session-source').value='gemini';$('session-source').dispatchEvent(new w.Event('change'));
     assert.equal($('manual-question-fields').hidden,true);
     $('session-source').value='manual';$('session-source').dispatchEvent(new w.Event('change'));
@@ -641,6 +653,19 @@ const waitFor=async fn=>{for(let i=0;i<100;i++){if(fn())return;await new Promise
         await v.draftStore('readwrite',s=>s.delete('active'));
         console.log('PASS: skip confirmation, recording guard, draft discard, checkpoint, final completion, provider failure retry, no evaluation, separate counts and expandable printable cards.');
       } finally { b.window.close(); }
+    }
+
+    {
+      w.manualDialogTest=true;
+      let choice=w.confirmSkipQuestion(true);
+      let modal=w.document.querySelector('dialog.hypersense-confirm');
+      assert(modal.open);assert.equal(w.document.activeElement,modal.querySelector('[data-choice="keep"]'));
+      assert(modal.textContent.includes('recording and transcript will be discarded'));
+      modal.dispatchEvent(new w.Event('cancel',{cancelable:true}));assert.equal(await choice,false);assert.equal(w.document.querySelector('dialog.hypersense-confirm'),null);
+      choice=w.confirmSkipQuestion(false);modal=w.document.querySelector('dialog.hypersense-confirm');
+      assert(!modal.textContent.includes('will be discarded'));modal.querySelector('[data-choice="skip"]').click();assert.equal(await choice,true);
+      w.manualDialogTest=false;
+      console.log('PASS: themed skip confirmation defaults to keep, explains draft loss, cancels on Escape and cleans up after a choice.');
     }
     assert.deepEqual(errors,[]);
     console.log('PASS: empty dashboard, filters, zero/pending scores, reports, quota recovery, session navigation, completion, camera cleanup, confidence persistence, retry scoring, deletion and single practice.');

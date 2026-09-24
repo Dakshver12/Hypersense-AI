@@ -1,3 +1,4 @@
+import { confirmSkipQuestion } from "./confirm-dialog.js";
 import { requireTranscriptReview } from "./transcript-review.js";
 import { checkpointSession, draftStore } from "./recovery.js";
 import { state } from "./state.js";
@@ -224,9 +225,7 @@ export async function skipSessionQuestion() {
   const session = state.interviewSession;
   if (state.recording || !session?.active || !session.loaded || !state.current) return;
   const hasDraft = Boolean(state.blob?.size || $("transcript").value.trim());
-  if (!window.confirm(hasDraft
-    ? "Skip this question? The current recording and transcript will be discarded. It will not receive a score."
-    : "Skip this question and continue? It will be marked as skipped and will not receive a score.")) return;
+  if (!(await confirmSkipQuestion(hasDraft))) return;
   cancelAutomation();
   cancelQuestionSpeech(false);
   clearInterval(state.ticker);
@@ -248,6 +247,9 @@ export async function skipSessionQuestion() {
 
 export function initSessions() {
   $("session-skip").onclick = () => run(skipSessionQuestion);
+  $("session-more-actions").addEventListener("click", event => {
+    if (event.target.closest("button")) $("session-more-actions").open = false;
+  });
   $("session-start").onclick = () => {
     if (state.busy || state.recording || state.interviewSession?.active) return;
     if (!$("camera-consent").checked) {

@@ -63,6 +63,18 @@ export function refresh() {
 
 export function refreshSession() {
   const active = Boolean(state.interviewSession?.active);
+  $("interview-action-bar").hidden = !active && !state.current;
+  $("record").hidden = state.recording;
+  $("stop").hidden = !state.recording;
+  $("session-more-actions").hidden = !active;
+  $("action-hint").textContent = state.recording
+    ? "Recording… Stop recording before skipping."
+    : state.speechPending ? "Listening to the question. You can skip it below."
+    : "Record, review your transcript, then submit.";
+  $("action-progress").textContent = active
+    ? `Question ${Math.min(state.interviewSession.answers.length + 1, state.interviewSession.total)} of ${state.interviewSession.total}`
+    : "Single-question practice";
+
   $("session-controls").hidden = !active;
   $("nav-dashboard").disabled = active || state.busy || state.recording;
   $("nav-practice").disabled = state.busy || state.recording;
