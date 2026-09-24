@@ -69,7 +69,7 @@ export function refreshSession() {
   $("nav-practice").textContent = active ? "Return to interview" : "Interview setup";
   $("confidence-rating").disabled =
     state.busy || state.recording || !state.current || state.answerSubmitted;
-  for (const id of ["export-report", "print-report"])
+  for (const id of ["export-report", "print-report", "download-readable-report"])
     $(id).disabled = active || state.busy || state.recording || !state.interviewSession;
   document
     .querySelectorAll("[data-session-history]")

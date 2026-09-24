@@ -55,6 +55,36 @@ const waitFor=async fn=>{for(let i=0;i<100;i++){if(fn())return;await new Promise
     await evaluate('openSavedSession("seed")');assert.equal($('results-page').hidden,false);
     assert($('session-report').textContent.includes('Not scored'));
     assert.equal($('export-report').disabled,false);
+    assert.equal($('download-readable-report').disabled,false);
+    {
+      const snapshot={date:'2026-09-24T12:00:00Z',total:3,settings:{technology:'Python',resume_text:'PRIVATE RESUME',job_description:'PRIVATE JD'},answers:[
+        {interview_type:'technical',question:'<img src=x onerror=alert(1)>',answer:'Use <script>never()</script> & explain.',score:0,feedback:'Missing required detail',assessment:{strengths:[],gaps:['Explain the change'],next_step:'Practise the example'},audio:{words_per_minute:0},recording:{blob:'PRIVATE AUDIO'}},
+        {interview_type:'hr',question:'Why this role?',answer:'I enjoy building tools.',score:100,feedback:'Complete',confidence:'4'},
+        {interview_type:'technical',question:'Pending',answer:'हिंदी उत्तर',score:null}
+      ]};
+      const html=w.buildReportDocument(snapshot);
+      const doc=new JSDOM(html).window.document;
+      assert.equal(doc.querySelectorAll('article').length,3);
+      assert.equal(doc.querySelector('script, img, audio, iframe, link'),null);
+      assert(doc.body.textContent.includes('<script>never()</script>'));
+      assert(doc.body.textContent.includes('हिंदी उत्तर'));
+      assert(doc.body.textContent.includes('2 scored · 1 unscored'));
+      assert(doc.querySelector('.metrics').textContent.includes('0.0'));
+      assert(doc.querySelector('.metrics').textContent.includes('100.0'));
+      assert(doc.body.textContent.includes('Speaking pace: 0 words/minute'));
+      assert(!html.includes('PRIVATE RESUME'));assert(!html.includes('PRIVATE JD'));assert(!html.includes('PRIVATE AUDIO'));
+      assert(w.buildReportDocument({answers:[{score:undefined},{score:NaN},{score:101}]}).includes('0 scored · 3 unscored'));
+      assert(w.buildReportDocument({answers:[]}).includes('No answers saved'));
+      let downloads=0, savedBlob=null;
+      const oldClick=w.HTMLAnchorElement.prototype.click, oldURL=w.URL.createObjectURL;
+      w.HTMLAnchorElement.prototype.click=function(){downloads++;assert.equal(this.download,'hypersense-interview-report.html');};
+      w.URL.createObjectURL=blob=>{savedBlob=blob;return 'blob:report';};
+      $('download-readable-report').onclick();assert.equal(downloads,1);assert(savedBlob.type.startsWith('text/html'));
+      w.state.busy=true;$('download-readable-report').onclick();assert.equal(downloads,1);w.state.busy=false;
+      w.HTMLAnchorElement.prototype.click=oldClick;w.URL.createObjectURL=oldURL;
+      console.log('PASS: readable report preserves zero/pending scores, separates rubrics, escapes user text, excludes private context/audio and downloads with busy guard.');
+    }
+
     $('nav-dashboard').click();await waitFor(()=>$('dashboard-status').textContent.startsWith('Updated'));
     $('dashboard-start').click();assert.equal($('dashboard-page').hidden,true);
     assert.equal($('session-setup').style.display,'block');

@@ -1,3 +1,4 @@
+import { downloadReportDocument } from "./report-document.js";
 import { addSaveQuestionButton } from './saved-questions.js';
 import { renderRetry } from './retry.js';
 import { state } from "./state.js";
@@ -377,6 +378,11 @@ export function exportSessionReport(session) {
   };
 }
 export function initResults() {
+  $("download-readable-report").onclick = () => {
+    if (state.busy || state.recording || !state.interviewSession || state.interviewSession.active) return;
+    downloadReportDocument(state.interviewSession);
+    message("Report downloaded. Open the HTML file, then use your browser’s Print menu to save as PDF.");
+  };
   $("export-report").onclick = () => {
     if (state.busy || state.recording || !state.interviewSession || state.interviewSession.active)
       return;
