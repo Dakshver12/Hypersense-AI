@@ -1,3 +1,5 @@
+import { accountId } from "./account-context.js";
+import { restoreAccountSessions } from "./account-store.js";
 import { readPresets, savePreset, validatePreset, renderPresets } from "./presets.js";
 import { sessionStore, sessionDB, storedSession } from './storage.js';
 import { readSavedQuestions, saveQuestion, questionBookmark } from './saved-questions.js';
@@ -95,8 +97,9 @@ export async function buildBackup() {
 }
 // Add all missing sessions in one transaction. Existing IDs are never overwritten.
 export async function restoreBackup(data) {
+  const restoreLocal = async () => {
   const db = await sessionDB();
-  const counts = await new Promise((resolve, reject) => {
+  return await new Promise((resolve, reject) => {
     const tx = db.transaction('sessions','readwrite');
     const store = tx.objectStore('sessions');
     let added = 0, skipped = 0;
@@ -107,6 +110,8 @@ export async function restoreBackup(data) {
     tx.oncomplete = () => {db.close();resolve({added,skipped});};
     tx.onabort = tx.onerror = () => {db.close();reject(Error('Sessions could not be restored. No sessions were added. Browser storage may be full.'));};
   });
+  };
+  const counts = accountId ? await restoreAccountSessions(data.sessions) : await restoreLocal();
   let questionsAdded = 0, questionsSkipped = 0, questionError = '';
   try {
     for (const item of data.savedQuestions) {

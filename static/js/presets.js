@@ -1,3 +1,4 @@
+import { accountKey } from "./account-context.js";
 import { $ } from './dom.js';
 import { state } from './state.js';
 import { refresh } from './ui.js';
@@ -27,7 +28,7 @@ export function validatePreset(item) {
   return {name:item.name.trim(),settings};
 }
 export function readPresets() {
-  const items=JSON.parse(localStorage.getItem(PRESETS_KEY) || '[]');
+  const items=JSON.parse(localStorage.getItem(accountKey(PRESETS_KEY)) || '[]');
   if(!Array.isArray(items) || items.length > 20) throw Error('Saved setups could not be read.');
   return items.map(validatePreset);
 }
@@ -41,7 +42,7 @@ export function savePreset(item, replace = false) {
   const index=items.findIndex(old=>nameKey(old.name)===nameKey(clean.name));
   if(index>=0) {if(!replace)return false;items[index]=clean;}
   else {if(items.length>=20)throw Error('You have 20 saved setups. Delete one before adding another.');items.push(clean);}
-  localStorage.setItem(PRESETS_KEY,JSON.stringify(items));return true;
+  localStorage.setItem(accountKey(PRESETS_KEY),JSON.stringify(items));return true;
 }
 export function applyPreset(item) {
   if(!idle())throw Error('Finish the current interview or operation first.');
@@ -83,7 +84,7 @@ export function initPresets() {
   $('preset-delete').onclick=action(()=>{
     const item=selected();
     if(!window.confirm(`Delete saved setup “${item.name}”? Interview history will be kept.`))return;
-    localStorage.setItem(PRESETS_KEY,JSON.stringify(readPresets().filter(p=>p.name!==item.name)));
+    localStorage.setItem(accountKey(PRESETS_KEY),JSON.stringify(readPresets().filter(p=>p.name!==item.name)));
     renderPresets();status.textContent='Saved setup deleted. Your current form and interview history were kept.';
   });
   try{renderPresets();}catch(error){status.textContent=error.message;}

@@ -7,3 +7,9 @@ face_landmarker.task
 *.webm
 *.wav
 *.mp3
+
+# Private account database, development emails and recordings
+data/
+*.sqlite3
+*.sqlite3-*
+*.eml

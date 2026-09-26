@@ -1,3 +1,4 @@
+import { accountKey } from "./account-context.js";
 import { state } from './state.js';
 import { $ } from './dom.js';
 import { showSetupPage } from './navigation.js';
@@ -19,7 +20,7 @@ export function questionBookmark(session, answer) {
 }
 const key = item => JSON.stringify([item.question.normalize('NFKC').toLowerCase().replace(/\s+/g,' '), item.technology.toLowerCase(), item.interview_type, item.difficulty, item.language]);
 export function readSavedQuestions() {
-  const raw=JSON.parse(localStorage.getItem(SAVED_QUESTIONS_KEY) || '[]');
+  const raw=JSON.parse(localStorage.getItem(accountKey(SAVED_QUESTIONS_KEY)) || '[]');
   if(!Array.isArray(raw)) throw Error('Saved question data could not be read.');
   return raw.filter(item=>item && typeof item.question==='string' && item.question.trim()).map(item=>questionBookmark({settings:item},item));
 }
@@ -27,7 +28,7 @@ export function saveQuestion(item) {
   const items=readSavedQuestions();
   if(items.some(old=>key(old)===key(item))) return false;
   if(items.length>=100) throw Error('Your list has 100 questions. Remove one before adding another.');
-  localStorage.setItem(SAVED_QUESTIONS_KEY,JSON.stringify([item,...items]));
+  localStorage.setItem(accountKey(SAVED_QUESTIONS_KEY),JSON.stringify([item,...items]));
   return true;
 }
 function add(parent,tag,text) {
@@ -78,7 +79,7 @@ export function renderSavedQuestions() {
       remove.onclick=()=>{
         if(!idle())return;
         try {
-          localStorage.setItem(SAVED_QUESTIONS_KEY,JSON.stringify(readSavedQuestions().filter(old=>key(old)!==key(item))));
+          localStorage.setItem(accountKey(SAVED_QUESTIONS_KEY),JSON.stringify(readSavedQuestions().filter(old=>key(old)!==key(item))));
           renderSavedQuestions();
         }catch(error){add(row,'p','Could not remove question: '+error.message);}
       };

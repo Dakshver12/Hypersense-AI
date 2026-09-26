@@ -1,3 +1,4 @@
+import { initAccount } from "./account.js";
 import { initMicrophoneCheck } from "./microphone-check.js";
 import { initDashboardTabs } from "./dashboard-tabs.js";
 import { initComparison } from "./comparison.js";
@@ -49,3 +50,5 @@ initComparison();
 initDashboardTabs();
 
 initMicrophoneCheck();
+
+initAccount();

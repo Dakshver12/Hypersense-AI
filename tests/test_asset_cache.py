@@ -8,7 +8,7 @@ class AssetCacheTests(unittest.TestCase):
     def test_assets_revalidate_on_reload(self):
         with TestClient(app) as client:
             for path in ("/static/js/app.js", "/static/js/results.js",
-                         "/static/js/session-bundle.js", "/static/css/styles.css"):
+                         "/static/js/account-store.js", "/static/css/styles.css"):
                 with self.subTest(path=path):
                     response = client.get(path)
                     self.assertEqual(response.status_code, 200)

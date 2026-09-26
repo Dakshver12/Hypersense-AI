@@ -1,3 +1,4 @@
+import { accountKey } from "./account-context.js";
 import { state } from "./state.js";
 import { $, renderQuestion } from "./dom.js";
 import { message, interviewSettings, concreteSettings, modeName } from "./setup.js";
@@ -19,7 +20,7 @@ export function rememberQuestion(technology, question) {
   state.recentQuestionHistory.push({ technology: technology.trim().toLowerCase(), question });
   state.recentQuestionHistory = state.recentQuestionHistory.slice(-100);
   try {
-    localStorage.setItem(QUESTION_HISTORY_KEY, JSON.stringify(state.recentQuestionHistory));
+    localStorage.setItem(accountKey(QUESTION_HISTORY_KEY), JSON.stringify(state.recentQuestionHistory));
   } catch {}
 }
 export function singlePracticeConsent() {
@@ -67,7 +68,7 @@ export function initQuestions() {
     refresh();
   };
   try {
-    const stored = JSON.parse(localStorage.getItem(QUESTION_HISTORY_KEY) || "[]");
+    const stored = JSON.parse(localStorage.getItem(accountKey(QUESTION_HISTORY_KEY)) || "[]");
     if (Array.isArray(stored))
       state.recentQuestionHistory = stored
         .filter(

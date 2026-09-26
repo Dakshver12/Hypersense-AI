@@ -1,3 +1,4 @@
+import { accountKey } from "./account-context.js";
 import { state } from "./state.js";
 import { $ } from "./dom.js";
 import { storedSession, sessionStore } from "./storage.js";
@@ -9,7 +10,7 @@ import { run } from "./api.js";
 // Separate database keeps unfinished work out of completed-session reports.
 export async function draftStore(mode, operation) {
   const db = await new Promise((resolve, reject) => {
-    const request = indexedDB.open("hypersense-recovery", 1);
+    const request = indexedDB.open(accountKey("hypersense-recovery"), 1);
     request.onupgradeneeded = () => request.result.createObjectStore("drafts");
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);

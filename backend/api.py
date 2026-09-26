@@ -7,11 +7,6 @@ from backend.schemas import QuestionRequest, AnswerRequest, EvaluationResponse
 router = APIRouter()
 
 
-@router.get("/")
-def home():
-    return {"message": "HyperSense AI backend is running"}
-
-
 @router.post("/generate-question")
 def generate_question(request: QuestionRequest):
     from backend.services.questions import generate_question as generate

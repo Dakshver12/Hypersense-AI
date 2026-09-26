@@ -1,3 +1,4 @@
+import { accountKey } from "./account-context.js";
 import { state } from "./state.js";
 import { $ } from "./dom.js";
 import { relativeAngles } from "./camera.js";
@@ -203,7 +204,7 @@ export function renderExpressionSummary() {
 export const HISTORY_KEY = "hypersense-practice-v1";
 
 export function readAttempts() {
-  const raw = JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]");
+  const raw = JSON.parse(localStorage.getItem(accountKey(HISTORY_KEY)) || "[]");
   if (!Array.isArray(raw)) throw Error("Invalid saved history");
   return raw
     .filter((r) => r && typeof r.id === "string" && typeof r.date === "string")
@@ -383,7 +384,7 @@ export function initDelivery() {
       const updated = exists
         ? rows.map((r) => (r.id === state.attemptId ? row : r))
         : [row, ...rows];
-      localStorage.setItem(HISTORY_KEY, JSON.stringify(updated.slice(0, 20)));
+      localStorage.setItem(accountKey(HISTORY_KEY), JSON.stringify(updated.slice(0, 20)));
       $("save-status").textContent = exists ? "Saved summary updated." : "Attempt summary saved.";
       renderHistory();
       renderCoaching();
@@ -394,7 +395,7 @@ export function initDelivery() {
   };
   $("clear-history").onclick = () => {
     try {
-      localStorage.removeItem(HISTORY_KEY);
+      localStorage.removeItem(accountKey(HISTORY_KEY));
       renderHistory();
       if (state.current) renderCoaching();
       $("history-status").textContent = "Saved summaries cleared.";

@@ -1,3 +1,4 @@
+import { accountHeaders } from "./account-context.js";
 import { state } from "./state.js";
 import { pauseAutomation } from "./automation.js";
 import { message } from "./setup.js";
@@ -6,7 +7,7 @@ import { refresh } from "./ui.js";
 export async function api(path, body, isForm = false) {
   const response = await fetch(path, {
     method: "POST",
-    headers: isForm ? {} : { "Content-Type": "application/json" },
+    headers: { ...accountHeaders(), ...(isForm ? {} : { "Content-Type": "application/json" }) },
     body: isForm ? body : JSON.stringify(body),
   });
   const text = await response.text();

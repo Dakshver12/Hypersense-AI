@@ -1,3 +1,4 @@
+import { accountHeaders } from "./account-context.js";
 import { state } from "./state.js";
 import { $ } from "./dom.js";
 import { captureDeliveryPose, showExpressions } from "./delivery.js";
@@ -109,6 +110,7 @@ export async function detectCameraFrame(session) {
     timeout = setTimeout(() => controller.abort(), 30000);
     const response = await fetch("/detect-face", {
       method: "POST",
+      headers: accountHeaders(),
       body: form,
       signal: controller.signal,
     });

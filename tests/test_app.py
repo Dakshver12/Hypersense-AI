@@ -1,6 +1,11 @@
 """Contract and template tests; no network, credentials or model downloads."""
 
 import ast
+import tempfile
+import os
+import time
+from backend.accounts.database import database
+from backend.accounts.security import hash_password
 from html.parser import HTMLParser
 import re
 import unittest
@@ -39,7 +44,20 @@ class Markup(HTMLParser):
 class AppTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.client = TestClient(app)
+        cls.temp = tempfile.TemporaryDirectory()
+        cls.env = patch.dict(os.environ, {"HYPERSENSE_DATA_DIR":cls.temp.name,"APP_ORIGIN":"http://testserver","APP_ENV":"development"})
+        cls.env.start()
+        with database() as db:
+            db.execute("INSERT INTO users VALUES (?,?,?,?,1,?)", ("contract-user","contract@example.com","Contract",hash_password("contract-test-password"),int(time.time())))
+        cls.client = TestClient(app, headers={"Origin":"http://testserver","X-HyperSense-Account":"contract-user"})
+        response = cls.client.post("/auth/login", json={"email":"contract@example.com","password":"contract-test-password"})
+        assert response.status_code == 200
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.client.close()
+        cls.env.stop()
+        cls.temp.cleanup()
 
     def test_pages_and_static_assets(self):
         for route in ["/interview", "/camera-check", "/results"]:

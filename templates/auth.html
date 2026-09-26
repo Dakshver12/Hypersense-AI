@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HyperSense AI · Sign in</title>
+<link rel="stylesheet" href="/static/css/auth.css?v=refined-3">
+</head>
+<body class="auth-body">
+<header class="auth-header"><a href="/login" class="auth-brand"><span aria-hidden="true">H</span> HyperSense <b>AI</b></a><span>Interview practice, at your pace.</span></header>
+<main class="auth-layout">
+<section class="auth-card" aria-labelledby="auth-title">
+<div class="auth-emblem" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M5 8v8M9 4v16M13 7v10M17 3v18M21 9v6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+<p class="auth-eyebrow" id="auth-eyebrow">WELCOME BACK</p>
+<h1 id="auth-title">Welcome back.</h1>
+<p id="auth-description">Sign in to continue your interview practice.</p>
+<form id="auth-form">
+<div id="name-field" hidden><label for="auth-name">Your name</label><input id="auth-name" name="name" autocomplete="name" maxlength="80"></div>
+<div id="email-field"><label for="auth-email">Email address</label><input id="auth-email" name="email" type="email" autocomplete="username" maxlength="254" required placeholder="you@example.com"></div>
+<div id="password-field"><label for="auth-password">Password</label><div class="password-control"><input id="auth-password" name="password" type="password" autocomplete="current-password" minlength="12" maxlength="128" required aria-describedby="password-hint"><button id="password-toggle" type="button" aria-label="Show password" aria-pressed="false">Show</button></div><small id="password-hint">Use at least 12 characters.</small></div>
+<button id="auth-submit" class="auth-primary" type="submit">Sign in</button>
+</form>
+<p id="auth-message" role="status" aria-live="polite"></p>
+<p id="dev-link" class="dev-link" hidden></p>
+<div class="auth-links"><a href="/forgot-password" id="forgot-link">Forgot password?</a><button type="button" id="resend-link">Resend verification</button></div>
+<p id="auth-switch">New here? <a href="/signup">Create an account</a></p>
+<details class="mail-help"><summary>Need help with verification?</summary><p class="mail-hint"><!-- mail-hint --></p></details>
+</section>
+<p class="auth-footer">Technical · Behavioral · HR interview practice</p>
+</main>
+<script type="module" src="/static/auth/form.js?v=clean-2"></script>
+</body>
+</html>

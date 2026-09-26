@@ -1,3 +1,5 @@
+import { accountId, accountKey } from "./account-context.js";
+import { remoteSessionStore } from "./account-store.js";
 import { discardSessionNotes } from "./session-notes.js";
 import { clearSessionDraft } from "./recovery.js";
 import { state } from "./state.js";
@@ -12,7 +14,7 @@ import { renderSavedSessions } from "./history.js";
 
 export function sessionDB() {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open("hypersense-interviews", 1);
+    const request = indexedDB.open(accountKey("hypersense-interviews"), 1);
     request.onupgradeneeded = () => {
       request.result.createObjectStore("sessions", { keyPath: "id" });
     };
@@ -23,6 +25,7 @@ export function sessionDB() {
 }
 
 export async function sessionStore(mode, operation) {
+  if (accountId) return operation(remoteSessionStore);
   const db = await sessionDB();
   return new Promise((resolve, reject) => {
     const tx = db.transaction("sessions", mode);
@@ -79,14 +82,14 @@ export async function saveFinishedSession(session) {
     await sessionStore("readwrite", (store) => store.put(record));
     if (state.sessionSavePending === record) {
       state.sessionSavePending = null;
-      $("session-storage-status").textContent = "Session and recordings saved in this browser.";
+      $("session-storage-status").textContent = accountId ? "Session and recordings saved to your account." : "Session and recordings saved in this browser.";
     }
     await clearSessionDraft(record.id).catch(() => {});
     await renderSavedSessions();
     return true;
-  } catch {
+  } catch (error) {
     $("session-storage-status").textContent =
-      "Could not save this session. Browser storage may be full or unavailable. Download recordings before leaving, or retry saving.";
+      "Could not save this session: " + (error.message || "Storage unavailable.") + " Download recordings before leaving, or retry saving.";
     $("retry-session-save").hidden = false;
     return false;
   }
