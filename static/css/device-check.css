@@ -1,0 +1,105 @@
+/* Scoped to device check. Camera preview retains its separate interview styling. */
+body:has(#camera-check-page:not([hidden])) {--bg:#10151e;--panel:#18202c;--line:#303947;--muted:#a7b1bf;--accent:#a6d1c0;background:var(--bg)}
+body:has(#camera-check-page:not([hidden])) > header,
+body:has(#camera-check-page:not([hidden])) .dashboard-nav {background:#10151e;border-color:#29323f}
+body:has(#camera-check-page:not([hidden])) .dashboard-nav button[aria-current="page"],
+body:has(#camera-check-page:not([hidden])) .brand-mark {background:#22352f;color:#b5ddcc;border:1px solid #3d5d51}
+body:has(#camera-check-page:not([hidden])) .account-tools {display:none}
+body:has(#camera-check-page:not([hidden])) main > #status {font-size:12px;margin-bottom:18px;color:#a7b1bf}
+#camera-check-page {max-width:1240px;margin-inline:auto;color:#edf1f5}
+#camera-check-page [hidden] {display:none!important}
+#camera-check-page .device-heading {display:flex;justify-content:space-between;align-items:center;gap:24px}
+#camera-check-page .device-eyebrow {font-size:10px;letter-spacing:.16em;color:#a8bcb5}
+#camera-check-page h1 {font-size:clamp(28px,3vw,40px);font-weight:600;letter-spacing:-1.3px;line-height:1.18;margin:12px 0}
+#camera-check-page .device-heading p {font-size:13px;color:#a7b1bf;margin:0;line-height:1.7}
+#camera-check-page .device-step {font-size:11px;letter-spacing:.12em;white-space:nowrap;color:#c1d9ce;border:1px solid #3a4c44;border-radius:30px;padding:10px 14px}
+#camera-check-page .device-progress {display:flex;flex-wrap:wrap;gap:32px;list-style:none;padding:20px 0;margin:10px 0 22px;border-bottom:1px solid #303947;font-size:12px;color:#8f9bab}
+#camera-check-page .device-progress li {display:flex;align-items:center;gap:9px}
+#camera-check-page .device-progress li > span {font-size:10px;border:1px solid #3a4452;width:26px;height:26px;border-radius:50%;display:grid;place-items:center}
+#camera-check-page .device-progress [aria-current] {color:#c4e3d6}
+#camera-check-page .device-progress [aria-current] > span {background:#a6d1c0;color:#14291f;border-color:#a6d1c0}
+#camera-check-page .device-grid {display:grid;grid-template-columns:minmax(0,1.4fr) minmax(310px,1fr);gap:22px;align-items:start}
+#camera-check-page .device-panel {min-width:0;padding:24px;margin:0;background:#18202c;border:1px solid #ffffff14;border-radius:16px;box-shadow:0 12px 36px #00000012}
+#camera-check-page .device-panel-heading {display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:20px}
+#camera-check-page h2 {margin:7px 0 0;font-size:21px;letter-spacing:-.5px;font-weight:600}
+#camera-check-page .device-tag {border:1px solid #425d50;border-radius:20px;padding:4px 9px;color:#b6dbc9;background:#22332c;font-size:10px;white-space:nowrap}
+#camera-check-page .device-tag.quiet {background:#212b38;color:#b7c0ce;border-color:#3b4656}
+#camera-check-page .camera-empty {aspect-ratio:4/3;border-radius:12px;border:1px dashed #46594f;background:radial-gradient(ellipse at 50% 40%,#23352e 0%,#111923 70%);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;color:#a6d1c0}
+#camera-check-page .camera-empty svg {margin-bottom:20px;opacity:.8}
+#camera-check-page .camera-empty strong {color:#d4e5dc;font-size:16px;font-weight:500}
+#camera-check-page .camera-empty p {color:#a7b1bf;font-size:12px;line-height:1.8;margin:9px 0 0}
+#camera-check-page .session-camera:has(#camera-preview:not([hidden])) .camera-empty {display:none}
+#camera-check-page .camera-preview {width:100%;max-width:none;margin:0;border-radius:12px;border:1px solid #34433c;background:#080d13;overflow:hidden}
+#camera-check-page .camera-preview video {display:block;width:100%;height:auto}
+#camera-check-page .camera-preview canvas {width:100%;height:100%}
+#camera-check-page button {min-height:42px;margin:0;padding:10px 13px;background:#273343;border:1px solid #3c495a;border-radius:8px;color:#edf1f5;font-size:12px;font-weight:550;transition:background .15s}
+#camera-check-page button:hover:not(:disabled) {background:#354459}
+#camera-check-page button:disabled {opacity:.42;cursor:not-allowed}
+#camera-check-page button.primary,
+#camera-check-page #camera-on,
+#camera-check-page #mic-check-enable {background:#a6d1c0;border-color:#b8dacc;color:#152b23}
+#camera-check-page button.primary:hover:not(:disabled),
+#camera-check-page #camera-on:hover:not(:disabled),
+#camera-check-page #mic-check-enable:hover:not(:disabled) {background:#b9dece}
+#camera-check-page :focus-visible {outline:2px solid #a6d1c0;outline-offset:3px}
+#camera-check-page .actions {display:flex;flex-wrap:wrap;gap:8px;margin:16px 0}
+#camera-check-page .camera-controls #calibrate {background:transparent;color:#bdc7d3}
+#camera-check-page .device-status {font-size:12px;line-height:1.7;color:#bdc9d6;background:#111b27;border-left:2px solid #62748b;padding:12px 14px;margin:16px 0;overflow-wrap:anywhere}
+#camera-check-page .framing-guide {display:flex;align-items:flex-start;gap:12px;margin-top:20px}
+#camera-check-page .framing-guide > span {color:#a6d1c0;font-size:28px;line-height:1}
+#camera-check-page .framing-guide strong {font-weight:500;font-size:13px}
+#camera-check-page #pose-status {font-size:12px;color:#b8d8c9;line-height:1.7;margin:12px 0 0}
+#camera-check-page .framing-guide p,
+#camera-check-page .device-description {font-size:12px;line-height:1.7;color:#a7b1bf;margin:5px 0 0}
+#camera-check-page .device-details {margin-top:20px;padding-top:16px;border-top:1px solid #303947}
+#camera-check-page summary {font-size:12px;color:#c0cad6;cursor:pointer;line-height:1.7}
+#camera-check-page .device-details p,
+#camera-check-page .device-details small,
+#camera-check-page #expression-live {font-size:12px;line-height:1.7;color:#a7b1bf}
+#camera-check-page .device-details h3 {font-size:13px;margin:18px 0 10px}
+#camera-check-page .pose-values {display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0}
+#camera-check-page .pose-values > span {background:#111923;border:1px solid #303947;border-radius:8px;padding:12px;font-size:11px;color:#a7b1bf}
+#camera-check-page .pose-values strong {display:block;font-size:20px;color:#dfe9e3;font-weight:500;margin-top:5px}
+#camera-check-page label {font-size:12px;color:#c0cad6;margin:20px 0 7px}
+#camera-check-page select {width:100%;min-height:44px;font-size:12px;background:#111923;color:#edf1f5;border:1px solid #3b4656;border-radius:8px;padding:10px}
+#camera-check-page .input-monitor {background:#111923;border:1px solid #303947;border-radius:10px;padding:15px;margin:20px 0}
+#camera-check-page .input-monitor label {display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px;font-size:9px;letter-spacing:.1em;margin:0 0 10px}
+#camera-check-page .input-monitor label span {letter-spacing:0;font-size:11px;color:#a7b1bf}
+#camera-check-page meter {display:block;width:100%;height:14px;accent-color:#a6d1c0}
+#camera-check-page meter::-webkit-meter-bar {background:#273343;border:0;border-radius:4px}
+#camera-check-page meter::-webkit-meter-optimum-value {background:#a6d1c0;border-radius:4px}
+#camera-check-page meter::-moz-meter-bar {background:#a6d1c0}
+#camera-check-page #mic-check-level-text {font-size:11px;color:#a7b1bf;margin:8px 0 0}
+#camera-check-page .sample-box {padding:18px;border:1px solid #303947;border-radius:12px;background:#151d28}
+#camera-check-page .sample-heading {display:flex;align-items:center;gap:13px;margin-bottom:16px}
+#camera-check-page .sample-duration {font-size:26px;line-height:1;letter-spacing:-1px;color:#b8d8c9;border-right:1px solid #3a4b42;padding-right:13px}
+#camera-check-page .sample-duration span {display:block;font-size:8px;letter-spacing:.16em;margin-top:6px}
+#camera-check-page .sample-heading h3 {margin:0;font-size:13px;font-weight:550}
+#camera-check-page .sample-heading p {font-size:11px;color:#a7b1bf;margin:4px 0 0}
+#camera-check-page #mic-check-record {width:100%}
+#camera-check-page #mic-check-playback-help {font-size:11px;line-height:1.7;color:#a7b1bf;margin:14px 0 10px}
+#camera-check-page #mic-check-play {background:transparent;min-height:34px;padding:6px 10px}
+#camera-check-page audio {width:100%;height:38px;margin:12px 0 0}
+#camera-check-page audio:not([src]) {display:none}
+#camera-check-page .device-privacy {display:flex;align-items:flex-start;justify-content:center;gap:9px;margin:20px 0;color:#91a89b}
+#camera-check-page .device-privacy p {margin:0;font-size:11px;line-height:1.7;color:#a7b1bf}
+#camera-check-page .device-footer {position:sticky;bottom:12px;z-index:5;display:flex;align-items:center;justify-content:space-between;gap:16px;background:#1b2531;border:1px solid #3b4756;border-radius:12px;padding:16px 20px;box-shadow:0 8px 30px #0006}
+#camera-check-page .device-footer-next {display:flex;align-items:center;gap:20px}
+#camera-check-page .device-footer p {margin:0;font-size:11px;color:#becbc4;text-align:right;line-height:1.7}
+#camera-check-page .device-footer p span {display:block;color:#a7b1bf}
+#camera-check-page #camera-check-continue {padding-inline:24px;min-height:46px}
+@media(max-width:1100px) {
+  #camera-check-page .device-grid {grid-template-columns:minmax(0,1fr)}
+  #camera-check-page .camera-empty {max-height:460px}
+}
+@media(max-width:600px) {
+  #camera-check-page .device-step {display:none}
+  #camera-check-page .device-progress {gap:12px;font-size:10px}
+  #camera-check-page .device-panel {padding:18px}
+  #camera-check-page .device-panel-heading {gap:8px}
+  #camera-check-page .device-footer {padding:12px;bottom:8px;gap:10px}
+  #camera-check-page .device-footer p {display:none}
+  #camera-check-page .device-footer-next {min-width:0}
+  #camera-check-page #camera-check-continue {padding-inline:14px}
+}
+@media(prefers-reduced-motion:reduce) {#camera-check-page button {transition:none}}

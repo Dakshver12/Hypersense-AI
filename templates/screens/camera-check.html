@@ -1,74 +1,46 @@
 <section id="camera-check-page" hidden aria-labelledby="camera-check-title">
-  <h1 id="camera-check-title" tabindex="-1">Check your camera</h1>
-  <p>
-    Allow browser camera access if prompted, then look toward the camera and hold still. Calibration
-    starts automatically when one face is detected. Your camera stays on when you continue.
-  </p>
-  <section class="card microphone-check" aria-labelledby="mic-check-title">
-    <h2 id="mic-check-title">Check your microphone</h2>
-    <p class="muted">Choose an input, check the volume meter and play back a five-second sample before your interview. First click Allow microphone, then Record 5-second sample. When recording finishes, click Play sample.</p>
-    <label for="mic-check-device">Microphone for test and interview</label>
-    <select id="mic-check-device"><option value="">System default microphone</option></select>
-    <div class="actions">
-      <button id="mic-check-enable" type="button">Allow microphone</button>
-      <button id="mic-check-record" type="button" disabled>Record 5-second sample</button>
-      <button id="mic-check-stop" type="button" disabled>Stop test</button>
-    </div>
-    <label for="mic-check-level">Live input level</label>
-    <meter id="mic-check-level" min="0" max="100" value="0" style="width:100%;height:24px"></meter>
-    <p id="mic-check-level-text" class="muted">Microphone off</p>
-    <p id="mic-check-playback-help" class="muted">Your test playback will appear here after recording. It does not require a download.</p>
-    <button id="mic-check-play" type="button" disabled>Play sample</button>
-    <audio id="mic-check-playback" controls style="width:100%" aria-label="Microphone test playback"></audio>
-    <p id="mic-check-status" role="status" aria-live="polite">Microphone test has not started.</p>
-    <small>The sample stays in this page, is not uploaded or scored, and is discarded when you leave the check page. The meter detects sound, not speech quality. Microphone selection resets on page reload. This check is optional; camera requirements still apply.</small>
-  </section>
-  <section class="session-camera" aria-labelledby="camera-title">
-    <div class="row">
-      <h3 id="camera-title">Session camera</h3>
-      <span class="muted">Required</span>
-    </div>
-    <small
-      >Enable the camera and calibrate your neutral position before starting a session. Sampled
-      images go only to your local backend and are not saved. Detection does not measure emotion or
-      confidence.</small
-    >
-    <div class="actions">
-      <button id="camera-on">Allow camera / retry</button
-      ><button id="camera-off" disabled>Turn camera off</button
-      ><button id="retry-detection" hidden>Retry face detection</button>
-    </div>
-    <div class="camera-preview" id="camera-preview" hidden>
-      <video id="camera-video" autoplay muted playsinline></video
-      ><canvas id="face-overlay" aria-hidden="true"></canvas>
-    </div>
-    <div class="actions"><button id="calibrate" disabled>Recalibrate if needed</button></div>
-    <p id="pose-status" role="status" aria-live="polite">
-      Enable the camera, then look toward it and calibrate.
-    </p>
-    <div class="row" style="flex-wrap: wrap">
-      <span>Turn: <strong id="yaw">—</strong></span
-      ><span>Nod: <strong id="pitch">—</strong></span
-      ><span>Tilt: <strong id="roll">—</strong></span>
-    </div>
-    <small
-      >Approximate rotation from your calibrated position. These measurements are not eye contact or
-      a confidence score. Your camera and calibration stay active between questions until you turn
-      the camera off or leave this page. Recalibrate if you move your camera or seat.</small
-    >
-    <h3>Live facial movements</h3>
-    <div id="expression-live">Enable the camera to see facial movement estimates.</div>
-    <small
-      >Model signals from 0 to 1, not probabilities of feelings. Mouth movement also changes while
-      speaking. No extra calibration is needed for these signals.</small
-    >
-    <p id="camera-status" role="status" aria-live="polite">
-      Camera is required. Enable it and calibrate before starting a session.
-    </p>
-  </section>
-  <div class="actions">
-    <button id="camera-check-back">Back to setup</button
-    ><button class="primary" id="camera-check-continue" disabled>Start interview</button>
+  <div class="device-heading">
+    <div><span class="device-eyebrow">YOUR INTERVIEW · DEVICE CHECK</span>
+      <h1 id="camera-check-title" tabindex="-1">A moment to get ready.</h1>
+      <p>Find your frame. Check your sound. Then focus on your answers.</p>
+    </div><span class="device-step">STEP 02 / 03</span>
   </div>
-  <p>Camera access and calibration are required. Reloading this page requires calibration again.</p>
+  <ol class="device-progress" aria-label="Session steps"><li><span>✓</span> Session setup</li><li aria-current="step"><span>02</span> Camera &amp; sound</li><li><span>03</span> Interview</li></ol>
+  <div class="device-grid">
+    <section class="session-camera device-panel" aria-labelledby="camera-title">
+      <div class="device-panel-heading"><div><span class="device-eyebrow">01 / VIDEO</span><h2 id="camera-title">Your camera</h2></div><span class="device-tag">Required</span></div>
+      <div class="camera-empty">
+        <svg viewBox="0 0 64 64" width="56" height="56" fill="none" aria-hidden="true"><rect x="9" y="17" width="34" height="30" rx="9" stroke="currentColor" stroke-width="2"/><path d="m43 26 12-7v26l-12-7" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="26" cy="32" r="6" stroke="currentColor" stroke-width="2"/></svg>
+        <strong>Your preview belongs here</strong><p>Allow camera access below.<br>We’ll help you find a comfortable position.</p>
+      </div>
+      <div class="camera-preview" id="camera-preview" hidden><video id="camera-video" autoplay muted playsinline></video><canvas id="face-overlay" aria-hidden="true"></canvas></div>
+      <div class="actions camera-controls"><button id="camera-on" type="button">Allow camera / retry</button><button id="camera-off" type="button" disabled>Turn camera off</button><button id="retry-detection" type="button" hidden>Retry face detection</button><button id="calibrate" type="button" disabled>Recalibrate if needed</button></div>
+      <p id="camera-status" class="device-status" role="status" aria-live="polite">Camera is required. Enable it and calibrate before starting a session.</p>
+      <div class="framing-guide"><span aria-hidden="true">◎</span><div><strong>Look straight ahead and hold still</strong><p>Keep one face in view. Calibration starts automatically when your face is detected.</p></div></div>
+      <p id="pose-status" role="status" aria-live="polite">Enable the camera, then look toward it and calibrate.</p>
+      <details class="device-details"><summary>Calibration &amp; movement details</summary>
+        <div class="pose-values"><span>Turn <strong id="yaw">—</strong></span><span>Nod <strong id="pitch">—</strong></span><span>Tilt <strong id="roll">—</strong></span></div>
+        <small>Approximate rotation from your neutral position, not eye contact or a confidence score. Recalibrate if you move your camera or seat.</small>
+        <h3>Live facial movements</h3><div id="expression-live">Enable the camera to see facial movement estimates.</div>
+        <small>Model signals from 0 to 1, not probabilities of feelings. Mouth movement also changes while speaking.</small>
+      </details>
+    </section>
+    <section class="microphone-check device-panel" aria-labelledby="mic-check-title">
+      <div class="device-panel-heading"><div><span class="device-eyebrow">02 / AUDIO</span><h2 id="mic-check-title">Sound your best.</h2></div><span class="device-tag quiet">Optional test</span></div>
+      <p class="device-description">Check your input and hear a quick sample before you begin.</p>
+      <label for="mic-check-device">Microphone for this interview</label><select id="mic-check-device"><option value="">System default microphone</option></select>
+      <div class="actions"><button id="mic-check-enable" type="button">Allow microphone</button><button id="mic-check-stop" type="button" disabled>Stop test</button></div>
+      <div class="input-monitor"><label for="mic-check-level">INPUT LEVEL <span>Speak a few words</span></label><meter id="mic-check-level" min="0" max="100" value="0"></meter><p id="mic-check-level-text">Microphone off</p></div>
+      <div class="sample-box"><div class="sample-heading"><span class="sample-duration">05<span>SEC</span></span><div><h3>A quick sound check</h3><p>Record, then listen for clarity.</p></div></div>
+        <button id="mic-check-record" type="button" disabled>Record 5-second sample</button>
+        <p id="mic-check-playback-help">Record a five-second sample to enable playback.</p>
+        <button id="mic-check-play" type="button" disabled>Play sample</button>
+        <audio id="mic-check-playback" controls aria-label="Microphone test playback"></audio>
+      </div>
+      <p id="mic-check-status" class="device-status" role="status" aria-live="polite">Microphone test has not started.</p>
+      <details class="device-details"><summary>About this audio test</summary><p>The sample stays on this page, is not uploaded or scored, and is discarded when you leave. The meter detects sound, not speech quality. Microphone selection resets on reload. The test is optional; camera requirements still apply.</p></details>
+    </section>
+  </div>
+  <div class="device-privacy"><span aria-hidden="true">◇</span><p>Sampled camera frames are processed by your backend and are not saved. Face detection does not measure emotion or confidence.</p></div>
+  <div class="device-footer"><button id="camera-check-back" type="button">Back to setup</button><div class="device-footer-next"><p>Camera access &amp; calibration required.<span>Your camera stays on when you continue.</span></p><button class="primary" id="camera-check-continue" type="button" disabled>Start interview</button></div></div>
 </section>

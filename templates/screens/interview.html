@@ -1,11 +1,16 @@
 <div class="layout interview-workspace" id="interview-workspace">
   <div>
+    <div class="interview-heading">
+      <div><span class="eyebrow">YOUR PRACTICE SPACE</span><h1>One question. Your perspective.</h1><p>Take a breath, listen closely, and make your answer count.</p></div>
+      <div class="answer-clock"><span>ANSWER TIME</span><output id="timer" aria-label="Time remaining">01:00</output></div>
+    </div>
     <section class="card" id="session-controls" hidden aria-label="Session controls">
       <p id="checkpoint-status" role="status"></p>
       <p id="session-progress" role="status">No active session.</p>
     </section>
-    <section class="card">
+    <section class="card interview-question-card">
       <div class="eyebrow">01 · Question</div>
+      <div id="question">Your interview question will appear here.</div>
       <div class="actions">
         <button id="replay-question" disabled>Replay question</button
         ><button id="stop-speaking" disabled>Stop speaking / start answering</button>
@@ -13,13 +18,12 @@
       <p id="speech-status" role="status">
         The question will be read aloud before your answer timer starts.
       </p>
-      <div id="question">Your interview question will appear here.</div>
       <small id="context"></small>
     </section>
-    <section class="card">
+    <section class="card interview-answer-card">
       <div class="row">
         <h2>02 · Your answer</h2>
-        <output id="timer" aria-label="Time remaining">01:00</output>
+        <span class="answer-review-note">Review before you submit</span>
       </div>
       <label for="spoken">Spoken language</label
       ><select id="spoken">
