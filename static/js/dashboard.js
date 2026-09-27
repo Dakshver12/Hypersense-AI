@@ -123,6 +123,7 @@ export async function renderDashboard() {
   const load = ++state.dashboardLoad;
   historyRows = null;
   const status = $("dashboard-status");
+  $("dashboard-welcome").hidden = true;
   status.textContent = "Loading saved sessions…";
   $("history-search-status").textContent = "Searching saved sessions…";
   for (const id of [
@@ -137,6 +138,7 @@ export async function renderDashboard() {
   try {
     const sessions = await sessionStore("readonly", (store) => store.getAll());
     if (load !== state.dashboardLoad) return;
+    $("dashboard-welcome").hidden = sessions.length !== 0;
     sessions.sort((a, b) => String(b.date).localeCompare(String(a.date)));
     setComparisonSessions(sessions);
     const topic = $("dashboard-topic").value;
@@ -252,6 +254,7 @@ export async function renderDashboard() {
   } catch (error) {
     if (load === state.dashboardLoad) {
       status.textContent = "Could not load saved sessions.";
+      $("dashboard-welcome").hidden = true;
       $("history-search-status").textContent = "Search could not complete: " + (error.message || "Browser storage is unavailable.") + " Click Search to retry.";
     }
   }
@@ -306,6 +309,7 @@ export function initDashboard() {
     if (!state.busy && !state.recording) showSetupPage();
   };
   $("dashboard-start").onclick = showSetupPage;
+  $("dashboard-first-start").onclick = showSetupPage;
   $("dashboard-filter").onchange = renderDashboard;
   $("dashboard-topic").onchange = renderDashboard;
   $("dashboard-include-retries").onchange = renderDashboard;

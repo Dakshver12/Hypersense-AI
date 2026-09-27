@@ -2,7 +2,7 @@
   <div class="dashboard-heading">
     <div class="dashboard-heading-copy">
       <div class="eyebrow">YOUR PRACTICE SPACE</div>
-      <h1 id="dashboard-title" tabindex="-1">Your progress, at a glance.</h1>
+      <h1 id="dashboard-title" tabindex="-1">Your practice dashboard</h1>
       <p class="muted">Review your interviews. Find your next focus.</p>
     </div>
     <button class="primary" id="dashboard-start" type="button"><span aria-hidden="true">＋</span> Start an interview</button>
@@ -19,10 +19,15 @@
       <option value="behavioral">Behavioral</option><option value="hr">HR</option>
     </select></div>
     <div><label for="dashboard-topic">Topic</label><select id="dashboard-topic"><option value="">All topics</option></select></div>
-    <p class="muted">Filters apply to overview charts and session history. Comparison offers all saved sessions.</p>
+    <p class="muted">Filter your overview and history.<br>Comparison includes all saved sessions.</p>
   </div>
   <p id="dashboard-status" role="status"></p>
   <div id="dashboard-panel-overview" role="tabpanel" aria-labelledby="dashboard-tab-overview" tabindex="0">
+    <section id="dashboard-welcome" class="dashboard-welcome" hidden aria-labelledby="dashboard-welcome-title">
+      <div><p class="eyebrow">A GOOD PLACE TO BEGIN</p><h2 id="dashboard-welcome-title">Start your first interview</h2>
+      <p>Choose a topic and practise your answers. Your saved sessions, feedback, and progress will appear here.</p></div>
+      <button id="dashboard-first-start" type="button">Set up an interview <span aria-hidden="true">→</span></button>
+    </section>
     <div id="dashboard-stats" class="dashboard-grid"></div>
   <section class="card">
     <h2>Scores by interview type</h2>
@@ -57,8 +62,7 @@
   <section class="card">
     <h2>Your sessions</h2>
     <p class="muted">
-      Open a report to review answers, feedback and recordings. Clearing browser data removes these
-      sessions.
+      Open a report to review answers, feedback and recordings saved to your account.
     </p>
     <label for="history-search">Search by interview type, question, answer or feedback</label>
     <input id="history-search" type="search" maxlength="200" placeholder="For example: mutable default arguments">
