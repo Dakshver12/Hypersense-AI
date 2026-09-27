@@ -181,6 +181,19 @@ export function initRecording() {
     )
       return;
     cancelQuestionSpeech(false);
+    updateAnswerTimer();
+    if (state.answerExpired) return;
+    const recordingQuestion = state.current;
+    const preparationStarted = Date.now();
+    state.microphonePreparing = true;
+    let preparationFinished = false;
+    const finishPreparation = () => {
+      if (preparationFinished) return;
+      preparationFinished = true;
+      state.microphonePreparing = false;
+      if (state.current === recordingQuestion && !state.answerSubmitted && !state.answerExpired)
+        state.deadline += Date.now() - preparationStarted;
+    };
     state.busy = true;
     refresh();
     clearTimeout(state.microphoneReadyTimer);
@@ -194,6 +207,8 @@ export function initRecording() {
         );
       stopMicrophoneCheck();
       state.stream = await navigator.mediaDevices.getUserMedia(microphoneConstraints());
+      if (state.current !== recordingQuestion)
+        throw Error("The question changed while the microphone was opening. Record the current question again.");
       updateAnswerTimer();
       if (state.answerExpired || state.answerSubmitted)
         throw Error("Answer time has expired. Start another question.");
@@ -257,12 +272,14 @@ export function initRecording() {
           )
             return;
           $("microphone-status").textContent = "Recording—speak now.";
+          finishPreparation();
           message("Recording—speak now. The microphone stops when time runs out.");
         }, 500);
       };
       recorder.onstop = () => {
         if (finalized) return;
         finalized = true;
+        finishPreparation();
         detach();
         clearTimeout(state.microphoneReadyTimer);
         input.getTracks().forEach((track) => track.stop());
@@ -301,6 +318,7 @@ export function initRecording() {
       recorder.start(250);
       state.recording = true;
     } catch (err) {
+      finishPreparation();
       cleanupInputListeners();
       state.media = null;
       pauseAutomation("Microphone unavailable. Allow access, then use Record answer.");

@@ -60,8 +60,12 @@ const waitFor=async fn=>{for(let i=0;i<100;i++){if(fn())return;await new Promise
     assert.equal($('question').querySelector('pre code').textContent,'if items:\n    print(items)');assert.equal($('question').querySelector('script'),null);
     $('nav-dashboard').click();await waitFor(()=>$('dashboard-status').textContent.includes('first saved'));
     assert.equal($('dashboard-page').hidden,false);
+    assert.equal($('dashboard-welcome').hidden,false);
+    $('dashboard-first-start').click();assert.equal($('dashboard-page').hidden,true);
+    $('nav-dashboard').click();await waitFor(()=>$('dashboard-status').textContent.includes('first saved'));
     await evaluate(`sessionStore('readwrite',s=>s.put({id:'seed',date:'2026-01-01T12:00:00Z',settings:{technology:'Python',difficulty:'easy',interview_type:'mixed'},total:2,answers:[{score:0,interview_type:'technical',answer:'A',question:'Q',feedback:'Test',audio:{words_per_minute:120},confidence:'2'},{score:null,interview_type:'hr',question:'HR',answer:'B'}]}))`);
     await evaluate('renderDashboard()');assert($('dashboard-types').textContent.includes('0.0/100'));
+    assert.equal($('dashboard-welcome').hidden,true);
     $('dashboard-filter').value='hr';$('dashboard-filter').onchange();await waitFor(()=>$('dashboard-status').textContent.startsWith('Updated'));
     assert($('dashboard-stats').textContent.includes('Pending scores1'));
     await evaluate('openSavedSession("seed")');assert.equal($('results-page').hidden,false);
@@ -613,6 +617,22 @@ const waitFor=async fn=>{for(let i=0;i<100;i++){if(fn())return;await new Promise
       withData=false;prepare();await $('record').onclick();track.dispatchEvent(new w.Event('ended'));
       assert.equal(w.state.blob,null);assert($('microphone-status').textContent.includes('No audio was captured'));
       assert.equal(networkCalls,0);
+      // Slow permission/device startup must not consume the answer's remaining time.
+      const savedGetUserMedia=w.navigator.mediaDevices.getUserMedia;
+      const savedNow=w.Date.now;let now=savedNow();w.Date.now=()=>now;
+      let grantInput;
+      w.navigator.mediaDevices.getUserMedia=()=>new Promise(resolve=>{grantInput=resolve;});
+      prepare();w.state.deadline=now+10000;
+      const opening=$('record').onclick();
+      now+=15000;w.updateAnswerTimer();
+      assert.equal(w.state.answerExpired,false);
+      grantInput(await savedGetUserMedia({audio:true}));await opening;
+      assert.equal(w.state.recording,true);
+      await waitFor(()=>!w.state.microphonePreparing);
+      assert.equal(w.state.deadline-now,10000);
+      w.state.automationPaused=true;w.stopRecording();
+      assert.equal(w.state.microphonePreparing,false);
+      w.navigator.mediaDevices.getUserMedia=savedGetUserMedia;w.Date.now=savedNow;
       w.fetch=originalFetch;w.state.current=null;w.state.automationPaused=true;
       console.log('PASS: interview microphone disconnect preserves partial audio, pauses automation, reports empty capture, handles mute/resume and cleans up streams.');
     }

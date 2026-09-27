@@ -17,6 +17,7 @@ export function startAnswerTimer() {
 }
 
 export function updateAnswerTimer() {
+  if (state.microphonePreparing) return;
   if (!state.current || state.speechPending || state.answerSubmitted || state.answerExpired) return;
   const remaining = Math.max(0, Math.ceil((state.deadline - Date.now()) / 1000));
   clock(remaining);
