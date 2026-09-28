@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="hypersense-account" content="<!-- account-id -->">
+  <title>Account settings · HyperSense AI</title>
+  <link rel="stylesheet" href="/static/css/account-settings.css?v=2">
+</head>
+<body>
+  <header><a class="brand" href="/interview">H<span>HyperSense AI</span></a><a href="/interview">Back to workspace ↗</a></header>
+  <main>
+    <div class="intro"><p class="eyebrow">WORKSPACE / ACCOUNT</p><h1>Account settings</h1><p>Your profile, your security, your control.</p></div>
+    <div id="settings-status" role="status" aria-live="polite">Loading your account…</div>
+    <div class="layout">
+      <aside><div class="avatar" aria-hidden="true">H</div><h2 id="profile-name">Your account</h2><p id="profile-email"></p><span id="verified" hidden>Email verified ✓</span><nav aria-label="Settings sections"><a href="#profile">Profile</a><a href="#security">Security</a><a href="#data">Your data</a></nav></aside>
+      <div class="sections">
+        <section id="profile"><p class="eyebrow">PROFILE</p><h2>Personal details</h2><p>Choose how you appear in your workspace.</p>
+          <form id="profile-form"><fieldset disabled><label for="display-name">Display name</label><input id="display-name" name="name" required maxlength="80" autocomplete="name"><button>Save changes</button></fieldset></form>
+        </section>
+        <section id="security"><p class="eyebrow">SECURITY</p><h2>Password & access</h2><p>A password change signs you out on every device.</p>
+          <form id="password-form"><fieldset disabled><label for="current-password">Current password</label><input id="current-password" name="current_password" type="password" required maxlength="128" autocomplete="current-password"><div class="fields"><div><label for="new-password">New password</label><input id="new-password" name="password" type="password" required minlength="12" maxlength="128" autocomplete="new-password"></div><div><label for="confirm-password">Confirm new password</label><input id="confirm-password" type="password" required minlength="12" maxlength="128" autocomplete="new-password"></div></div><p class="hint">Use 12–128 characters.</p><button>Update password</button></fieldset></form>
+          <div class="session-action"><div><h3>Sign out everywhere</h3><p>End all sign-ins, including this device. Your saved interviews stay safe.</p></div><button id="logout-all" class="secondary" disabled>Sign out all devices</button></div>
+        </section>
+        <section id="data" class="danger"><p class="eyebrow">DATA & PRIVACY</p><h2>Delete account</h2><p>Permanently remove your profile and server-saved interviews, reports, and recordings. Export anything you want to keep first.</p><p class="hint">Downloaded files and separate browser-only interviews stay on your devices.</p><button id="open-delete" class="destructive" disabled>Delete account…</button></section>
+      </div>
+    </div>
+  </main>
+  <dialog id="delete-dialog" aria-labelledby="delete-title"><form id="delete-form"><h2 id="delete-title">Delete your account?</h2><p>This cannot be undone. Enter your password and type <strong>DELETE</strong> to confirm.</p><label for="delete-password">Current password</label><input id="delete-password" name="current_password" type="password" required maxlength="128" autocomplete="current-password"><label for="delete-confirmation">Confirmation</label><input id="delete-confirmation" name="confirmation" required pattern="DELETE" autocomplete="off"><p id="delete-status" role="alert"></p><div class="dialog-actions"><button type="button" id="cancel-delete" class="secondary">Keep my account</button><button class="destructive">Permanently delete</button></div></form></dialog>
+  <script type="module" src="/static/auth/account-settings.js?v=3"></script>
+</body></html>

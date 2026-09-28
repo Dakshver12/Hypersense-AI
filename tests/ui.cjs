@@ -692,3 +692,4 @@ const waitFor=async fn=>{for(let i=0;i<100;i++){if(fn())return;await new Promise
 })().catch(e=>{console.error(e);process.exitCode=1;}).finally(()=>w.close());
 
 require("./account_ui.cjs");
+require("./account_settings_ui.cjs");

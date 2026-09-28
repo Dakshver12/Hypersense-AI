@@ -19,7 +19,7 @@ class AccountSafetyMiddleware:
                 headers.extend([(b'x-content-type-options',b'nosniff'),(b'x-frame-options',b'DENY'),(b'referrer-policy',b'no-referrer')])
                 message={**message,'headers':headers}
             await send(message)
-        if scope['method'] not in ('POST','PUT','PATCH'):
+        if scope['method'] not in ('POST','PUT','PATCH','DELETE'):
             return await self.app(scope,receive,safe_send)
         cap=32*1024*1024 if path.startswith('/api/account/sessions') else 12*1024*1024 if path=='/transcribe' else 2*1024*1024 if path=='/detect-face' else 64*1024
         chunks=[]

@@ -14,6 +14,11 @@ export function initAccount() {
   const menu=document.getElementById('account-menu'),name=document.getElementById('account-name');
   const status=document.getElementById('account-status');
   menu.hidden=false;
+  document.getElementById('account-settings-link')?.addEventListener('click',event=>{
+    if(state.busy||state.recording||state.interviewSession?.active||state.sessionSavePending){
+      event.preventDefault();status.textContent='Finish your interview and save your answers before opening account settings.';
+    }
+  });
   accountRequest('/auth/me').then(user=>{name.textContent=user.name;name.title=user.email;}).catch(error=>{status.textContent=error.message;});
   document.getElementById('account-logout').onclick=async()=>{
     if(state.busy||state.recording||state.interviewSession?.active||state.sessionSavePending){status.textContent='Finish your interview and save or export your answers before signing out.';return;}
