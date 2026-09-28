@@ -13,3 +13,19 @@ data/
 *.sqlite3
 *.sqlite3-*
 *.eml
+
+# Private configuration and recordings
+.env
+.env.*
+!.env.example
+!.env.*.example
+data/
+*.sqlite3
+*.sqlite3-*
+*.eml
+*.mp3
+*.webm
+*.wav
+*.m4a
+*.ogg
+*.flac
