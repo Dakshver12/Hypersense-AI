@@ -343,9 +343,9 @@ export function initRecording() {
   $("stop").onclick = stopRecording;
   $("upload").onchange = () => {
     updateAnswerTimer();
-    if (state.answerExpired || state.answerSubmitted) {
+    if (state.busy || state.recording || state.speechPending || !state.current || state.answerSubmitted) {
       $("upload").value = "";
-      message("Answer time has expired. Generate a new question.", true);
+      message("Stop recording and wait for processing to finish before attaching audio to an unsubmitted answer.", true);
       return;
     }
     const file = $("upload").files[0];
@@ -355,6 +355,7 @@ export function initRecording() {
       $("upload").value = "";
       return;
     }
+    pauseAutomation("Audio uploaded. Transcribe and review it before submitting.");
     setAudio(file, file.name);
     message("Audio selected. Click Transcribe audio.");
   };

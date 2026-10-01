@@ -1,0 +1,20 @@
+# Allow only runtime files into the build context.
+**
+!requirements.txt
+!main.py
+!backend/
+!backend/**
+!templates/
+!templates/**
+!static/
+!static/**
+!face_landmarker.task
+**/__pycache__/
+**/*.pyc
+**/.env*
+**/*.sqlite3*
+**/*.eml
+**/*.webm
+**/*.mp3
+**/*.m4a
+**/*.wav

@@ -1,0 +1,19 @@
+services:
+  app:
+    build: .
+    ports:
+      - "127.0.0.1:8000:8000"
+    env_file:
+      - .env
+    environment:
+      HYPERSENSE_DATA_DIR: /var/lib/hypersense
+      HF_HOME: /var/lib/hypersense/model-cache
+      APP_ENV: development
+      APP_ORIGIN: http://127.0.0.1:8000
+      MAIL_MODE: smtp
+    volumes:
+      - hypersense-data:/var/lib/hypersense
+    restart: unless-stopped
+    stop_grace_period: 30s
+volumes:
+  hypersense-data:

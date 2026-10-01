@@ -62,5 +62,8 @@ export async function autoProcessRecording() {
   });
 }
 export function initAutomation() {
-  $("pause-automation").onclick = () => pauseAutomation();
+  $("pause-automation").onclick = () => {
+    if (state.interviewSession?.active) state.interviewSession.automationManuallyPaused = true;
+    pauseAutomation("Automation paused for this session. Use Record, Transcribe and Submit when ready.");
+  };
 }

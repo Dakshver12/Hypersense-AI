@@ -93,7 +93,10 @@ export function speakQuestion(initial) {
 export function beginQuestionReadout() {
   if (!state.interviewSession?.active) showInterviewPage();
   cancelAutomation();
-  state.automationPaused = false;
+  state.automationPaused = Boolean(state.interviewSession?.active && state.interviewSession.automationManuallyPaused);
+  $("automation-status").textContent = state.automationPaused
+    ? "Automation paused for this session. Use Record, Transcribe and Submit when ready."
+    : "";
   clearTimeout(state.microphoneReadyTimer);
   $("microphone-status").textContent = "Click Record answer, then wait for “Recording—speak now”.";
   state.sessionEvaluation = null;

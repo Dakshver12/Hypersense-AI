@@ -86,6 +86,7 @@ def auth_page(request: Request):
 
 @router.post('/auth/signup', dependencies=[Depends(auth_limit)])
 def signup(data: Signup):
+    limit('mail:'+digest(data.email), 3, 900)
     if not data.name.strip():
         raise HTTPException(422, 'Enter your name.')
     dev_link = None

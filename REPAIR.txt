@@ -1,0 +1,9 @@
+Stop Uvicorn with Ctrl+C. Copy your project folder as a backup. Extract this archive directly into D:\project\HyperSense AI. Merge backend, static, templates and tests, replacing matching files. Do not place these folders inside another nested folder.
+Keep your existing .env, .venv and face_landmarker.task. They are not included here.
+
+From the project folder run:
+uv run python check_hypersense.py
+uv run uvicorn main:app --reload
+Then open http://127.0.0.1:8000/interview and refresh Ctrl+F5.
+
+This is the complete current modular code through history search, including topic progress, retries, focused practice, camera fixes and detailed feedback.

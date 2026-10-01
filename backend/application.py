@@ -7,6 +7,7 @@ from fastapi.staticfiles import StaticFiles
 from backend.config import PROJECT_ROOT
 from backend.api import router as api_router
 from backend.pages import router as page_router
+from backend.health import router as health_router
 
 from backend.accounts.routes import router as auth_router
 from backend.accounts.settings import router as settings_router
@@ -37,6 +38,7 @@ class RevalidatedStaticFiles(StaticFiles):
 
 app = FastAPI(title="HyperSense AI", lifespan=lifespan)
 app.add_middleware(AccountSafetyMiddleware)
+app.include_router(health_router)
 app.include_router(auth_router)
 app.include_router(settings_router)
 app.include_router(account_router)

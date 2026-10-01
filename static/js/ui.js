@@ -37,7 +37,6 @@ export function refresh() {
     state.recording ||
     state.speechPending ||
     !state.current ||
-    state.answerExpired ||
     state.answerSubmitted;
   $("transcribe").disabled =
     state.busy || state.recording || !state.current || !state.blob || state.answerSubmitted;

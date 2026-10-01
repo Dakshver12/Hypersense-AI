@@ -104,6 +104,43 @@ class AccountTests(unittest.TestCase):
         self.assertEqual(caught.exception.status_code,429)
         self.assertEqual(self.client.post('/auth/login',content=b'x'*70000,headers={'Content-Type':'application/json'}).status_code,413)
 
+    def test_expired_verification_and_reset_links(self):
+        self.client.post('/auth/signup',json={'email':'test@example.com','name':'Test','password':'test-password-1234'})
+        token=self.send.call_args.args[2].split('#token=')[1]
+        with database() as db: db.execute('UPDATE links SET expires=0')
+        self.assertEqual(self.client.post('/auth/verify-email',json={'token':token}).status_code,400)
+        self.client.post('/auth/resend-verification',json={'email':'test@example.com'})
+        token=self.send.call_args.args[2].split('#token=')[1]
+        self.assertEqual(self.client.post('/auth/verify-email',json={'token':token}).status_code,200)
+        self.assertEqual(self.client.post('/auth/verify-email',json={'token':token}).status_code,400)
+        self.client.post('/auth/forgot-password',json={'email':'test@example.com'})
+        token=self.send.call_args.args[2].split('#token=')[1]
+        with database() as db: db.execute('UPDATE links SET expires=0')
+        self.assertEqual(self.client.post('/auth/reset-password',json={'token':token,'password':'new-password-12345'}).status_code,400)
+
+    def test_signup_shares_email_delivery_limit(self):
+        data={'email':'test@example.com','name':'Test','password':'test-password-1234'}
+        for _ in range(3): self.assertEqual(self.client.post('/auth/signup',json=data).status_code,200)
+        self.assertEqual(self.client.post('/auth/signup',json=data).status_code,429)
+        self.assertEqual(self.client.post('/auth/resend-verification',json={'email':data['email']}).status_code,429)
+        self.assertEqual(self.send.call_count,3)
+
+    def test_logout_revokes_copied_cookie_and_protects_pages(self):
+        uid=self.user()
+        stolen=self.client.cookies.get('hypersense_session')
+        self.client.post('/auth/logout')
+        with TestClient(app,headers={'Origin':'http://testserver','X-HyperSense-Account':uid}) as other:
+            other.cookies.set('hypersense_session',stolen)
+            self.assertEqual(other.get('/auth/me').status_code,401)
+            self.assertEqual(other.get('/results',follow_redirects=False).status_code,303)
+            self.assertEqual(other.get('/api/account/sessions').status_code,401)
+
+    def test_delivery_failure_removes_issued_token(self):
+        self.send.side_effect=RuntimeError('SMTP unavailable')
+        response=self.client.post('/auth/signup',json={'email':'test@example.com','name':'Test','password':'test-password-1234'})
+        self.assertEqual(response.status_code,503)
+        with database() as db: self.assertEqual(db.execute('SELECT COUNT(*) FROM links').fetchone()[0],0)
+
     def test_production_configuration_fails_closed(self):
         with patch.dict(os.environ,{'APP_ENV':'production','APP_ORIGIN':'http://testserver'}):
             with self.assertRaises(RuntimeError):
