@@ -6,13 +6,18 @@ from fastapi import HTTPException
 from groq import Groq, APIStatusError, APIConnectionError
 from google import genai
 from google.genai import errors
+from backend.services.provider_cooldown import provider_slot, remaining, mark_limited
 
 
 def generate_with_fallback(contents, config):
     gemini_key = os.getenv("GEMINI_API_KEY", "").strip()
     groq_key = os.getenv("GROQ_API_KEY", "").strip()
     gemini_model = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
-    if gemini_key:
+    gemini_slot = provider_slot("Gemini", gemini_model, gemini_key)
+    gemini_wait = remaining(gemini_slot) if gemini_key else 0
+    if gemini_wait and not groq_key:
+        raise HTTPException(429, "Gemini is cooling down. Retry later.", headers={"Retry-After": str(gemini_wait)})
+    if gemini_key and not gemini_wait:
         try:
             with genai.Client(api_key=gemini_key) as client:
                 response = client.models.generate_content(
@@ -22,6 +27,9 @@ def generate_with_fallback(contents, config):
                 text=response.text, provider="Gemini", model=gemini_model
             )
         except errors.APIError as exc:
+            if exc.code == 429:
+                response_headers = getattr(getattr(exc, "response", None), "headers", {}) or {}
+                gemini_wait = mark_limited(gemini_slot, response_headers.get("retry-after"))
             if exc.code not in (429, 500, 502, 503, 504):
                 raise HTTPException(
                     502, f"Gemini request failed (provider code: {exc.code})."
@@ -31,17 +39,22 @@ def generate_with_fallback(contents, config):
                     429 if exc.code == 429 else 503,
                     "Gemini is limited or unavailable. Add GROQ_API_KEY to .env for"
                     " fallback, or retry later.",
+                    headers={"Retry-After": str(gemini_wait)} if exc.code == 429 else None,
                 ) from None
     if not groq_key:
         raise HTTPException(503, "Set GEMINI_API_KEY or GROQ_API_KEY in .env.")
     model = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
+    groq_slot = provider_slot("Groq", model, groq_key)
+    groq_wait = remaining(groq_slot)
+    if groq_wait:
+        raise HTTPException(429, "The fallback provider is cooling down. Retry later.", headers={"Retry-After": str(groq_wait)})
     payload = {
         "model": model,
         "messages": [
             {"role": "system", "content": config.system_instruction},
             {"role": "user", "content": contents},
         ],
-        "max_completion_tokens": 2048,
+        "max_completion_tokens": config.max_output_tokens or 2048,
     }
     if config.response_mime_type == "application/json":
         payload["response_format"] = {"type": "json_object"}
@@ -65,10 +78,12 @@ def generate_with_fallback(contents, config):
                 " SDK, contact Groq support to review the access block.",
             ) from None
         if exc.status_code == 429:
+            groq_wait = mark_limited(groq_slot, exc.response.headers.get("retry-after"))
             raise HTTPException(
                 429,
                 "Groq quota reached too. Your answer is preserved; retry later or"
                 " submit without scoring.",
+                headers={"Retry-After": str(groq_wait)},
             ) from None
         raise HTTPException(
             502,

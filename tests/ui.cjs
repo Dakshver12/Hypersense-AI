@@ -667,7 +667,7 @@ const waitFor=async fn=>{for(let i=0;i<100;i++){if(fn())return;await new Promise
         v.state.cameraStream={getVideoTracks:()=>[{readyState:'live',enabled:true}],getTracks:()=>[{stop(){}}]};v.state.neutralRotation=[[1,0,0],[0,1,0],[0,0,1]];
         await d('session-skip').onclick();assert.equal(v.state.interviewSession.answers.length,1);assert.equal(v.state.interviewSession.loaded,false);
         await d('session-skip').onclick();assert.equal(v.state.interviewSession.answers.length,1);
-        v.fetch=async()=>({ok:true,status:200,text:async()=>JSON.stringify({question:'Recovered question'})});
+        v.fetch=async()=>({ok:true,status:200,text:async()=>JSON.stringify({questions:[{question:'Recovered question',interview_type:'technical'}]})});
         await d('session-next').onclick();assert.equal(v.state.current.question,'Recovered question');assert.equal(v.state.interviewSession.answers.length,1);
         v.cancelQuestionSpeech(false);clearInterval(v.state.ticker);v.stopCamera();
         await v.draftStore('readwrite',s=>s.delete('active'));
@@ -686,6 +686,36 @@ const waitFor=async fn=>{for(let i=0;i<100;i++){if(fn())return;await new Promise
       assert(!modal.textContent.includes('will be discarded'));modal.querySelector('[data-choice="skip"]').click();assert.equal(await choice,true);
       w.manualDialogTest=false;
       console.log('PASS: themed skip confirmation defaults to keep, explains draft loss, cancels on Escape and cleans up after a choice.');
+    }
+    {
+      const b=createBrowser(); b.window.eval(bundle); const v=b.window;
+      try {
+        await new Promise(r=>setTimeout(r,20));
+        let calls=0, received;
+        v.fetch=async(url, options)=>{
+          calls++; assert.equal(url,'/generate-session-questions');
+          received=JSON.parse(options.body);
+          return {ok:true,status:200,text:async()=>JSON.stringify({questions:received.interview_types.map((type,i)=>({interview_type:type,question:'Batch question '+i}))})};
+        };
+        const settings={technology:'Python',interview_type:'mixed',difficulty:'easy',language:'English',resume_text:'Private resume',auto_flow:false};
+        const session={id:'batch-test',date:new Date().toISOString(),active:true,loaded:false,total:5,source:'gemini',settings,answers:[],questions:[]};
+        v.state.interviewSession=session;
+        assert.equal(await v.sessionQuestion(session,v.concreteSettings(settings,0)),'Batch question 0');
+        assert.deepEqual(received.interview_types,['technical','behavioral','hr','technical','behavioral']);
+        const draft=await v.draftStore('readonly',s=>s.get('active'));
+        assert.equal(draft.questions.length,5); assert(!JSON.stringify(draft).includes('Private resume'));
+        // Recreate a session from its saved draft and advance without provider access.
+        v.state.interviewSession={...draft,answers:[{question:'Batch question 0',skipped:true}]};
+        assert.equal(await v.sessionQuestion(v.state.interviewSession,v.concreteSettings(settings,1)),'Batch question 1');
+        assert.equal(calls,1);
+        // Legacy drafts request only remaining questions, at the correct mixed offset.
+        v.state.interviewSession.questions=[];
+        await v.sessionQuestion(v.state.interviewSession,v.concreteSettings(settings,1));
+        assert.deepEqual(received.interview_types,['behavioral','hr','technical','behavioral']);
+        assert.equal(calls,2); assert.equal(v.state.interviewSession.questions.length,5);
+        await v.draftStore('readwrite',s=>s.delete('active'));
+        console.log('PASS: one batch request, mixed order, saved queue reuse, resume privacy and legacy remaining-question generation.');
+      } finally { b.window.close(); }
     }
     assert.deepEqual(errors,[]);
     console.log('PASS: empty dashboard, filters, zero/pending scores, reports, quota recovery, session navigation, completion, camera cleanup, confidence persistence, retry scoring, deletion and single practice.');

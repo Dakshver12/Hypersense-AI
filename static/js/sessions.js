@@ -81,6 +81,32 @@ export async function archiveSessionAnswer() {
   await checkpointSession();
 }
 
+export async function sessionQuestion(session, settings) {
+  const index = session.answers.length;
+  if (session.questions?.[index]) return session.questions[index];
+  message("Preparing your interview questions…");
+  const interview_types = Array.from({ length: session.total - index }, (_, offset) =>
+    concreteSettings(session.settings, index + offset).interview_type);
+  const data = await api("/generate-session-questions", {
+    ...settings,
+    interview_types,
+    recent_questions: [...new Set([
+      ...recentQuestionsFor(settings.technology),
+      ...session.answers.map(answer => answer.question),
+    ])].slice(-20),
+  });
+  if (!Array.isArray(data.questions) || data.questions.length !== interview_types.length ||
+      data.questions.some((item, i) => item.interview_type !== interview_types[i] ||
+        typeof item.question !== "string" || !item.question.trim() || item.question.length > 2000))
+    throw Error("Invalid question set. Use Load / retry next question.");
+  session.questions = [
+    ...session.answers.map(answer => answer.question),
+    ...data.questions.map(item => item.question.trim()),
+  ];
+  await checkpointSession();
+  return session.questions[index];
+}
+
 export async function loadSessionQuestion() {
   requireSessionCamera();
   const session = state.interviewSession;
@@ -89,13 +115,7 @@ export async function loadSessionQuestion() {
   if (session.pendingQuestion) question = session.pendingQuestion.question;
   else if (session.source === "manual") question = session.questions[session.answers.length];
   else {
-    message("Generating the next interview question…");
-    const data = await api("/generate-question", {
-      ...settings,
-      recent_questions: recentQuestionsFor(settings.technology),
-    });
-    if (!data.question) throw Error("No question returned. Use Load / retry next question.");
-    question = data.question;
+    question = await sessionQuestion(session, settings);
     rememberQuestion(settings.technology, question);
   }
   state.sessionEvaluation = null;
@@ -149,7 +169,7 @@ export async function startCheckedSession() {
     loaded: false,
     total,
     source,
-    questions,
+    questions: source === "manual" ? questions : [],
     settings,
     answers: [],
   };

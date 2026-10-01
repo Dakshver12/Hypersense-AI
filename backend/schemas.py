@@ -21,6 +21,10 @@ class QuestionRequest(BaseModel):
     )
 
 
+class SessionQuestionsRequest(QuestionRequest):
+    interview_types: list[Literal["technical", "behavioral", "hr"]] = Field(min_length=1, max_length=10)
+
+
 class AnswerRequest(BaseModel):
     interview_type: Literal["technical", "behavioral", "hr"] = "technical"
     target_role: str = Field(default="", max_length=160)
