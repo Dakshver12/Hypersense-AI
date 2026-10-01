@@ -3,6 +3,7 @@ uvicorn
 python-dotenv
 python-multipart
 pydantic>=2
+av>=11,<19
 google-genai
 groq
 faster-whisper
