@@ -1,0 +1,28 @@
+.support-main{max-width:1440px;margin:0 auto}.support-main main{padding:32px}.support-main h1{font-size:30px;margin-bottom:10px;letter-spacing:-1px}.support-main .brand{font-size:16px;letter-spacing:-.4px;color:#c1dacb}.support-main .heading{align-items:center}.support-columns{display:grid;grid-template-columns:minmax(280px, .85fr) minmax(360px,1.3fr);gap:20px}.support-form{display:grid;gap:10px;margin-top:20px}.support-form label{margin-top:5px;font-size:12px;color:#bdcbd3}.support-form textarea{resize:vertical;width:100%}.support-form .hint{margin:0}.support-form button{justify-self:start;margin-top:8px}.support-form input,.support-form select{width:100%;min-width:0}.support-detail-head{display:flex;align-items:center;justify-content:space-between;gap:15px}#support-dialog{max-width:620px;max-height:90vh;overflow-y:auto}#support-dialog h2{overflow-wrap:anywhere;margin-top:15px}#support-dialog h3{font-size:12px;color:#c1d8cb;margin-top:24px}.report-text{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.7;padding:14px;background:#111c25;border:1px solid #2c3a46;border-radius:8px}#support-status,#report-result,#detail-status{font-size:12px;color:#b5c8bf;min-height:18px}#support-total,#support-page{font-size:11px;color:#a4b3bc}#support-query{flex:1;min-width:180px}.support-counts.metrics{grid-template-columns:repeat(3,minmax(0,1fr))}.support-title-cell{max-width:330px;overflow-wrap:anywhere}.support-title-cell small{display:block;font-size:10px;color:#8fa4b1;margin-top:4px}.support-error{color:#f0aeb6!important}#support-list td{font-size:12px}#support-list td:nth-child(2){overflow-wrap:anywhere}.support-main footer{text-align:left}.support-main .pagination{justify-content:space-between}@media(max-width:1000px){.support-columns{grid-template-columns:1fr}}@media(max-width:580px){.support-main main{padding:24px 18px}.support-counts.metrics{grid-template-columns:1fr}.support-main .heading{align-items:flex-start}.support-main .workspace-top{padding:16px 18px}.support-main h1{font-size:26px}}
+
+/* Explicit field colours override the shared admin form defaults. */
+body[data-support-admin] input,
+body[data-support-admin] textarea,
+body[data-support-admin] select {
+  color-scheme: dark;
+  background-color: #101923;
+  color: #e8edf3;
+  caret-color: #9bcbb8;
+  border: 1px solid #405164;
+}
+body[data-support-admin] input::placeholder,
+body[data-support-admin] textarea::placeholder {
+  color: #a3b1c2;
+  opacity: 1;
+}
+body[data-support-admin] input:focus-visible,
+body[data-support-admin] textarea:focus-visible,
+body[data-support-admin] select:focus-visible {
+  border-color: #9bcbb8;
+  outline: 2px solid #9bcbb8;
+  outline-offset: 3px;
+}
+body[data-support-admin] input:autofill {
+  -webkit-text-fill-color: #e8edf3;
+  box-shadow: 0 0 0 1000px #101923 inset;
+}
