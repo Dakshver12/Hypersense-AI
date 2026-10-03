@@ -90,7 +90,7 @@ def signup(data: Signup):
     if not data.name.strip():
         raise HTTPException(422, 'Enter your name.')
     dev_link = None
-    with database() as db:
+    with database(readonly=True) as db:
         user = db.execute('SELECT * FROM users WHERE email=?', (data.email,)).fetchone()
     if not user:
         uid = str(uuid.uuid4())
@@ -112,7 +112,7 @@ def signup(data: Signup):
 @router.post('/auth/login', dependencies=[Depends(auth_limit)])
 def login(data: Credentials, response: Response, request: Request):
     limit('login-email:'+digest(data.email), 10, 900)
-    with database() as db:
+    with database(readonly=True) as db:
         user = db.execute('SELECT * FROM users WHERE email=?', (data.email,)).fetchone()
     if not user:
         hash_password(data.password)  # Comparable password-work for unknown accounts.
@@ -155,7 +155,7 @@ def send_email(data: EmailOnly, request: Request):
     email = data.email.strip().lower()
     limit('mail:'+digest(email), 3, 900)
     dev_link = None
-    with database() as db:
+    with database(readonly=True) as db:
         user = db.execute('SELECT * FROM users WHERE email=?', (email,)).fetchone()
     purpose = 'verify' if request.url.path.endswith('resend-verification') else 'reset'
     if user and (purpose == 'reset' or not user['verified']):

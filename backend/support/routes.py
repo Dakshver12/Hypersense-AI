@@ -64,7 +64,7 @@ def admin_support_page(request: Request):
 def create_report(data: NewReport,user=Depends(require_user)):
     if len(data.title)<3 or len(data.description)<10: raise HTTPException(422,'Add a title and at least ten characters of detail.')
     rid=str(data.request_id)
-    with database() as db:
+    with database(readonly=True) as db:
         existing=db.execute('SELECT id FROM support_reports WHERE id=? AND user_id=?',(rid,user['id'])).fetchone()
         if existing: return {'id':rid,'created':False}
     limit('support-new:'+user['id'],10,86400)
@@ -85,7 +85,7 @@ def create_report(data: NewReport,user=Depends(require_user)):
 
 
 def report_detail(rid,user,admin=False):
-    with database() as db:
+    with database(readonly=True) as db:
         db.execute('BEGIN')
         query="SELECT r.id,r.category,r.title,r.description,r.status,r.reply,r.created,r.updated,r.version,coalesce(n.reply_version,0) reply_version,(r.reply!='' AND coalesce(n.reply_version,0)>coalesce(n.read_version,0)) unread FROM support_reports r LEFT JOIN support_receipts n ON n.report_id=r.id WHERE r.id=?"
         row=db.execute(query+('' if admin else ' AND r.user_id=?'),(rid,) if admin else (rid,user['id'])).fetchone()
@@ -102,7 +102,7 @@ def report_detail(rid,user,admin=False):
 
 @router.get('/api/support')
 def own_reports(page: int=Query(1,ge=1,le=100000),user=Depends(require_user)):
-    with database() as db:
+    with database(readonly=True) as db:
         total=db.execute('SELECT COUNT(*) FROM support_reports WHERE user_id=?',(user['id'],)).fetchone()[0]
         rows=[dict(r) for r in db.execute("SELECT r.id,r.category,r.title,r.status,r.created,r.updated,(r.reply!='' AND coalesce(n.reply_version,0)>coalesce(n.read_version,0)) unread FROM support_reports r LEFT JOIN support_receipts n ON n.report_id=r.id WHERE r.user_id=? ORDER BY r.updated DESC,r.id LIMIT 20 OFFSET ?", (user['id'],(page-1)*20))]
     return {'reports':rows,'total':total,'page':page}
@@ -110,7 +110,7 @@ def own_reports(page: int=Query(1,ge=1,le=100000),user=Depends(require_user)):
 
 @router.get('/api/support/unread')
 def unread_replies(user=Depends(require_user)):
-    with database() as db:
+    with database(readonly=True) as db:
         count=db.execute("SELECT COUNT(*) FROM support_reports r JOIN support_receipts n ON n.report_id=r.id WHERE r.user_id=? AND r.reply!='' AND n.reply_version>n.read_version",(user['id'],)).fetchone()[0]
     return {'unread':count}
 
@@ -136,7 +136,7 @@ def all_reports(status: Literal['all','open','in_progress','resolved']='all',q: 
     where='(strpos(lower(r.title),?)>0 OR strpos(lower(u.email),?)>0)'
     params=[q.strip().lower()]*2
     if status!='all': where+=' AND r.status=?';params.append(status)
-    with database() as db:
+    with database(readonly=True) as db:
         awaiting_reply=db.execute("SELECT COUNT(*) FROM support_reports r JOIN support_threads t ON t.report_id=r.id WHERE r.status!='resolved' AND t.last_role='user'").fetchone()[0]
         counts={r['status']:r['n'] for r in db.execute('SELECT status,COUNT(*) n FROM support_reports GROUP BY status')}
         total=db.execute('SELECT COUNT(*) FROM support_reports r JOIN users u ON u.id=r.user_id WHERE '+where,params).fetchone()[0]

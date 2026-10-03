@@ -1,4 +1,6 @@
 """Bound request sizes before JSON/multipart parsing and keep private responses uncached."""
+import time
+
 from starlette.responses import JSONResponse
 
 
@@ -9,6 +11,7 @@ class AccountSafetyMiddleware:
     async def __call__(self,scope,receive,send):
         if scope['type']!='http':
             return await self.app(scope,receive,send)
+        started=time.perf_counter()
         path=scope['path']
         private=not path.startswith('/static/')
         async def safe_send(message):
@@ -16,6 +19,8 @@ class AccountSafetyMiddleware:
                 headers=[(k,v) for k,v in message.get('headers',[]) if not (private and k.lower()==b'cache-control')]
                 if private:
                     headers.append((b'cache-control',b'no-store'))
+                elapsed=(time.perf_counter()-started)*1000
+                headers.append((b'server-timing',f'app;dur={elapsed:.1f}'.encode('ascii')))
                 headers.extend([(b'x-content-type-options',b'nosniff'),(b'x-frame-options',b'DENY'),(b'referrer-policy',b'no-referrer')])
                 message={**message,'headers':headers}
             await send(message)

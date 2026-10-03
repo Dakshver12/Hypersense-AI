@@ -1,11 +1,13 @@
-"""Private interview documents. Audio is stored inside each document as base64."""
+"""Private interview documents with cloud references and legacy base64 support."""
 import base64
 import binascii
 import json
 import re
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from .database import database
 from .security import require_user, check_origin, limit
+from .recordings import bind_references, mark_deleted, storage_usage, cleanup
+from .object_storage import configured
 
 router = APIRouter(prefix='/api/account/sessions')
 MAX_ACCOUNT_BYTES = 100 * 1024 * 1024
@@ -39,6 +41,11 @@ def validate(record):
             raise HTTPException(422,'Answer text is too long.')
         recording = answer.get('recording')
         if recording is not None:
+            if isinstance(recording,dict) and 'object_id' in recording:
+                if not isinstance(recording['object_id'],str) or not re.fullmatch(r'[a-f0-9]{32}',recording['object_id']):
+                    raise HTTPException(422,'Invalid recording reference.')
+                answer['recording'] = {key:recording[key] for key in ('object_id','name','type','bytes') if key in recording}
+                continue
             if not isinstance(recording,dict) or not isinstance(recording.get('base64'),str):
                 raise HTTPException(422,'Invalid recording.')
             try:
@@ -61,7 +68,7 @@ def validate(record):
 
 @router.get('')
 def list_sessions(user=Depends(require_user)):
-    with database() as db:
+    with database(readonly=True) as db:
         rows=db.execute('SELECT payload FROM interviews WHERE user_id=?',(user['id'],)).fetchall()
     return [json.loads(row['payload']) for row in rows]
 
@@ -69,7 +76,7 @@ def list_sessions(user=Depends(require_user)):
 @router.get('/{session_id}')
 def get_session(session_id: str,user=Depends(require_user)):
     valid_id(session_id)
-    with database() as db:
+    with database(readonly=True) as db:
         row=db.execute('SELECT payload FROM interviews WHERE user_id=? AND id=?',(user['id'],session_id)).fetchone()
     if not row:
         raise HTTPException(404,'Session not found.')
@@ -77,28 +84,36 @@ def get_session(session_id: str,user=Depends(require_user)):
 
 
 @router.put('/{session_id}',dependencies=[Depends(check_origin)])
-def put_session(session_id: str,record: dict,request: Request,user=Depends(require_user)):
+def put_session(session_id: str,record: dict,request: Request,background_tasks: BackgroundTasks,user=Depends(require_user)):
     valid_id(session_id)
     if record.get('id')!=session_id:
         raise HTTPException(422,'Session ID mismatch.')
     limit('save:'+user['id'],60,60)
-    payload,size=validate(record)
+    validate(record)
     with database() as db:
         db.execute('BEGIN IMMEDIATE')
+        bind_references(db,user['id'],session_id,record)
+        payload,size=validate(record)
+        if configured() and size>1024*1024 and not any(isinstance(a.get('recording'),dict) and 'base64' in a['recording'] for a in record['answers']):
+            raise HTTPException(413,'Session text exceeds the 1 MB cloud document limit.')
         old=db.execute('SELECT bytes FROM interviews WHERE user_id=? AND id=?',(user['id'],session_id)).fetchone()
         if old and request.headers.get('if-none-match')=='*':
             raise HTTPException(409,'This session already exists.')
         usage=db.execute('SELECT COUNT(*), COALESCE(SUM(bytes),0) FROM interviews WHERE user_id=?',(user['id'],)).fetchone()
-        if (not old and usage[0]>=100) or usage[1]-(old['bytes'] if old else 0)+size>MAX_ACCOUNT_BYTES:
+        if (not old and usage[0]>=100) or usage[1]-(old['bytes'] if old else 0)+size+storage_usage(db,user['id'])>MAX_ACCOUNT_BYTES:
             raise HTTPException(413,'Account storage limit reached (100 sessions / 100 MB). Export and remove older sessions.')
         db.execute('INSERT INTO interviews VALUES (?,?,?,?) ON CONFLICT(user_id,id) DO UPDATE SET payload=excluded.payload,bytes=excluded.bytes',
                    (user['id'],session_id,payload,size))
+    background_tasks.add_task(cleanup,user['id'])
     return {'id':session_id}
 
 
 @router.delete('/{session_id}',dependencies=[Depends(check_origin)])
-def delete_session(session_id: str,user=Depends(require_user)):
+def delete_session(session_id: str,background_tasks: BackgroundTasks,user=Depends(require_user)):
     valid_id(session_id)
     with database() as db:
+        db.execute('BEGIN IMMEDIATE')
+        mark_deleted(db,user['id'],session_id)
         db.execute('DELETE FROM interviews WHERE user_id=? AND id=?',(user['id'],session_id))
+    background_tasks.add_task(cleanup,user['id'])
     return {'deleted':True}

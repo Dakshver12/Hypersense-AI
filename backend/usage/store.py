@@ -1,6 +1,7 @@
 """Bounded hourly counters on the existing persistent data volume."""
 from contextlib import contextmanager
 from contextvars import ContextVar
+from concurrent.futures import ThreadPoolExecutor
 import logging
 import sqlite3
 import time
@@ -9,6 +10,21 @@ from backend.accounts.database import data_dir, postgres_enabled
 operation = ContextVar('usage_operation', default='other')
 logger = logging.getLogger(__name__)
 RETENTION_DAYS = 30
+_telemetry_executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix='hypersense-telemetry')
+
+
+def _record_sync(kind, provider, outcome, milliseconds, fallback, label):
+    now = int(time.time())
+    try:
+        with connection() as db:
+            db.execute('DELETE FROM counters WHERE hour < ?', (now - RETENTION_DAYS*86400,))
+            db.execute('''INSERT INTO counters VALUES (?,?,?,?,?,?,1,?)
+              ON CONFLICT(hour,kind,operation,provider,outcome,fallback)
+              DO UPDATE SET count=counters.count+1,total_ms=counters.total_ms+excluded.total_ms''',
+              (now//3600*3600, kind, label, provider, outcome, int(fallback), max(0, milliseconds)))
+    except (sqlite3.Error, OSError):
+        # Telemetry must not turn a successful interview request into a failure.
+        logger.warning('API usage counters could not be saved.')
 
 
 @contextmanager
@@ -41,17 +57,16 @@ def record(kind, provider, outcome, milliseconds=0, fallback=False):
     label = operation.get()
     if label not in ('question', 'session_questions', 'evaluation'):
         label = 'other'
-    now = int(time.time())
-    try:
-        with connection() as db:
-            db.execute('DELETE FROM counters WHERE hour < ?', (now - RETENTION_DAYS*86400,))
-            db.execute('''INSERT INTO counters VALUES (?,?,?,?,?,?,1,?)
-              ON CONFLICT(hour,kind,operation,provider,outcome,fallback)
-              DO UPDATE SET count=counters.count+1,total_ms=counters.total_ms+excluded.total_ms''',
-              (now//3600*3600, kind, label, provider, outcome, int(fallback), max(0, milliseconds)))
-    except (sqlite3.Error, OSError):
-        # Telemetry must not turn a successful interview request into a failure.
-        logger.warning('API usage counters could not be saved.')
+    if postgres_enabled():
+        # Usage telemetry is ancillary. Do not make the user wait for another
+        # Tokyo round trip after the AI response is ready.
+        try:
+            _telemetry_executor.submit(_record_sync, kind, provider, outcome,
+                                       milliseconds, fallback, label)
+        except RuntimeError:
+            pass
+        return
+    _record_sync(kind, provider, outcome, milliseconds, fallback, label)
 
 
 @contextmanager

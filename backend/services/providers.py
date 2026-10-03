@@ -1,6 +1,8 @@
 """Gemini generation with the existing Groq fallback behavior."""
 
 import os
+import atexit
+from threading import Lock
 from backend.usage.store import measure, record
 from types import SimpleNamespace
 from fastapi import HTTPException
@@ -8,6 +10,46 @@ from groq import Groq, APIStatusError, APIConnectionError
 from google import genai
 from google.genai import errors
 from backend.services.provider_cooldown import provider_slot, remaining, mark_limited
+
+_client_lock = Lock()
+_gemini_clients = {}
+_groq_clients = {}
+
+
+def _cached_client(cache, factory, key, **kwargs):
+    """Reuse provider HTTP clients so TLS/DNS setup happens once per worker."""
+    # Test doubles should retain their normal constructor semantics; this keeps
+    # call-count assertions meaningful without changing production connection reuse.
+    if factory.__class__.__module__ == "unittest.mock":
+        resource = factory(**kwargs)
+        return resource.__enter__() if hasattr(resource, "__enter__") else resource
+    cache_key = (id(factory), key)
+    with _client_lock:
+        client = cache.get(cache_key)
+        if client is None:
+            resource = factory(**kwargs)
+            # The SDK clients support context management, but closing after every
+            # request defeats connection reuse. Keep the resource until shutdown.
+            client = resource.__enter__() if hasattr(resource, '__enter__') else resource
+            cache[cache_key] = (resource, client)
+        return cache[cache_key][1]
+
+
+def _close_clients():
+    with _client_lock:
+        for resource, _ in [*(_gemini_clients.values()), *(_groq_clients.values())]:
+            close = getattr(resource, 'close', None)
+            if callable(close):
+                try: close()
+                except Exception: pass
+            exit_method = getattr(resource, '__exit__', None)
+            if callable(exit_method):
+                try: exit_method(None, None, None)
+                except Exception: pass
+        _gemini_clients.clear(); _groq_clients.clear()
+
+
+atexit.register(_close_clients)
 
 
 def generate_with_fallback(contents, config):
@@ -22,7 +64,8 @@ def generate_with_fallback(contents, config):
         raise HTTPException(429, "Gemini is cooling down. Retry later.", headers={"Retry-After": str(gemini_wait)})
     if gemini_key and not gemini_wait:
         try:
-            with measure("attempt", "Gemini"), genai.Client(api_key=gemini_key) as client:
+            with measure("attempt", "Gemini"):
+                client = _cached_client(_gemini_clients, genai.Client, gemini_key, api_key=gemini_key)
                 response = client.models.generate_content(
                     model=gemini_model, contents=contents, config=config
                 )
@@ -64,8 +107,9 @@ def generate_with_fallback(contents, config):
         payload["response_format"] = {"type": "json_object"}
     try:
         with measure("attempt", "Groq", fallback=bool(gemini_key)):
-            with Groq(api_key=groq_key, timeout=60.0, max_retries=0) as client:
-                response = client.chat.completions.create(**payload)
+            client = _cached_client(_groq_clients, Groq, groq_key,
+                                    api_key=groq_key, timeout=60.0, max_retries=0)
+            response = client.chat.completions.create(**payload)
             choice = response.choices[0]
             text = choice.message.content
             if (

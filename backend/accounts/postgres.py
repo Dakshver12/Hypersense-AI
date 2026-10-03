@@ -16,7 +16,7 @@ _pool = None
 _pool_key = None
 TABLES = ('users','logins','links','attempts','account_suspensions','admin_audit',
           'support_reports','support_receipts','support_messages','support_threads',
-          'support_admin_reads','interviews','counters')
+          'support_admin_reads','interviews','recording_objects','counters')
 COUNTERS = '''CREATE TABLE IF NOT EXISTS counters (
  hour BIGINT NOT NULL, kind TEXT NOT NULL, operation TEXT NOT NULL,
  provider TEXT NOT NULL, outcome TEXT NOT NULL, fallback BIGINT NOT NULL,
@@ -94,6 +94,12 @@ def close_pool():
         _pool_key = None
 
 
+def configure_connection(raw):
+    """Apply connection settings once, when a pooled connection is created."""
+    raw.execute("SET statement_timeout='30s'; SET lock_timeout='10s'; "
+                "SET search_path TO hypersense,pg_catalog")
+
+
 atexit.register(close_pool)
 
 
@@ -110,7 +116,7 @@ def get_pool(key):
                                      'prepare_threshold': None},
                 min_size=0, max_size=2, max_waiting=20, timeout=10,
                 max_idle=60, max_lifetime=300, reconnect_timeout=10,
-                check=ConnectionPool.check_connection,
+                configure=configure_connection,
                 name='hypersense', open=True)
             _pool_key = identity
         return _pool
@@ -135,7 +141,7 @@ def initialize(raw,key):
 
 
 @contextmanager
-def connection():
+def connection(readonly=False):
     try:
         import psycopg
         import psycopg_pool
@@ -145,13 +151,13 @@ def connection():
         key=os.getenv('DATABASE_URL','').strip()
         with get_pool(key).connection() as raw:
             initialize(raw,key)
-            with raw.transaction():
-                # One setup round trip; keep existing serialization guarantees.
-                raw.execute("SET LOCAL statement_timeout='30s'; "
-                            "SET LOCAL lock_timeout='10s'; "
-                            "SET LOCAL search_path TO hypersense,pg_catalog; "
-                            "SELECT pg_advisory_xact_lock(842901604)")
-                yield Connection(raw)
+            db = Connection(raw)
+            if readonly:
+                # Pool connections are autocommit, so reads avoid BEGIN/COMMIT.
+                yield db
+            else:
+                with raw.transaction():
+                    yield db
     except psycopg.IntegrityError:
         raise sqlite3.IntegrityError('Database constraint violation.') from None
     except (psycopg.Error, psycopg_pool.PoolTimeout, psycopg_pool.PoolClosed,

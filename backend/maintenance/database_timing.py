@@ -10,9 +10,9 @@ def main():
     try:
         for index in range(5):
             start=time.perf_counter()
-            with database() as db:db.execute('SELECT 1').fetchone()
+            with database(readonly=True) as db:db.execute('SELECT 1').fetchone()
             print(('First use' if index==0 else 'Warm query '+str(index))+': '+str(round((time.perf_counter()-start)*1000))+' ms')
-        print('First use includes connection/schema initialization. Warm queries include checkout, health check, transaction setup and commit.')
+        print('First use includes connection/schema initialization. Warm read queries reuse a pooled connection and avoid a health check, transaction setup and commit.')
         return 0
     except Exception:
         print('Database timing failed. Run postgres_check to verify configuration.');return 1

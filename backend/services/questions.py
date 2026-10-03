@@ -67,7 +67,7 @@ def generate_question(request: QuestionRequest):
             " technical terms retained, or Hinglish in Roman script. Return only the"
             " question, without answers, hints or introductions. Keep it under 80"
             " words.",
-            max_output_tokens=2048,
+            max_output_tokens=512,
         ),
     )
     question = (response.text or "").strip()
@@ -132,7 +132,7 @@ def generate_session_questions(request):
             " interview_type and question. No answers, hints or introductions."
             " Keep each question under 80 words.",
             response_mime_type="application/json",
-            max_output_tokens=8192,
+            max_output_tokens=2048,
         ),
     )
     try:

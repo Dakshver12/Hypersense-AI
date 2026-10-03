@@ -1,5 +1,6 @@
 """CPU Whisper singleton and configured Groq transcription."""
 
+import atexit
 import os
 import logging
 import tempfile
@@ -17,9 +18,44 @@ WHISPER_MODEL_NAME = os.getenv("WHISPER_MODEL", "small").strip() or "small"
 
 
 whisper_model = None
+groq_client = None
+groq_client_key = None
 
 
 whisper_lock = Lock()
+groq_lock = Lock()
+
+
+def close_groq_client():
+    global groq_client, groq_client_key
+    with groq_lock:
+        if groq_client is not None:
+            try:
+                groq_client.close()
+            except Exception:
+                pass
+        groq_client = None
+        groq_client_key = None
+
+
+atexit.register(close_groq_client)
+
+
+def get_groq_client(api_key):
+    """Reuse the transcription SDK client and its underlying HTTP pool."""
+    global groq_client, groq_client_key
+    # Keep mocked context-manager behavior in tests.
+    if Groq.__class__.__module__ == 'unittest.mock':
+        resource = Groq(api_key=api_key, timeout=60.0, max_retries=0)
+        return resource.__enter__() if hasattr(resource, '__enter__') else resource
+    with groq_lock:
+        if groq_client is None or groq_client_key != api_key:
+            if groq_client is not None:
+                groq_client.close()
+            resource = Groq(api_key=api_key, timeout=60.0, max_retries=0)
+            groq_client = resource.__enter__() if hasattr(resource, '__enter__') else resource
+            groq_client_key = api_key
+        return groq_client
 
 
 def adapt_transcription(segments, info):
@@ -112,21 +148,19 @@ def transcribe_audio(
                 groq_key = os.getenv("GROQ_API_KEY", "").strip()
                 if groq_key:
                     try:
-                        with Groq(
-                            api_key=groq_key, timeout=60.0, max_retries=0
-                        ) as client:
-                            options = {
-                                "model": "whisper-large-v3",
-                                "response_format": "verbose_json",
-                                "timestamp_granularities": ["word", "segment"],
-                                "temperature": 0.0,
-                            }
-                            if spoken_language != "auto":
-                                options["language"] = spoken_language
-                            with audio_path.open("rb") as source:
-                                response = client.audio.transcriptions.create(
-                                    file=source, **options
-                                )
+                        client = get_groq_client(groq_key)
+                        options = {
+                            "model": "whisper-large-v3",
+                            "response_format": "verbose_json",
+                            "timestamp_granularities": ["word", "segment"],
+                            "temperature": 0.0,
+                        }
+                        if spoken_language != "auto":
+                            options["language"] = spoken_language
+                        with audio_path.open("rb") as source:
+                            response = client.audio.transcriptions.create(
+                                file=source, **options
+                            )
                         result = adapt_groq_transcription(response.model_dump())
                         engine, model, compute_type = ("groq", "whisper-large-v3", None)
                     except APIStatusError as exc:

@@ -15,7 +15,7 @@ class AuthLookupTests(TestCase):
         self.db=MagicMock()
         self.db.execute.return_value.fetchone.return_value={'id':'u','name':'User','email':'u@example.com'}
         @contextmanager
-        def database():yield self.db
+        def database(*args, **kwargs):yield self.db
         self.patch=patch('backend.accounts.security.database',database);self.patch.start();self.addCleanup(self.patch.stop)
 
     def test_lookup_shared_only_within_request(self):

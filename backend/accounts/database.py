@@ -17,10 +17,10 @@ def postgres_enabled():
 
 
 @contextmanager
-def database():
+def database(readonly=False):
     if postgres_enabled():
         from backend.accounts.postgres import connection
-        with connection() as db:
+        with connection(readonly=readonly) as db:
             yield db
         return
     db = sqlite3.connect(data_dir() / 'hypersense.sqlite3', timeout=30)

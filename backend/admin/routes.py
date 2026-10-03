@@ -22,7 +22,7 @@ def page(request: Request):
 @router.get('/api/admin/overview')
 def overview(user=Depends(require_admin)):
     now = int(time.time())
-    with database() as db:
+    with database(readonly=True) as db:
         users = dict(db.execute('''SELECT COUNT(*) AS total,
           COALESCE(SUM(verified),0) AS verified,
           COALESCE(SUM(CASE WHEN created>=? THEN 1 ELSE 0 END),0) AS new_week FROM users''', (now-7*86400,)).fetchone())
@@ -44,7 +44,7 @@ def users(q: str = Query('',max_length=100), status: Literal['all','verified','u
     if status=='suspended': where+=' AND s.user_id IS NOT NULL'
     elif status=='verified': where+=' AND u.verified=1 AND s.user_id IS NULL'
     elif status=='unverified': where+=' AND u.verified=0 AND s.user_id IS NULL'
-    with database() as db:
+    with database(readonly=True) as db:
         total=db.execute('SELECT COUNT(*) FROM users u LEFT JOIN account_suspensions s ON s.user_id=u.id WHERE '+where,(query,query)).fetchone()[0]
         rows=[dict(r) for r in db.execute('''SELECT u.id,u.name,u.email,u.verified,u.created,
           CASE WHEN s.user_id IS NULL THEN 0 ELSE 1 END AS suspended,
@@ -88,7 +88,7 @@ def access(uid: str, change: AccessChange, user=Depends(require_admin)):
 
 @router.get('/api/admin/audit')
 def audit(page: int=Query(1,ge=1,le=100000),user=Depends(require_admin)):
-    with database() as db:
+    with database(readonly=True) as db:
         total=db.execute('SELECT COUNT(*) FROM admin_audit').fetchone()[0]
         rows=[dict(r) for r in db.execute('SELECT id,at,actor_id,target_id,action,reason FROM admin_audit ORDER BY id DESC LIMIT 20 OFFSET ?',((page-1)*20,))]
     return {'events':rows,'total':total,'page':page,'page_size':20}

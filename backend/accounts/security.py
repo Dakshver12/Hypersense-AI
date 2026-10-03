@@ -66,6 +66,14 @@ def limit(bucket, maximum, seconds):
         raise HTTPException(429, 'Too many requests. Try again later.', headers={'Retry-After': str(seconds)})
 
 
+def _lookup_user(db, token_digest, now):
+    row = db.execute('''SELECT users.id, users.email, users.name FROM logins
+      JOIN users ON users.id=logins.user_id WHERE logins.token=? AND logins.expires>?
+      AND users.verified=1 AND NOT EXISTS
+      (SELECT 1 FROM account_suspensions s WHERE s.user_id=users.id)''', (token_digest, now)).fetchone()
+    return dict(row) if row else None
+
+
 def current_user(request: Request):
     token = request.cookies.get(COOKIE, '')
     if not token:
@@ -74,12 +82,8 @@ def current_user(request: Request):
     cached = getattr(request.state, '_hypersense_user', None)
     if cached is not None and cached[0] == token_digest:
         return dict(cached[1]) if cached[1] is not None else None
-    with database() as db:
-        row = db.execute('''SELECT users.id, users.email, users.name FROM logins
-          JOIN users ON users.id=logins.user_id WHERE logins.token=? AND logins.expires>?
-          AND users.verified=1 AND NOT EXISTS
-          (SELECT 1 FROM account_suspensions s WHERE s.user_id=users.id)''', (token_digest, int(time.time()))).fetchone()
-    user = dict(row) if row else None
+    with database(readonly=True) as db:
+        user = _lookup_user(db, token_digest, int(time.time()))
     request.state._hypersense_user = (token_digest, user)
     return dict(user) if user is not None else None
 
@@ -96,10 +100,32 @@ def require_user(request: Request):
 
 def require_practice_user(request: Request):
     check_origin(request)
-    user = require_user(request)
-    if request.url.path == '/detect-face':
-        limit('face:'+user['id'], 600, 60)
-    else:
-        limit('ai-minute:'+user['id'], 20, 60)
-        limit('ai-day:'+user['id'], int(os.getenv('AI_DAILY_LIMIT', '100')), 86400)
+    token = request.cookies.get(COOKIE, '')
+    if not token:
+        raise HTTPException(401, 'Your session has expired. Sign in again.')
+    token_digest = digest(token)
+    now = int(time.time())
+    account_id = request.headers.get('x-hypersense-account', '')
+    buckets = ([('face:'+account_id, 600, 60)] if request.url.path == '/detect-face' else
+               [('ai-minute:'+account_id, 20, 60),
+                ('ai-day:'+account_id, int(os.getenv('AI_DAILY_LIMIT', '100')), 86400)])
+    with database() as db:
+        user = _lookup_user(db, token_digest, now)
+        if not user:
+            raise HTTPException(401, 'Your session has expired. Sign in again.')
+        if account_id != user['id']:
+            raise HTTPException(409, 'The signed-in account changed. Reload this page before continuing.')
+        db.execute('DELETE FROM attempts WHERE at < ?', (now - 86400,))
+        denied = None
+        for bucket, maximum, seconds in buckets:
+            count = db.execute('SELECT COUNT(*) FROM attempts WHERE bucket=? AND at>?',
+                               (bucket, now-seconds)).fetchone()[0]
+            if count >= maximum:
+                denied = seconds
+        if denied is not None:
+            raise HTTPException(429, 'Too many requests. Try again later.',
+                                headers={'Retry-After': str(denied)})
+        for bucket, _, _ in buckets:
+            db.execute('INSERT INTO attempts VALUES (?,?)', (bucket, now))
+    request.state._hypersense_user = (token_digest, user)
     return user

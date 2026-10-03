@@ -24,7 +24,7 @@ def evaluate_answer(request: AnswerRequest):
             + COACHING_INSTRUCTION + ASSESSMENT_INSTRUCTION,
             response_mime_type="application/json",
             response_schema=EvaluationResult,
-            max_output_tokens=3072,
+            max_output_tokens=2048,
         ),
     )
     try:
