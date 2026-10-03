@@ -10,6 +10,7 @@ from html.parser import HTMLParser
 import re
 import unittest
 from unittest.mock import patch
+from io import BytesIO
 from fastapi.testclient import TestClient
 from main import app
 from backend.config import PROJECT_ROOT
@@ -104,6 +105,49 @@ class AppTests(unittest.TestCase):
             ).status_code,
             422,
         )
+
+    def test_resume_import_supports_txt_pdf_and_docx(self):
+        response = self.client.post(
+            "/api/account/resume-text",
+            files={"file": ("resume.txt", b"Python\nBackend systems", "text/plain")},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["format"], "txt")
+        self.assertIn("Backend systems", response.json()["text"])
+
+        from pypdf import PdfWriter
+        pdf = BytesIO()
+        PdfWriter().write(pdf)
+        response = self.client.post(
+            "/api/account/resume-text",
+            files={"file": ("resume.pdf", pdf.getvalue(), "application/pdf")},
+        )
+        self.assertEqual(response.status_code, 422)
+
+        from docx import Document
+        document = Document()
+        document.add_paragraph("Machine learning intern")
+        docx = BytesIO()
+        document.save(docx)
+        response = self.client.post(
+            "/api/account/resume-text",
+            files={
+                "file": (
+                    "resume.docx",
+                    docx.getvalue(),
+                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                )
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["format"], "docx")
+        self.assertIn("Machine learning intern", response.json()["text"])
+
+        response = self.client.post(
+            "/api/account/resume-text",
+            files={"file": ("resume.rtf", b"not supported", "text/rtf")},
+        )
+        self.assertEqual(response.status_code, 422)
 
     def test_question_route_delegates(self):
         with patch(

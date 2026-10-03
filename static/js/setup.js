@@ -1,6 +1,6 @@
 import { state } from "./state.js";
 import { $ } from "./dom.js";
-import { run } from "./api.js";
+import { api, run } from "./api.js";
 
 export const controls = [
   "practice-focus",
@@ -101,16 +101,26 @@ export function initSetup() {
       const file = $("resume-file").files[0];
       if (!file) return;
       try {
-        if (!/\.txt$/i.test(file.name) || file.size > 65536)
-          throw Error("Choose a .txt file up to 64 KB, or paste résumé text.");
-        const text = await file.text();
-        if (!text.trim() || text.includes("\u0000"))
-          throw Error("This file has no readable résumé text. Paste the text instead.");
+        const suffix = file.name.toLowerCase().match(/\.(txt|pdf|docx)$/)?.[1];
+        if (!suffix) throw Error("Choose a .txt, .pdf or .docx résumé file.");
+        if (file.size > (suffix === "txt" ? 65536 : 5 * 1024 * 1024))
+          throw Error(suffix === "txt" ? "Choose a .txt file up to 64 KB." : "Choose a PDF or DOCX file up to 5 MB.");
+        let text;
+        if (suffix === "txt") {
+          text = await file.text();
+          if (!text.trim() || text.includes("\u0000"))
+            throw Error("This file has no readable résumé text. Paste the text instead.");
+        } else {
+          const form = new FormData();
+          form.append("file", file, file.name);
+          const result = await api("/api/account/resume-text", form, true);
+          text = result.text;
+        }
         if (text.length > 12000)
           throw Error("The résumé exceeds 12,000 characters. Paste the relevant sections instead.");
         $("resume-text").value = text;
         resumeStatus();
-        message("Résumé imported. Review it and select your experience level.");
+        message(`Résumé imported from ${suffix.toUpperCase()}. Review it and select your experience level.`);
       } finally {
         $("resume-file").value = "";
       }

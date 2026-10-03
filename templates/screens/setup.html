@@ -123,28 +123,29 @@
             >Your selected level guides question depth together with difficulty. It is not a
             verified skill assessment.</small
           >
-          <label for="resume-file">Import résumé text (.txt, up to 64 KB)</label
+          <label for="resume-file">Import résumé (.txt, .pdf or .docx; up to 5 MB)</label
           ><input
             id="resume-file"
             type="file"
-            accept=".txt,text/plain"
+            accept=".txt,.pdf,.docx,text/plain,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
             aria-describedby="resume-help"
           />
           <label for="resume-text">Résumé content</label
           ><textarea
             id="resume-text"
             maxlength="12000"
-            placeholder="Paste relevant skills, education, projects, internships and work experience. For a PDF or Word résumé, copy its text here."
+            placeholder="Paste relevant skills, education, projects, internships and work experience, or import a résumé file above."
           ></textarea>
           <p id="resume-status" role="status">No résumé added. You can still start a session.</p>
           <button type="button" id="clear-resume">Clear résumé</button>
           <p id="resume-help">
             <small
-              >Review imported text and remove contact details you do not want to share. Résumé text
-              is sent to your configured question-generation provider when you generate questions.
-              Manual questions remain as written. Raw résumé text is not saved in session history;
-              generated questions may refer to its projects. Clearing this section affects future
-              sessions.</small
+              >Review imported text and remove contact details you do not want to share. TXT files are
+              read locally; PDF and DOCX text is extracted in memory and the uploaded file is not
+              saved. Résumé text is sent to your configured question-generation provider when you
+              generate questions. Manual questions remain as written. Raw résumé text is not saved
+              in session history; generated questions may refer to its projects. Clearing this section
+              affects future sessions.</small
             >
           </p>
         </fieldset>

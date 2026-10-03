@@ -4,7 +4,8 @@ import secrets
 import sqlite3
 import time
 import uuid
-from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from io import BytesIO
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
 from pydantic import BaseModel, Field, field_validator
 from backend.config import PROJECT_ROOT
@@ -14,6 +15,48 @@ from .security import (COOKIE, SESSION_SECONDS, origin, secure_cookie, digest,
 from .mail import send_link
 
 router = APIRouter()
+
+MAX_RESUME_FILE_BYTES = 5 * 1024 * 1024
+MAX_RESUME_CHARACTERS = 12_000
+
+
+def _resume_text(raw: bytes, suffix: str) -> str:
+    """Extract résumé text without persisting the uploaded document."""
+    if suffix == ".txt":
+        text = raw.decode("utf-8-sig")
+    elif suffix == ".pdf":
+        try:
+            from pypdf import PdfReader
+            reader = PdfReader(BytesIO(raw), strict=False)
+            text = "\n".join(page.extract_text() or "" for page in reader.pages)
+        except ImportError:
+            raise HTTPException(503, "PDF résumé support is not installed on this server.") from None
+        except Exception:
+            raise HTTPException(422, "This PDF has no readable text. Paste the relevant sections instead.") from None
+    elif suffix == ".docx":
+        try:
+            from docx import Document
+            document = Document(BytesIO(raw))
+            parts = [paragraph.text for paragraph in document.paragraphs]
+            for table in document.tables:
+                for row in table.rows:
+                    parts.append(" | ".join(cell.text for cell in row.cells))
+            text = "\n".join(parts)
+        except ImportError:
+            raise HTTPException(503, "DOCX résumé support is not installed on this server.") from None
+        except Exception:
+            raise HTTPException(422, "This Word document has no readable text. Paste the relevant sections instead.") from None
+    else:
+        raise HTTPException(422, "Choose a .txt, .pdf or .docx résumé file.")
+    if "\x00" in text:
+        raise HTTPException(422, "This file has no readable résumé text. Paste the relevant sections instead.")
+    text = re.sub(r"[ \t\r\f\v]+", " ", text)
+    text = re.sub(r"\n{3,}", "\n\n", text).strip()
+    if not text:
+        raise HTTPException(422, "This file has no readable résumé text. Paste the relevant sections instead.")
+    if len(text) > MAX_RESUME_CHARACTERS:
+        raise HTTPException(422, "The résumé exceeds 12,000 characters. Import a shorter file or paste the relevant sections.")
+    return text
 
 
 class Credentials(BaseModel):
@@ -147,6 +190,23 @@ def logout(request: Request, response: Response):
 def me(user=Depends(require_user)):
     from backend.usage.access import is_admin
     return {**user, "is_admin": is_admin(user)}
+
+
+@router.post('/api/account/resume-text', dependencies=[Depends(check_origin)])
+def import_resume(file: UploadFile, user=Depends(require_user)):
+    """Extract résumé text for the signed-in user; uploaded bytes are never saved."""
+    filename = (file.filename or "").strip().lower()
+    suffix = os.path.splitext(filename)[1]
+    if suffix not in {".txt", ".pdf", ".docx"}:
+        raise HTTPException(422, "Choose a .txt, .pdf or .docx résumé file.")
+    raw = file.file.read(MAX_RESUME_FILE_BYTES + 1)
+    if len(raw) > MAX_RESUME_FILE_BYTES:
+        raise HTTPException(413, "The résumé file is larger than 5 MB.")
+    try:
+        text = _resume_text(raw, suffix)
+    except UnicodeDecodeError:
+        raise HTTPException(422, "This text file is not UTF-8 encoded. Save it as UTF-8 or use PDF/DOCX.") from None
+    return {"text": text, "characters": len(text), "format": suffix[1:]}
 
 
 @router.post('/auth/resend-verification', dependencies=[Depends(auth_limit)])
