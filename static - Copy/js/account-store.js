@@ -1,6 +1,6 @@
 import { accountHeaders } from './account-context.js';
 
-async function fetchAccountRequest(path, options={}) {
+export async function accountRequest(path, options={}) {
   const response=await fetch(path,{...options,credentials:'same-origin',cache:'no-store',headers:{...accountHeaders(),...options.headers}});
   const data=await response.json();
   if(!response.ok) {
@@ -8,20 +8,6 @@ async function fetchAccountRequest(path, options={}) {
     error.status=response.status;throw error;
   }
   return data;
-}
-
-// Share only overlapping default GETs. Never cache completed responses or writes.
-const pendingAccountReads = new Map();
-export async function accountRequest(path, options={}) {
-  if (Object.keys(options).length) return fetchAccountRequest(path, options);
-  const key=JSON.stringify([path, accountHeaders()]);
-  let pending=pendingAccountReads.get(key);
-  if(!pending){
-    pending=fetchAccountRequest(path, options);
-    pendingAccountReads.set(key,pending);
-  }
-  try {return structuredClone(await pending);}
-  finally {if(pendingAccountReads.get(key)===pending)pendingAccountReads.delete(key);}
 }
 
 export async function encodeAccountSession(record) {

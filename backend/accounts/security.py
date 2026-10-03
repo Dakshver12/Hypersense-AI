@@ -70,12 +70,18 @@ def current_user(request: Request):
     token = request.cookies.get(COOKIE, '')
     if not token:
         return None
+    token_digest = digest(token)
+    cached = getattr(request.state, '_hypersense_user', None)
+    if cached is not None and cached[0] == token_digest:
+        return dict(cached[1]) if cached[1] is not None else None
     with database() as db:
         row = db.execute('''SELECT users.id, users.email, users.name FROM logins
           JOIN users ON users.id=logins.user_id WHERE logins.token=? AND logins.expires>?
           AND users.verified=1 AND NOT EXISTS
-          (SELECT 1 FROM account_suspensions s WHERE s.user_id=users.id)''', (digest(token), int(time.time()))).fetchone()
-    return dict(row) if row else None
+          (SELECT 1 FROM account_suspensions s WHERE s.user_id=users.id)''', (token_digest, int(time.time()))).fetchone()
+    user = dict(row) if row else None
+    request.state._hypersense_user = (token_digest, user)
+    return dict(user) if user is not None else None
 
 
 def require_user(request: Request):

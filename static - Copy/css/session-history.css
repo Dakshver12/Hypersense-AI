@@ -1,0 +1,39 @@
+/* Saved session list: scoped to avoid changing analytics tables. */
+#dashboard-sessions .dashboard-table { width:100%; border-collapse:separate; border-spacing:0 10px; min-width:0; }
+#dashboard-sessions th { font-size:12px; text-transform:uppercase; letter-spacing:.09em; padding:8px 18px; border:0; }
+#dashboard-sessions td { padding:20px 18px; background:#0d192b; border-top:1px solid #293b53; border-bottom:1px solid #293b53; vertical-align:middle; }
+#dashboard-sessions td:first-child { border-left:1px solid #293b53; border-radius:14px 0 0 14px; width:35%; }
+#dashboard-sessions td:last-child { border-right:1px solid #293b53; border-radius:0 14px 14px 0; }
+#dashboard-sessions tr:hover td { background:#132139; }
+#dashboard-sessions .history-topic { display:block; font-size:17px; line-height:1.4; margin-bottom:6px; color:#edf3ff; overflow-wrap:anywhere; }
+#dashboard-sessions time { display:block; font-size:13px; color:#a7b8ce; }
+#dashboard-sessions .history-type { display:inline-flex; padding:5px 10px; border:1px solid #365f77; border-radius:999px; font-size:12px; font-weight:600; color:#b9e5ff; background:#153046; }
+#dashboard-sessions .history-type[data-kind="behavioral"] { color:#ddccff; background:#2b2444; border-color:#55436e; }
+#dashboard-sessions .history-type[data-kind="hr"] { color:#ffd9b0; background:#352c24; border-color:#715438; }
+#dashboard-sessions .history-type[data-kind="mixed"] { color:#a3ebd9; background:#143b35; border-color:#296858; }
+#dashboard-sessions .history-count { display:block; font-size:14px; font-weight:600; }
+#dashboard-sessions progress { display:block; width:140px; max-width:100%; height:5px; margin:9px 0 7px; border:0; border-radius:8px; overflow:hidden; background:#27374d; accent-color:#7ee2c3; }
+#dashboard-sessions progress::-webkit-progress-bar { background:#27374d; }
+#dashboard-sessions progress::-webkit-progress-value { background:#7ee2c3; }
+#dashboard-sessions progress::-moz-progress-bar { background:#7ee2c3; }
+#dashboard-sessions .history-skipped { font-size:12px; color:#efc68c; }
+#dashboard-sessions .history-note { font-size:12px; color:#a7b8ce; }
+#dashboard-sessions .history-buttons { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+#dashboard-sessions .history-open { min-height:42px; padding:10px 15px; margin:0; color:#a9f1de; background:#173c37; border:1px solid #32695d; border-radius:9px; font-size:13px; }
+#dashboard-sessions .history-open:hover { background:#225448; }
+#dashboard-sessions .history-delete { min-height:42px; padding:10px 12px; margin:0; background:transparent; border:1px solid transparent; color:#b5c2d5; font-size:13px; }
+#dashboard-sessions .history-delete:hover { background:#3d2530; border-color:#744251; color:#ffbfca; }
+#dashboard-sessions button:focus-visible, #dashboard-sessions summary:focus-visible { outline:2px solid #7ee2c3; outline-offset:4px; }
+#dashboard-sessions details { margin-top:12px; max-width:340px; overflow-wrap:anywhere; font-size:13px; }
+#dashboard-sessions details p { font-size:13px; }
+@media(max-width:760px) {
+  #dashboard-sessions { overflow:visible; }
+  #dashboard-sessions table, #dashboard-sessions tbody { display:block; }
+  #dashboard-sessions thead { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); }
+  #dashboard-sessions tr { display:grid; grid-template-columns:1fr 1fr; margin:12px 0; padding:16px; gap:16px; border:1px solid #293b53; border-radius:14px; background:#0d192b; }
+  #dashboard-sessions td, #dashboard-sessions td:first-child, #dashboard-sessions td:last-child { display:block; padding:0; width:auto; border:0; border-radius:0; background:transparent; min-width:0; }
+  #dashboard-sessions td:first-child, #dashboard-sessions td:last-child { grid-column:1 / -1; }
+  #dashboard-sessions tr:hover td { background:transparent; }
+  #dashboard-sessions .history-buttons { border-top:1px solid #293b53; padding-top:14px; }
+  #dashboard-sessions .history-open { flex:1; }
+}

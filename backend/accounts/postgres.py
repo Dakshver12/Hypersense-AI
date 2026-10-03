@@ -1,6 +1,7 @@
 """Private PostgreSQL storage. Parameterized queries and bounded transactions."""
 from contextlib import contextmanager
 import os
+import atexit
 import re
 import sqlite3
 from threading import Lock
@@ -10,6 +11,9 @@ SCHEMA = 'hypersense'
 LOCK_ID = 842901604
 _ready = set()
 _guard = Lock()
+_pool_guard = Lock()
+_pool = None
+_pool_key = None
 TABLES = ('users','logins','links','attempts','account_suspensions','admin_audit',
           'support_reports','support_receipts','support_messages','support_threads',
           'support_admin_reads','interviews','counters')
@@ -64,8 +68,7 @@ def schema_statements():
     yield COUNTERS
 
 
-def raw_connect(url=None):
-    import psycopg
+def connect_options(url=None):
     from psycopg.conninfo import conninfo_to_dict
     value=(url or os.getenv('DATABASE_URL','')).strip()
     if not value.startswith(('postgresql://','postgres://')):
@@ -74,7 +77,43 @@ def raw_connect(url=None):
     options['connect_timeout']='10'
     # Encrypt remote connections by default. Local test servers can explicitly opt out.
     options.setdefault('sslmode','require')
-    return psycopg.connect(**options,autocommit=True,prepare_threshold=None)
+    return options
+
+
+def raw_connect(url=None):
+    import psycopg
+    return psycopg.connect(**connect_options(url),autocommit=True,prepare_threshold=None)
+
+
+def close_pool():
+    global _pool, _pool_key
+    with _pool_guard:
+        if _pool is not None:
+            _pool.close()
+        _pool = None
+        _pool_key = None
+
+
+atexit.register(close_pool)
+
+
+def get_pool(key):
+    from psycopg_pool import ConnectionPool
+    global _pool, _pool_key
+    with _pool_guard:
+        identity = (os.getpid(), key)
+        if _pool is None or _pool_key != identity:
+            if _pool is not None:
+                _pool.close()
+            _pool = ConnectionPool(
+                conninfo='', kwargs={**connect_options(key), 'autocommit': True,
+                                     'prepare_threshold': None},
+                min_size=0, max_size=2, max_waiting=20, timeout=10,
+                max_idle=60, max_lifetime=300, reconnect_timeout=10,
+                check=ConnectionPool.check_connection,
+                name='hypersense', open=True)
+            _pool_key = identity
+        return _pool
 
 
 def initialize(raw,key):
@@ -97,24 +136,24 @@ def initialize(raw,key):
 
 @contextmanager
 def connection():
-    raw=None
     try:
         import psycopg
+        import psycopg_pool
     except ImportError:
-        raise sqlite3.OperationalError('PostgreSQL driver missing. Install requirements-postgres.txt.') from None
+        raise sqlite3.OperationalError('PostgreSQL driver or pool missing. Install requirements-postgres.txt.') from None
     try:
         key=os.getenv('DATABASE_URL','').strip()
-        raw=raw_connect(key);initialize(raw,key)
-        with raw.transaction():
-            raw.execute("SET LOCAL statement_timeout='30s'")
-            raw.execute("SET LOCAL lock_timeout='10s'")
-            raw.execute('SELECT pg_advisory_xact_lock(%s)',(LOCK_ID,))
-            raw.execute('SET LOCAL search_path TO hypersense,pg_catalog')
-            yield Connection(raw)
+        with get_pool(key).connection() as raw:
+            initialize(raw,key)
+            with raw.transaction():
+                # One setup round trip; keep existing serialization guarantees.
+                raw.execute("SET LOCAL statement_timeout='30s'; "
+                            "SET LOCAL lock_timeout='10s'; "
+                            "SET LOCAL search_path TO hypersense,pg_catalog; "
+                            "SELECT pg_advisory_xact_lock(842901604)")
+                yield Connection(raw)
     except psycopg.IntegrityError:
         raise sqlite3.IntegrityError('Database constraint violation.') from None
-    except (psycopg.Error, ValueError):
-        # Do not leak connection strings, SQL parameters or account data in logs.
+    except (psycopg.Error, psycopg_pool.PoolTimeout, psycopg_pool.PoolClosed,
+            psycopg_pool.TooManyRequests, ValueError):
         raise sqlite3.OperationalError('PostgreSQL operation failed. Check connection, permissions and availability.') from None
-    finally:
-        if raw is not None: raw.close()
