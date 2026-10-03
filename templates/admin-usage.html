@@ -20,6 +20,7 @@
       <article><p>Provider attempts</p><strong id="metric-attempts">0</strong><small>Gemini and Groq SDK calls</small></article>
       <article><p>Provider rate limits</p><strong id="metric-limits">0</strong><small>429 responses from attempted calls</small></article>
       <article><p>Fallback attempts</p><strong id="metric-fallbacks">0</strong><small id="metric-fallback-rate">0% of provider attempts</small></article>
+      <article><p>App latency</p><strong id="metric-app-latency">—</strong><small>Average question/scoring request</small></article>
     </div>
     <div class="note"><strong>Observed activity, not remaining quota.</strong> Counts start after this update. Provider SDK retries may add network calls. A 429 alone does not identify a minute or daily limit; check the provider console to confirm.</div>
     <section class="panel"><div class="section-title"><div><p class="eyebrow">RELIABILITY</p><h2>Provider performance</h2></div><p>Timing includes failed attempts</p></div><div class="table-scroll"><table><caption class="sr-only">Provider attempts and average response times</caption><thead><tr><th>Provider</th><th>Attempts</th><th>Returned</th><th>Rate limits</th><th>Other errors</th><th>Avg. response</th><th>Cooldown skips</th></tr></thead><tbody id="usage-providers"></tbody></table></div><p class="hint">“Returned” means the SDK call completed; app-level output validation can still reject its content. Cooldown skips do not contact the provider.</p></section>

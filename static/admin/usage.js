@@ -3,6 +3,7 @@ const labels = {question:'Single question',session_questions:'Session questions'
 const number = value => Number(value || 0).toLocaleString();
 const count = rows => rows.reduce((total,row)=>total+row.count,0);
 const average = rows => count(rows) ? (rows.reduce((total,row)=>total+row.total_ms,0)/count(rows)/1000).toFixed(2)+' s' : '—';
+const milliseconds = rows => count(rows) ? Math.round(rows.reduce((total,row)=>total+row.total_ms,0)/count(rows))+' ms' : '—';
 function table(id, rows) {
   const body=$(id);body.replaceChildren();
   for(const values of rows){
@@ -20,6 +21,7 @@ export function renderUsage(data) {
   $('metric-limits').textContent=number(count(attempts.filter(r=>r.outcome==='rate_limited')));
   $('metric-fallbacks').textContent=number(fallback);
   $('metric-fallback-rate').textContent=(count(attempts)?(100*fallback/count(attempts)).toFixed(1):'0')+'% of provider attempts';
+  $('metric-app-latency').textContent=milliseconds(requests);
   table('usage-providers',['Gemini','Groq'].map(provider=>{
     const selected=attempts.filter(r=>r.provider===provider);
     return [provider,number(count(selected)),number(count(selected.filter(r=>r.outcome==='success'))),number(count(selected.filter(r=>r.outcome==='rate_limited'))),number(count(selected.filter(r=>r.outcome==='error'))),average(selected),number(count(rows.filter(r=>r.kind==='cooldown'&&r.provider===provider)))];

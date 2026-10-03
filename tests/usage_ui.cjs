@@ -17,6 +17,7 @@ const data={since,until,rows:[
  try{
   w.eval(code);await wait();const $=id=>w.document.getElementById(id);
   assert.equal($('metric-requests').textContent,'1');assert.equal($('metric-attempts').textContent,'2');assert.equal($('metric-limits').textContent,'1');
+  assert.equal($('metric-app-latency').textContent,'3000 ms');
   assert.equal($('metric-fallback-rate').textContent,'50.0% of provider attempts');
   assert($('usage-providers').textContent.includes('1.00 s'));assert.equal($('usage-daily').children.length,1);
   status=403;$('usage-filters').dispatchEvent(new w.Event('submit',{cancelable:true}));await wait();
