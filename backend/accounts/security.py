@@ -73,7 +73,8 @@ def current_user(request: Request):
     with database() as db:
         row = db.execute('''SELECT users.id, users.email, users.name FROM logins
           JOIN users ON users.id=logins.user_id WHERE logins.token=? AND logins.expires>?
-          AND users.verified=1''', (digest(token), int(time.time()))).fetchone()
+          AND users.verified=1 AND NOT EXISTS
+          (SELECT 1 FROM account_suspensions s WHERE s.user_id=users.id)''', (digest(token), int(time.time()))).fetchone()
     return dict(row) if row else None
 
 

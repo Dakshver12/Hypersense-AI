@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="hypersense-account" content="<!-- account-id -->">
+  <title>API usage · HyperSense AI</title>
+  <link rel="stylesheet" href="/static/css/admin-usage.css">
+  <link rel="stylesheet" href="/static/css/admin-workspace.css">
+</head>
+<body>
+<!-- admin-nav -->
+<div class="admin-main"><header class="workspace-top"><span>WORKSPACE / API USAGE</span><a class="back" href="/interview?view=dashboard">Return to app ↗</a></header>
+<main>
+  <div class="heading"><div><p class="eyebrow">ADMINISTRATION / API USAGE</p><h1>API performance</h1><p class="intro">Monitor requests, provider reliability and fallback activity.</p></div><span class="private">Admin access only</span></div>
+  <form id="usage-filters" class="toolbar"><label for="usage-days">Reporting period</label><select id="usage-days"><option value="1">Today (UTC)</option><option value="7" selected>Last 7 days (UTC)</option><option value="30">Last 30 days (UTC)</option></select><button id="usage-refresh" type="submit">Refresh data</button><span id="usage-updated"></span></form>
+  <p id="usage-status" role="status" aria-live="polite">Loading usage…</p>
+  <section id="usage-content" hidden>
+    <div class="metrics" aria-label="Usage summary">
+      <article><p>App requests</p><strong id="metric-requests">0</strong><small>Question generation + scoring</small></article>
+      <article><p>Provider attempts</p><strong id="metric-attempts">0</strong><small>Gemini and Groq SDK calls</small></article>
+      <article><p>Provider rate limits</p><strong id="metric-limits">0</strong><small>429 responses from attempted calls</small></article>
+      <article><p>Fallback attempts</p><strong id="metric-fallbacks">0</strong><small id="metric-fallback-rate">0% of provider attempts</small></article>
+    </div>
+    <div class="note"><strong>Observed activity, not remaining quota.</strong> Counts start after this update. Provider SDK retries may add network calls. A 429 alone does not identify a minute or daily limit; check the provider console to confirm.</div>
+    <section class="panel"><div class="section-title"><div><p class="eyebrow">RELIABILITY</p><h2>Provider performance</h2></div><p>Timing includes failed attempts</p></div><div class="table-scroll"><table><caption class="sr-only">Provider attempts and average response times</caption><thead><tr><th>Provider</th><th>Attempts</th><th>Returned</th><th>Rate limits</th><th>Other errors</th><th>Avg. response</th><th>Cooldown skips</th></tr></thead><tbody id="usage-providers"></tbody></table></div><p class="hint">“Returned” means the SDK call completed; app-level output validation can still reject its content. Cooldown skips do not contact the provider.</p></section>
+    <div class="details-grid">
+      <section class="panel"><div class="section-title"><div><p class="eyebrow">WORKLOAD</p><h2>Requests by feature</h2></div></div><div class="table-scroll"><table><thead><tr><th>Feature</th><th>Requests</th><th>Completed</th><th>Avg. time</th></tr></thead><tbody id="usage-operations"></tbody></table></div><p class="hint">One session-generation request can prepare up to ten questions. Authentication rejections, invalid request bodies, audio transcription and face detection are not included.</p></section>
+      <section class="panel"><div class="section-title"><div><p class="eyebrow">ACTIVITY</p><h2>Daily totals</h2></div><p>UTC</p></div><div class="table-scroll daily"><table><thead><tr><th>Date</th><th>Requests</th><th>Attempts</th><th>Rate limits</th></tr></thead><tbody id="usage-daily"></tbody></table></div></section>
+    </div>
+    <footer>Aggregate counters are retained for 30 days on this server. No interview content or account identifiers are stored in usage metrics.</footer>
+  </section>
+</main></div>
+<script type="module" src="/static/admin/usage.js"></script>
+</body>
+</html>

@@ -1,6 +1,7 @@
 """Gemini generation with the existing Groq fallback behavior."""
 
 import os
+from backend.usage.store import measure, record
 from types import SimpleNamespace
 from fastapi import HTTPException
 from groq import Groq, APIStatusError, APIConnectionError
@@ -15,11 +16,13 @@ def generate_with_fallback(contents, config):
     gemini_model = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
     gemini_slot = provider_slot("Gemini", gemini_model, gemini_key)
     gemini_wait = remaining(gemini_slot) if gemini_key else 0
+    if gemini_wait:
+        record("cooldown", "Gemini", "rate_limited")
     if gemini_wait and not groq_key:
         raise HTTPException(429, "Gemini is cooling down. Retry later.", headers={"Retry-After": str(gemini_wait)})
     if gemini_key and not gemini_wait:
         try:
-            with genai.Client(api_key=gemini_key) as client:
+            with measure("attempt", "Gemini"), genai.Client(api_key=gemini_key) as client:
                 response = client.models.generate_content(
                     model=gemini_model, contents=contents, config=config
                 )
@@ -47,6 +50,7 @@ def generate_with_fallback(contents, config):
     groq_slot = provider_slot("Groq", model, groq_key)
     groq_wait = remaining(groq_slot)
     if groq_wait:
+        record("cooldown", "Groq", "rate_limited")
         raise HTTPException(429, "The fallback provider is cooling down. Retry later.", headers={"Retry-After": str(groq_wait)})
     payload = {
         "model": model,
@@ -59,17 +63,18 @@ def generate_with_fallback(contents, config):
     if config.response_mime_type == "application/json":
         payload["response_format"] = {"type": "json_object"}
     try:
-        with Groq(api_key=groq_key, timeout=60.0, max_retries=0) as client:
-            response = client.chat.completions.create(**payload)
-        choice = response.choices[0]
-        text = choice.message.content
-        if (
-            choice.finish_reason != "stop"
-            or not isinstance(text, str)
-            or (not text.strip())
-        ):
-            raise ValueError("Incomplete response")
-        return SimpleNamespace(text=text, provider="Groq", model=model)
+        with measure("attempt", "Groq", fallback=bool(gemini_key)):
+            with Groq(api_key=groq_key, timeout=60.0, max_retries=0) as client:
+                response = client.chat.completions.create(**payload)
+            choice = response.choices[0]
+            text = choice.message.content
+            if (
+                choice.finish_reason != "stop"
+                or not isinstance(text, str)
+                or (not text.strip())
+            ):
+                raise ValueError("Incomplete response")
+            return SimpleNamespace(text=text, provider="Groq", model=model)
     except APIStatusError as exc:
         if exc.status_code == 403:
             raise HTTPException(

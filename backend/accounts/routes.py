@@ -123,6 +123,9 @@ def login(data: Credentials, response: Response, request: Request):
         raise HTTPException(403, 'Verify your email before signing in. Use Resend verification below.')
     token = secrets.token_urlsafe(32)
     with database() as db:
+        db.execute('BEGIN IMMEDIATE')
+        if db.execute('SELECT 1 FROM account_suspensions WHERE user_id=?',(user['id'],)).fetchone():
+            raise HTTPException(403, 'This account is suspended. Contact the site administrator.')
         db.execute('DELETE FROM logins WHERE expires<? OR token=?', (int(time.time()),digest(request.cookies.get(COOKIE,''))))
         db.execute('INSERT INTO logins VALUES (?,?,?)', (digest(token),user['id'],int(time.time())+SESSION_SECONDS))
     response.set_cookie(COOKIE, token, max_age=SESSION_SECONDS, httponly=True, secure=secure_cookie(), samesite='lax')
@@ -142,7 +145,8 @@ def logout(request: Request, response: Response):
 
 @router.get('/auth/me')
 def me(user=Depends(require_user)):
-    return user
+    from backend.usage.access import is_admin
+    return {**user, "is_admin": is_admin(user)}
 
 
 @router.post('/auth/resend-verification', dependencies=[Depends(auth_limit)])

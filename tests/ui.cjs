@@ -723,3 +723,13 @@ const waitFor=async fn=>{for(let i=0;i<100;i++){if(fn())return;await new Promise
 
 require("./account_ui.cjs");
 require("./account_settings_ui.cjs");
+
+require("./usage_ui.cjs");
+
+require("./admin_workspace_ui.cjs");
+
+require("./support_ui.cjs");
+
+require("./support_badge_ui.cjs");
+
+require("./backup_ui.cjs");

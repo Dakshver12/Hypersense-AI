@@ -1,0 +1,8 @@
+
+# Private operational backups
+backups/
+restore-tests/
+*.sqlite3
+*.sqlite3-*
+backup-status.json
+restore-check.json

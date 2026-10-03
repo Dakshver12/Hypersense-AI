@@ -1,4 +1,4 @@
-"""Single-instance SQLite persistence; keep HYPERSENSE_DATA_DIR on a private persistent disk."""
+"""SQLite by default; DATABASE_URL explicitly selects private PostgreSQL storage."""
 import os
 import sqlite3
 from contextlib import contextmanager
@@ -12,29 +12,25 @@ def data_dir():
     return root
 
 
+def postgres_enabled():
+    return bool(os.getenv('DATABASE_URL', '').strip())
+
+
 @contextmanager
 def database():
+    if postgres_enabled():
+        from backend.accounts.postgres import connection
+        with connection() as db:
+            yield db
+        return
     db = sqlite3.connect(data_dir() / 'hypersense.sqlite3', timeout=30)
     db.row_factory = sqlite3.Row
+    db.create_function('strpos',2,lambda value,term: value.find(term)+1)
+    db.create_function('greatest',2,max)
+    db.create_function('least',2,min)
     db.execute('PRAGMA foreign_keys=ON')
-    db.executescript('''
-    CREATE TABLE IF NOT EXISTS users (
-      id TEXT PRIMARY KEY, email TEXT UNIQUE NOT NULL, name TEXT NOT NULL,
-      password TEXT NOT NULL, verified INTEGER NOT NULL DEFAULT 0, created INTEGER NOT NULL);
-    CREATE TABLE IF NOT EXISTS logins (
-      token TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      expires INTEGER NOT NULL);
-    CREATE TABLE IF NOT EXISTS links (
-      token TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      purpose TEXT NOT NULL, expires INTEGER NOT NULL);
-    CREATE TABLE IF NOT EXISTS attempts (
-      bucket TEXT NOT NULL, at INTEGER NOT NULL);
-    CREATE INDEX IF NOT EXISTS attempts_lookup ON attempts(bucket, at);
-    CREATE TABLE IF NOT EXISTS interviews (
-      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-      id TEXT NOT NULL, payload TEXT NOT NULL, bytes INTEGER NOT NULL,
-      PRIMARY KEY(user_id, id));
-    ''')
+    from backend.accounts.schema import SQLITE_SCHEMA
+    db.executescript(SQLITE_SCHEMA)
     try:
         yield db
         db.commit()

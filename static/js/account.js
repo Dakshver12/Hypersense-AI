@@ -14,12 +14,50 @@ export function initAccount() {
   const menu=document.getElementById('account-menu'),name=document.getElementById('account-name');
   const status=document.getElementById('account-status');
   menu.hidden=false;
+  if(!document.getElementById('support-link')) {
+    const link=document.createElement('a');link.id='support-link';link.href='/support';link.textContent='Help & feedback';
+    link.addEventListener('click',event=>{
+      if(state.busy||state.recording||state.interviewSession?.active||state.sessionSavePending){
+        event.preventDefault();status.textContent='Finish your interview and save your answers before opening support.';
+      }
+    });
+    document.getElementById('account-settings-link')?.after(link);
+  }
+  const supportLink=document.getElementById('support-link');
+  let unreadLoading=false;
+  async function refreshSupportBadge(){
+    if(unreadLoading||document.visibilityState==='hidden'||!supportLink)return;
+    unreadLoading=true;
+    try{
+      const data=await accountRequest('/api/support/unread');
+      let badge=document.getElementById('support-unread-count');
+      if(!badge){badge=document.createElement('span');badge.id='support-unread-count';badge.className='support-unread-count';supportLink.append(badge);}
+      const count=Number(data.unread)||0;
+      badge.hidden=count===0;badge.textContent=count>99?'99+':String(count);
+      supportLink.setAttribute('aria-label',count?`Help & feedback, ${count} unread support replies`:'Help & feedback');
+    }catch{document.getElementById('support-unread-count')?.remove();supportLink.setAttribute('aria-label','Help & feedback');}
+    finally{unreadLoading=false;}
+  }
+  refreshSupportBadge();
+  const supportPoll=setInterval(refreshSupportBadge,60000);
+  window.addEventListener('pagehide',()=>clearInterval(supportPoll),{once:true});
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')refreshSupportBadge();});
   document.getElementById('account-settings-link')?.addEventListener('click',event=>{
     if(state.busy||state.recording||state.interviewSession?.active||state.sessionSavePending){
       event.preventDefault();status.textContent='Finish your interview and save your answers before opening account settings.';
     }
   });
-  accountRequest('/auth/me').then(user=>{name.textContent=user.name;name.title=user.email;}).catch(error=>{status.textContent=error.message;});
+  accountRequest('/auth/me').then(user=>{name.textContent=user.name;name.title=user.email;
+    if(user.is_admin && !document.getElementById('admin-usage-link')) {
+      const link=document.createElement('a');link.id='admin-usage-link';link.href='/admin';link.textContent='Admin workspace';
+      link.addEventListener('click',event=>{
+        if(state.busy||state.recording||state.interviewSession?.active||state.sessionSavePending){
+          event.preventDefault();status.textContent='Finish your interview and save your answers before opening the admin workspace.';
+        }
+      });
+      document.getElementById('account-settings-link')?.after(link);
+    }
+}).catch(error=>{status.textContent=error.message;});
   document.getElementById('account-logout').onclick=async()=>{
     if(state.busy||state.recording||state.interviewSession?.active||state.sessionSavePending){status.textContent='Finish your interview and save or export your answers before signing out.';return;}
     const button=document.getElementById('account-logout');button.disabled=true;

@@ -1,5 +1,6 @@
 import json
 import unittest
+import tempfile
 from types import SimpleNamespace
 from unittest.mock import patch, MagicMock
 from fastapi import HTTPException
@@ -47,10 +48,15 @@ class BatchTests(unittest.TestCase):
 
 class CooldownTests(unittest.TestCase):
     def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.env = patch.dict("os.environ", {"HYPERSENSE_DATA_DIR": self.temp.name})
+        self.env.start()
         cooldown._deadlines.clear()
 
     def tearDown(self):
         cooldown._deadlines.clear()
+        self.env.stop()
+        self.temp.cleanup()
 
     def test_expiry_and_credential_isolation(self):
         one = cooldown.provider_slot("Gemini", "model", "one")
