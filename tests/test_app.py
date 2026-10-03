@@ -134,6 +134,30 @@ class AppTests(unittest.TestCase):
             self.assertEqual(response.json()["score"], 0)
             self.assertIsInstance(call.call_args.args[0], AnswerRequest)
 
+    def test_account_draft_round_trip(self):
+        draft = {
+            "id": "draft-session",
+            "date": "2026-10-03T12:00:00Z",
+            "total": 2,
+            "active": True,
+            "loaded": False,
+            "source": "gemini",
+            "questions": ["Explain a list."],
+            "pendingQuestion": {"question": "Explain a tuple.", "technology": "Python"},
+            "settings": {"technology": "Python", "interview_type": "technical"},
+            "answers": [{"question": "Explain a list.", "answer": "A sequence.", "score": 80}],
+            "savedAt": "2026-10-03T12:00:00Z",
+        }
+        self.assertEqual(self.client.get("/api/account/sessions/draft").status_code, 404)
+        response = self.client.put("/api/account/sessions/draft", json=draft)
+        self.assertEqual(response.status_code, 200, response.text)
+        saved = self.client.get("/api/account/sessions/draft")
+        self.assertEqual(saved.status_code, 200)
+        self.assertTrue(saved.json()["active"])
+        self.assertEqual(saved.json()["answers"][0]["answer"], "A sequence.")
+        self.assertEqual(self.client.delete("/api/account/sessions/draft").status_code, 200)
+        self.assertEqual(self.client.get("/api/account/sessions/draft").status_code, 404)
+
     def test_delivery_timings_and_fillers(self):
         words = [
             {"word": "one", "start": 0, "end": 1},

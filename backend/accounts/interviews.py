@@ -3,6 +3,7 @@ import base64
 import binascii
 import json
 import re
+import time
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request
 from .database import database
 from .security import require_user, check_origin, limit
@@ -12,6 +13,7 @@ from .object_storage import configured
 router = APIRouter(prefix='/api/account/sessions')
 MAX_ACCOUNT_BYTES = 100 * 1024 * 1024
 MAX_SESSION_BYTES = 24 * 1024 * 1024
+MAX_DRAFT_BYTES = 5 * 1024 * 1024
 
 
 def valid_id(value):
@@ -19,7 +21,7 @@ def valid_id(value):
         raise HTTPException(422,'Invalid session ID.')
 
 
-def validate(record):
+def validate(record, active=False):
     if not isinstance(record,dict) or not isinstance(record.get('id'),str):
         raise HTTPException(422,'Invalid session document.')
     valid_id(record['id'])
@@ -32,8 +34,19 @@ def validate(record):
         raise HTTPException(422,'Invalid date.')
     # Private uploaded resumes are not copied into finished interview history.
     record['settings'].pop('resume_text',None)
-    record['active'] = False
+    record['active'] = bool(active)
     record['loaded'] = False
+    if active:
+        if not isinstance(record.get('questions'), list) or len(record['questions']) > 100:
+            raise HTTPException(422, 'Invalid draft questions.')
+        for question in record['questions']:
+            if not isinstance(question, str) or not question.strip() or len(question) > 2000:
+                raise HTTPException(422, 'Invalid draft question.')
+        pending = record.get('pendingQuestion')
+        if pending is not None and (not isinstance(pending, dict) or
+                                    not isinstance(pending.get('question'), str) or
+                                    not pending['question'].strip() or len(pending['question']) > 2000):
+            raise HTTPException(422, 'Invalid pending draft question.')
     for answer in answers:
         if not isinstance(answer,dict) or not isinstance(answer.get('question'),str):
             raise HTTPException(422,'Invalid answer.')
@@ -66,11 +79,48 @@ def validate(record):
     return payload,size
 
 
+def validate_draft(record):
+    payload, size = validate(record, active=True)
+    if size > MAX_DRAFT_BYTES:
+        raise HTTPException(413, 'This unfinished interview draft is too large.')
+    return payload, size
+
+
 @router.get('')
 def list_sessions(user=Depends(require_user)):
     with database(readonly=True) as db:
         rows=db.execute('SELECT payload FROM interviews WHERE user_id=?',(user['id'],)).fetchall()
     return [json.loads(row['payload']) for row in rows]
+
+
+@router.get('/draft')
+def get_draft(user=Depends(require_user)):
+    with database(readonly=True) as db:
+        row = db.execute('SELECT payload FROM interview_drafts WHERE user_id=?', (user['id'],)).fetchone()
+    if not row:
+        raise HTTPException(404, 'No unfinished interview draft was found.')
+    return json.loads(row['payload'])
+
+
+@router.put('/draft', dependencies=[Depends(check_origin)])
+def put_draft(record: dict, user=Depends(require_user)):
+    if not isinstance(record, dict) or record.get('active') is not True:
+        raise HTTPException(422, 'Only an active interview draft can be saved.')
+    limit('draft-save:' + user['id'], 120, 60)
+    payload, size = validate_draft(record)
+    with database() as db:
+        db.execute('BEGIN IMMEDIATE')
+        db.execute('INSERT INTO interview_drafts (user_id,payload,bytes,updated) VALUES (?,?,?,?) '
+                   'ON CONFLICT(user_id) DO UPDATE SET payload=excluded.payload,bytes=excluded.bytes,updated=excluded.updated',
+                   (user['id'], payload, size, int(time.time())))
+    return {'saved': True}
+
+
+@router.delete('/draft', dependencies=[Depends(check_origin)])
+def delete_draft(user=Depends(require_user)):
+    with database() as db:
+        db.execute('DELETE FROM interview_drafts WHERE user_id=?', (user['id'],))
+    return {'deleted': True}
 
 
 @router.get('/{session_id}')

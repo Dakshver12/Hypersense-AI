@@ -1,4 +1,6 @@
 import { accountKey } from "./account-context.js";
+import { accountId } from "./account-context.js";
+import { accountRequest } from "./account-store.js";
 import { state } from "./state.js";
 import { $ } from "./dom.js";
 import { storedSession, sessionStore } from "./storage.js";
@@ -6,6 +8,54 @@ import { releaseSessionRecordings } from "./sessions.js";
 import { showCameraCheck } from "./navigation.js";
 import { finishInterviewSession } from "./results.js";
 import { run } from "./api.js";
+
+let remoteSync = Promise.resolve();
+let latestRemoteDraftAt = "";
+
+function cloudDraft(draft) {
+  return {
+    ...draft,
+    // Keep the unfinished recording local. Processed answer text and scores
+    // are enough to resume, while audio stays private until final save.
+    answers: draft.answers.map(answer => ({ ...answer, recording: null })),
+  };
+}
+
+function queueRemoteDraft(draft) {
+  if (!accountId) return;
+  latestRemoteDraftAt = draft.savedAt || "";
+  const payload = cloudDraft(draft);
+  remoteSync = remoteSync.catch(() => {}).then(async () => {
+    await accountRequest("/api/account/sessions/draft", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (latestRemoteDraftAt === draft.savedAt && state.interviewSession?.id === draft.id) {
+      $("checkpoint-status").textContent = `${draft.answers.length} processed question(s) saved to your account and this browser.`;
+    }
+  }).catch(() => {
+    if (latestRemoteDraftAt === draft.savedAt && state.interviewSession?.id === draft.id) {
+      $("checkpoint-status").textContent = `${draft.answers.length} processed question(s) saved in this browser. Account sync will retry on the next checkpoint.`;
+    }
+  });
+}
+
+async function remoteDraft() {
+  if (!accountId) return null;
+  try {
+    return await accountRequest("/api/account/sessions/draft");
+  } catch (error) {
+    if (error.status === 404) return null;
+    throw error;
+  }
+}
+
+function newerDraft(left, right) {
+  if (!left) return right;
+  if (!right) return left;
+  return Date.parse(right.savedAt || "") > Date.parse(left.savedAt || "") ? right : left;
+}
 
 // Separate database keeps unfinished work out of completed-session reports.
 export async function draftStore(mode, operation) {
@@ -35,6 +85,7 @@ export async function checkpointSession() {
   try {
     await draftStore("readwrite", s => s.put(draft, "active"));
     $("checkpoint-status").textContent = `${draft.answers.length} processed question(s) saved on this browser. The unfinished answer is not saved.`;
+    queueRemoteDraft(draft);
   } catch {
     $("checkpoint-status").textContent = "Progress could not be saved. Keep this tab open and retry before continuing.";
     throw Error("Could not save progress. Browser storage may be full or unavailable. Use Load / retry next question to retry.");
@@ -49,11 +100,25 @@ export async function clearSessionDraft(id) {
     return request;
   });
   $("session-recovery").hidden = true;
+  if (accountId) {
+    remoteSync = remoteSync.catch(() => {}).then(() =>
+      accountRequest("/api/account/sessions/draft", { method: "DELETE" }).catch(() => {})
+    );
+  }
 }
 
 export async function offerSessionRecovery() {
   try {
-    const draft = await draftStore("readonly", s => s.get("active"));
+    const local = await draftStore("readonly", s => s.get("active"));
+    let draft = local;
+    let remote = null;
+    try { remote = await remoteDraft(); } catch { /* local recovery remains available */ }
+    draft = newerDraft(local, remote);
+    if (remote && draft === remote) {
+      await draftStore("readwrite", s => s.put(remote, "active"));
+    } else if (local && remote !== local) {
+      queueRemoteDraft(local);
+    }
     if (!draft || state.interviewSession?.active) return;
     const finished = await sessionStore("readonly", s => s.get(draft.id));
     if (finished) { await clearSessionDraft(draft.id); return; }

@@ -51,4 +51,13 @@ SQLITE_SCHEMA = """
       user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       id TEXT NOT NULL, payload TEXT NOT NULL, bytes INTEGER NOT NULL,
       PRIMARY KEY(user_id, id));
+    CREATE TABLE IF NOT EXISTS interview_drafts (
+      user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+      payload TEXT NOT NULL, bytes INTEGER NOT NULL, updated INTEGER NOT NULL);
+    CREATE TABLE IF NOT EXISTS recording_objects (
+      id TEXT PRIMARY KEY, user_id TEXT NOT NULL, session_id TEXT NOT NULL,
+      object_key TEXT UNIQUE NOT NULL, storage_origin TEXT NOT NULL, bucket TEXT NOT NULL,
+      name TEXT NOT NULL, mime TEXT NOT NULL, bytes INTEGER NOT NULL,
+      status TEXT NOT NULL, created INTEGER NOT NULL, expires INTEGER NOT NULL);
+    CREATE INDEX IF NOT EXISTS recording_owner ON recording_objects(user_id,session_id);
 """

@@ -16,7 +16,7 @@ _pool = None
 _pool_key = None
 TABLES = ('users','logins','links','attempts','account_suspensions','admin_audit',
           'support_reports','support_receipts','support_messages','support_threads',
-          'support_admin_reads','interviews','recording_objects','counters')
+          'support_admin_reads','interviews','interview_drafts','recording_objects','counters')
 COUNTERS = '''CREATE TABLE IF NOT EXISTS counters (
  hour BIGINT NOT NULL, kind TEXT NOT NULL, operation TEXT NOT NULL,
  provider TEXT NOT NULL, outcome TEXT NOT NULL, fallback BIGINT NOT NULL,
