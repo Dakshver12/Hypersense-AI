@@ -4,6 +4,7 @@ from pathlib import Path
 import sqlite3
 import tempfile
 import unittest
+from contextlib import closing
 from unittest.mock import patch
 from backend.accounts.postgres import Row, bind_sql
 from backend.accounts.schema import SQLITE_SCHEMA
@@ -23,9 +24,10 @@ class PostgresAdapterTests(unittest.TestCase):
     def test_preview_preserves_source(self):
         with tempfile.TemporaryDirectory() as tmp:
             source=Path(tmp)/'account.sqlite3'
-            with sqlite3.connect(source) as db:
-                db.executescript(SQLITE_SCHEMA)
-                db.execute('INSERT INTO users VALUES (?,?,?,?,?,?)',('id','test@example.com','Test','hash',1,1))
+            with closing(sqlite3.connect(source)) as db:
+                with db:
+                    db.executescript(SQLITE_SCHEMA)
+                    db.execute('INSERT INTO users VALUES (?,?,?,?,?,?)',('id','test@example.com','Test','hash',1,1))
             before=hashlib.sha256(source.read_bytes()).digest()
             result=migrate(source)
             self.assertEqual(result['counts']['users'],1)

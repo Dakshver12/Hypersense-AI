@@ -4,6 +4,7 @@ from pathlib import Path
 import sqlite3
 import tempfile
 import unittest
+from contextlib import closing
 from unittest.mock import patch
 from backend.accounts.database import database
 from backend.maintenance.backup import create, verify, restore_test, status
@@ -20,8 +21,9 @@ class BackupTests(unittest.TestCase):
             db.execute("INSERT INTO interviews VALUES ('u','s',?,?)",('{"recording":"base64-audio","transcript":"answer"}',49))
             db.execute("INSERT INTO support_reports VALUES ('r','u','bug','Issue','Description','open','',1,1,1)")
         with database(): pass
-        with sqlite3.connect(self.root/'live'/'usage.sqlite3') as db:
-            db.execute('CREATE TABLE counters (count INTEGER)');db.execute('INSERT INTO counters VALUES (4)')
+        with closing(sqlite3.connect(self.root/'live'/'usage.sqlite3')) as db:
+            with db:
+                db.execute('CREATE TABLE counters (count INTEGER)');db.execute('INSERT INTO counters VALUES (4)')
 
     def tearDown(self):
         self.env.stop();self.temp.cleanup()
@@ -37,9 +39,10 @@ class BackupTests(unittest.TestCase):
             self.assertIn('usage.sqlite3',manifest['files'])
             self.assertTrue(status()['available']);self.assertTrue(status()['last_attempt_ok'])
             output=restore_test(folder,self.root/'restored')
-            with sqlite3.connect(output/'hypersense.sqlite3') as db:
-                self.assertIn('base64-audio',db.execute('SELECT payload FROM interviews').fetchone()[0])
-                self.assertEqual(db.execute('SELECT body FROM support_messages').fetchone()[0],'Follow up')
+            with closing(sqlite3.connect(output/'hypersense.sqlite3')) as db:
+                with db:
+                    self.assertIn('base64-audio',db.execute('SELECT payload FROM interviews').fetchone()[0])
+                    self.assertEqual(db.execute('SELECT body FROM support_messages').fetchone()[0],'Follow up')
             self.assertEqual(writer.execute('SELECT COUNT(*) FROM users').fetchone()[0],1)
             with self.assertRaises(FileExistsError):restore_test(folder,output)
             with self.assertRaises(ValueError):restore_test(folder,self.root/'live')
