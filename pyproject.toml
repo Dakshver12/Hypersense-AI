@@ -16,7 +16,7 @@ dependencies = [
     "google-genai",
     "groq",
     "faster-whisper",
-    "opencv-python-headless>=4.10,<5",
+    "opencv-contrib-python-headless>=4.10,<5",
     "mediapipe",
     "numpy",
     "httpx",
@@ -36,3 +36,11 @@ build-backend = "uv_build"
 
 [tool.vercel]
 entrypoint = "main:app"
+
+# MediaPipe imports cv2 but declares the desktop distribution. Use the
+# equivalent headless contrib distribution in uv deployments instead.
+[tool.uv]
+override-dependencies = [
+    "opencv-contrib-python; sys_platform == 'never'",
+    "opencv-python; sys_platform == 'never'",
+]
