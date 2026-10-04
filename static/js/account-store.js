@@ -26,7 +26,7 @@ export async function accountRequest(path, options={}) {
 
 // Keep successful uploads across session-save retries without retaining blobs forever.
 const uploadedRecordings = new WeakMap();
-async function uploadRecording(sessionId, rec) {
+export async function uploadRecording(sessionId, rec) {
   const {blob,name}=rec;
   if(!(blob instanceof Blob) || !blob.size) throw Error('The recording is unavailable. Keep this page open and retry.');
   if(blob.size>10*1024*1024) throw Error('Each recording must be 10 MB or smaller.');
@@ -140,4 +140,13 @@ export async function restoreAccountSessions(records) {
     }
   }
   return {added,skipped};
+}
+
+
+export async function transcribeStoredRecording(sessionId, rec, language) {
+  const recording = await uploadRecording(sessionId, rec);
+  return accountRequest('/api/account/recordings/' + recording.object_id + '/transcribe', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({spoken_language:language})
+  });
 }

@@ -3,11 +3,12 @@ import json
 import re
 import time
 from uuid import uuid4
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from .database import database
-from .security import require_user, check_origin, limit
+from .security import require_user, require_practice_user, check_origin, limit
 from .object_storage import ObjectStorage, configured, mime_type, MAX_RECORDING_BYTES
 
 router = APIRouter(prefix='/api/account/recordings')
@@ -185,3 +186,29 @@ def playback(ident: str, user=Depends(require_user)):
         if row['status'] != 'ready':
             raise HTTPException(409, 'Recording upload is not complete.')
     return {'url': storage_for(row).playback_url(row['object_key']), 'expires_in': 300}
+
+
+class TranscriptionRequest(BaseModel):
+    spoken_language: Literal['auto', 'en', 'hi'] = 'auto'
+
+
+@router.post('/{ident}/transcribe', dependencies=[Depends(check_origin)])
+def transcribe_recording(ident: str, data: TranscriptionRequest, user=Depends(require_practice_user)):
+    from io import BytesIO
+    from pathlib import Path
+    from fastapi import UploadFile
+    from backend.services.transcription import transcribe_audio
+
+    limit('recording-transcribe:' + user['id'], 60, 3600)
+    with database(readonly=True) as db:
+        row = dict(owned(db, user['id'], ident))
+    if row['status'] != 'ready':
+        raise HTTPException(409, 'Recording upload is not complete.')
+    if Path(row['name']).suffix.lower() not in {'.wav', '.mp3', '.m4a', '.webm', '.ogg', '.flac'}:
+        raise HTTPException(400, 'Upload a WAV, MP3, M4A, WebM, OGG, or FLAC file.')
+    audio = storage_for(row).download(row['object_key'], row['bytes'])
+    source = UploadFile(filename=row['name'], file=BytesIO(audio))
+    try:
+        return transcribe_audio(source, data.spoken_language)
+    finally:
+        source.file.close()

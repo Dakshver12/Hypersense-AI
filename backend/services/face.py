@@ -51,6 +51,8 @@ def expression_observations(blendshapes, face_count):
 
 def detect_face(file: UploadFile):
     global face_landmarker
+    from backend.native import load_native_libraries
+    load_native_libraries()
     import cv2
     import numpy as np
     import mediapipe as mp

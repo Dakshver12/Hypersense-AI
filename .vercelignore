@@ -1,0 +1,16 @@
+.env
+.env.*
+!.env.*.example
+.venv/
+.git/
+node_modules/
+static - Copy/
+templates - Copy/
+data/
+backups/
+*.dump
+*.zip
+*.mp3
+*.webm
+test-output.txt
+**/__pycache__/

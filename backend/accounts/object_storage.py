@@ -129,3 +129,23 @@ class ObjectStorage:
 
     def remove(self, key):
         self.request('DELETE', '/object/' + self.bucket, {'prefixes': [key]})
+
+    def download(self, key, expected_bytes):
+        """Fetch only a server-selected object, with a bounded decoded body."""
+        try:
+            with httpx.Client(timeout=30, follow_redirects=False) as client:
+                with client.stream('GET', self.base + '/object/authenticated/' + self.path(key),
+                                   headers=self.headers) as response:
+                    if not response.is_success:
+                        raise HTTPException(503, 'Recording could not be retrieved. Retry transcription.')
+                    chunks, total = [], 0
+                    for chunk in response.iter_bytes():
+                        total += len(chunk)
+                        if total > MAX_RECORDING_BYTES or total > expected_bytes:
+                            raise HTTPException(422, 'Stored recording failed its size check.')
+                        chunks.append(chunk)
+                    if total != expected_bytes or not total:
+                        raise HTTPException(422, 'Stored recording failed its size check.')
+                    return b''.join(chunks)
+        except httpx.HTTPError:
+            raise HTTPException(503, 'Recording storage is unavailable. Retry transcription.') from None

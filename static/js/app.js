@@ -1,3 +1,4 @@
+import { initMobileShell } from "./mobile-shell.js";
 import { initAccount } from "./account.js";
 import { initMicrophoneCheck } from "./microphone-check.js";
 import { initDashboardTabs } from "./dashboard-tabs.js";
@@ -52,3 +53,5 @@ initDashboardTabs();
 initMicrophoneCheck();
 
 initAccount();
+
+initMobileShell();

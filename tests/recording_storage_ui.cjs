@@ -24,6 +24,10 @@ const code=esbuild.buildSync({stdin:{contents:`import * as store from './account
       assert(!options.headers.apikey);assert(!options.headers.Authorization);assert.equal(options.body,blob);
       return response({},failUpload?503:200);
     }
+    if(url.endsWith('/transcribe')){
+      assert.equal(options.method,'POST');assert.deepEqual(JSON.parse(options.body),{spoken_language:'en'});
+      assert(!options.body.includes('base64'));return response({text:'Python answer'});
+    }
     if(url.endsWith('/complete'))return response({object_id:ident,name:'answer.webm',type:'audio/webm',bytes:10});
     if(url.endsWith('/playback'))return response({url:'https://storage.test/playback?token=private'});
     if(url.startsWith('https://storage.test/playback')){
@@ -41,6 +45,9 @@ const code=esbuild.buildSync({stdin:{contents:`import * as store from './account
     throw Error('Unexpected URL: '+url);
   };
   await assert.rejects(w.putAccountSession(record),/Temporary database error/);
+  const transcription=await w.transcribeStoredRecording('one',record.answers[0].recording,'en');
+  assert.equal(transcription.text,'Python answer');
+  assert.equal(uploads,1,'Transcription and saving reuse the same uploaded object');
   failSave=false;await w.putAccountSession(record);
   assert.equal(uploads,1,'Save retries must reuse uploaded audio');assert.equal(saves,2);
   const listed=await w.remoteSessionStore.getAll();

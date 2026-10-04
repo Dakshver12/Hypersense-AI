@@ -1,3 +1,5 @@
+import { accountId } from "./account-context.js";
+import { accountRequest, transcribeStoredRecording } from "./account-store.js";
 import { microphoneConstraints, stopMicrophoneCheck } from "./microphone-check.js";
 import { resetTranscriptReview } from "./transcript-review.js";
 import { state } from "./state.js";
@@ -146,7 +148,15 @@ export async function transcribeAnswer() {
   const form = new FormData();
   form.append("file", state.blob, state.filename);
   form.append("spoken_language", $("spoken").value);
-  const data = await api("/transcribe", form, true);
+  let data;
+  const cloud = accountId && (await accountRequest('/api/account/recordings/config')).enabled;
+  if (cloud) {
+    const sessionId = state.interviewSession?.active ? state.interviewSession.id : (state.attemptId ||= crypto.randomUUID());
+    message("Uploading securely and transcribing your recording…");
+    data = await transcribeStoredRecording(sessionId, {blob:state.blob, name:state.filename}, $("spoken").value);
+  } else {
+    data = await api("/transcribe", form, true);
+  }
   if (!data.text?.trim()) throw Error("No speech was returned.");
   state.deliveryAudio = data.delivery || null;
   renderDelivery();

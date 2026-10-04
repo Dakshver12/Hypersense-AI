@@ -182,6 +182,8 @@ def transcribe_audio(
                 else:
                     fallback_reason = "Groq key not configured; used local Whisper."
             if result is None:
+                if os.getenv('VERCEL') == '1':
+                    raise HTTPException(503, 'Cloud transcription is unavailable. Retry later; your recording is retained.')
                 with whisper_lock:
                     if whisper_model is None:
                         if WHISPER_MODEL_NAME not in {
