@@ -1,6 +1,6 @@
 """Authenticated account settings and explicit session revocation."""
 from html import escape
-from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
 from pydantic import BaseModel, Field
 from backend.config import PROJECT_ROOT
@@ -85,12 +85,15 @@ def logout_all(response: Response, user=Depends(settings_user)):
 
 
 @router.delete('/api/account')
-def delete_account(data: DeleteAccount, response: Response, user=Depends(settings_user)):
+def delete_account(data: DeleteAccount, response: Response, background_tasks: BackgroundTasks, user=Depends(settings_user)):
     if data.confirmation != 'DELETE':
         raise HTTPException(400, 'Type DELETE to confirm.')
     with database() as db:
         db.execute('BEGIN IMMEDIATE')
         verify_password(db, user['id'], data.current_password)
+        from .recordings import mark_deleted, cleanup
+        mark_deleted(db, user['id'])
         db.execute('DELETE FROM users WHERE id=?', (user['id'],))
+    background_tasks.add_task(cleanup, user['id'])
     clear_cookie(response)
     return {'message':'Account and server-saved interviews deleted.'}

@@ -37,13 +37,18 @@ const flush=()=>new Promise(r=>setTimeout(r,10));
   }
   const code=esbuild.buildSync({stdin:{contents:`import * as store from './account-store.js'; import * as context from './account-context.js';Object.assign(window,store,context);`,resolveDir:path.join(root,'static/js')},bundle:true,write:false,format:'iife'}).outputFiles[0].text;
   const dom=new JSDOM('<meta name="hypersense-account" content="account-a">',{url:'http://localhost:8000',runScripts:'outside-only'}),w=dom.window;
+  w.structuredClone=structuredClone;
   w.eval(code);
   assert.equal(w.accountKey('drafts'),'drafts:account-a');assert.equal(w.accountHeaders()['X-HyperSense-Account'],'account-a');
   const record={id:'one',settings:{technology:'Python'},answers:[{question:'Q',answer:'A',score:0,recording:{blob:new w.Blob(['test-audio'],{type:'audio/webm'}),name:'answer.webm'}}]};
   const encoded=await w.encodeAccountSession(record);assert.equal(encoded.answers[0].recording.base64,Buffer.from('test-audio').toString('base64'));
   const decoded=w.decodeAccountSession(encoded);assert.equal(decoded.answers[0].recording.blob.size,10);assert.equal(decoded.answers[0].score,0);
   let received=[];
-  w.fetch=async(url,options)=>{received.push(options);return {ok:true,json:async()=>({id:'one'})};};
+  w.fetch=async(url,options)=>{
+    if(url.endsWith('/config'))return {ok:true,json:async()=>({enabled:false})};
+    if(!options.method)return {ok:false,status:404,json:async()=>({detail:'Session not found.'})};
+    received.push(options);return {ok:true,json:async()=>({id:'one'})};
+  };
   await w.putAccountSession(record,true);
   assert.equal(received[0].headers['X-HyperSense-Account'],'account-a');assert.equal(received[0].headers['If-None-Match'],'*');
   w.fetch=async()=>({ok:false,status:409,json:async()=>({detail:'The signed-in account changed. Reload this page before continuing.'})});

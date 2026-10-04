@@ -66,6 +66,7 @@ export function storedSession(session) {
             blob: answer.recording.blob,
             name: answer.recording.name,
             bytes: answer.recording.bytes,
+            ...(answer.recording.object_id ? {object_id:answer.recording.object_id,type:answer.recording.type} : {}),
           }
         : null,
     })),

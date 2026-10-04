@@ -79,7 +79,10 @@ export async function buildBackup() {
   let estimatedBytes = 0;
   const records = [];
   for (const original of sessions) {
-    const session = storedSession(original);
+    const needsAudio=original.answers.some(a=>a.recording?.object_id && !(a.recording.blob instanceof Blob));
+    const complete=needsAudio ? await sessionStore('readonly',store=>store.get(original.id)) : original;
+    require(complete, 'A session was removed during export. Retry the backup.');
+    const session = storedSession(complete);
     for (const answer of session.answers) {
       if (!answer.recording) continue;
       const rec = answer.recording;

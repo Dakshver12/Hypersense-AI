@@ -733,3 +733,5 @@ require("./support_ui.cjs");
 require("./support_badge_ui.cjs");
 
 require("./backup_ui.cjs");
+
+require("./recording_storage_ui.cjs");
