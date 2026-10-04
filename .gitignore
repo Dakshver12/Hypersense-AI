@@ -37,3 +37,5 @@ restore-tests/
 *.sqlite3-*
 backup-status.json
 restore-check.json
+
+test-output.txt
