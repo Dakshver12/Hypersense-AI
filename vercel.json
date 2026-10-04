@@ -14,9 +14,16 @@
         {
           "key": "Cache-Control",
           "value": "public, max-age=0, must-revalidate"
+        },
+        {
+          "key": "Vercel-CDN-Cache-Control",
+          "value": "public, s-maxage=86400"
         }
       ]
     }
   ],
-  "buildCommand": "python scripts/build_vercel.py"
+  "buildCommand": "python scripts/build_vercel.py",
+  "regions": [
+    "hnd1"
+  ]
 }

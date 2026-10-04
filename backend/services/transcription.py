@@ -9,10 +9,15 @@ from threading import Lock
 from time import perf_counter
 from typing import Literal
 from fastapi import UploadFile, Form, HTTPException
-from faster_whisper import WhisperModel
-from faster_whisper.audio import decode_audio
+from backend.services.audio import decode_audio
 from groq import Groq, APIStatusError, APIConnectionError
 from backend.services.delivery import audio_delivery_report
+
+def WhisperModel(*args, **kwargs):
+    # Cloud requests do not need CTranslate2/Hugging Face model initialization.
+    from faster_whisper import WhisperModel as LocalWhisperModel
+    return LocalWhisperModel(*args, **kwargs)
+
 
 WHISPER_MODEL_NAME = os.getenv("WHISPER_MODEL", "small").strip() or "small"
 

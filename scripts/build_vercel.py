@@ -3,6 +3,7 @@ import gzip
 import hashlib
 import io
 import platform
+import shutil
 import tarfile
 from pathlib import Path
 from urllib.request import urlopen
@@ -32,9 +33,20 @@ def data_archive(deb):
     raise RuntimeError('Missing Debian package data')
 
 
+def prepare_static_assets():
+    # Explicit public output avoids routing CSS/JS through Python cold starts.
+    source = ROOT / 'static'
+    target = ROOT / 'public' / 'static'
+    if target.exists():
+        shutil.rmtree(target)
+    shutil.copytree(source, target)
+    print('Published static assets to public/static for CDN delivery')
+
+
 def main():
     if platform.system() != 'Linux' or platform.machine() not in ('x86_64','AMD64'):
         raise RuntimeError('This Vercel native build expects Linux x86_64')
+    prepare_static_assets()
     index = gzip.decompress(fetch(BASE+'dists/bookworm/main/binary-amd64/Packages.gz')).decode()
     found = {}
     for block in index.split('\n\n'):

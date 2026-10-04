@@ -1,4 +1,5 @@
 import { accountId, accountKey } from "./account-context.js";
+import { queueFinishedSession, flushSessionOutbox, discardQueuedSession } from "./session-outbox.js";
 import { remoteSessionStore } from "./account-store.js";
 import { discardSessionNotes } from "./session-notes.js";
 import { clearSessionDraft } from "./recovery.js";
@@ -79,8 +80,22 @@ export async function saveFinishedSession(session) {
   $("retry-session-save").hidden = true;
   $("session-storage-status").textContent =
     "Saving session and recordings… Please keep this page open.";
+  let locallyQueued = false;
   try {
-    await sessionStore("readwrite", (store) => store.put(record));
+    if (accountId) {
+      await queueFinishedSession(record);
+      locallyQueued = true;
+      if (state.sessionSavePending === record) state.sessionSavePending = null;
+      $("session-storage-status").textContent =
+        "Saved on this device. Syncing to your account—you can leave this page. If you close the site, sync resumes when you return.";
+      // The completed record is durable before unfinished recovery is cleared.
+      await clearSessionDraft(record.id).catch(() => {});
+      await flushSessionOutbox();
+      if (state.interviewSession?.id === record.id)
+        $("session-storage-status").textContent = "Session and recordings saved to your account.";
+    } else {
+      await sessionStore("readwrite", (store) => store.put(record));
+    }
     if (state.sessionSavePending === record) {
       state.sessionSavePending = null;
       $("session-storage-status").textContent = accountId ? "Session and recordings saved to your account." : "Session and recordings saved in this browser.";
@@ -89,6 +104,12 @@ export async function saveFinishedSession(session) {
     await renderSavedSessions();
     return true;
   } catch (error) {
+    if (locallyQueued) {
+      $("session-storage-status").textContent =
+        "Saved on this device; account sync is pending. It retries when you return or reconnect. " + (error.message || "Connection unavailable.");
+      $("retry-session-save").hidden = false;
+      return true; // The device copy is durable; account sync remains explicitly pending.
+    }
     $("session-storage-status").textContent =
       "Could not save this session: " + (error.message || "Storage unavailable.") + " Download recordings before leaving, or retry saving.";
     $("retry-session-save").hidden = false;
@@ -125,6 +146,7 @@ export async function deleteSavedSession(id) {
   if (state.busy || state.recording || state.interviewSession?.active) return;
   if (!window.confirm("Delete this saved session, including its answers and recordings?")) return;
   await run(async () => {
+    if (accountId) await discardQueuedSession(id);
     await sessionStore("readwrite", (store) => store.delete(id));
     discardSessionNotes(id);
     if (state.interviewSession?.id === id) {
@@ -142,7 +164,32 @@ export async function deleteSavedSession(id) {
   });
 }
 export function initStorage() {
+  const retryQueue = () => {
+    if (!accountId) return;
+    flushSessionOutbox().then(async ids => {
+      if (!ids.length) return;
+      $("account-status").textContent = "Pending sessions synced to your account.";
+      if (ids.includes(state.interviewSession?.id)) {
+        $("session-storage-status").textContent = "Session and recordings saved to your account.";
+        $("retry-session-save").hidden = true;
+      }
+      await renderSavedSessions();
+    }).catch(() => {
+      $("account-status").textContent = "A session is saved on this device and waiting to sync. Reconnect and return to this site to retry.";
+    });
+  };
+  retryQueue();
+  window.addEventListener('online', retryQueue);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') retryQueue();
+  });
+  window.addEventListener('beforeunload', event => {
+    if (!state.sessionSavePending) return;
+    event.preventDefault();
+    event.returnValue = '';
+  });
   $("retry-session-save").onclick = () => {
+    if (accountId && !state.sessionSavePending) { retryQueue(); return; }
     if (
       state.sessionSavePending &&
       !state.busy &&

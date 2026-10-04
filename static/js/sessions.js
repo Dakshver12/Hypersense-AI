@@ -1,3 +1,4 @@
+import { uploadedRecordingReference } from "./account-store.js";
 import { confirmSkipQuestion } from "./confirm-dialog.js";
 import { requireTranscriptReview } from "./transcript-review.js";
 import { checkpointSession, draftStore } from "./recovery.js";
@@ -42,6 +43,7 @@ export function sessionSnapshot() {
   const extension = (state.filename.match(/\.([a-z0-9]{1,8})$/i) || [])[1] || "webm";
   const recording = state.blob?.size
     ? {
+        ...uploadedRecordingReference(state.interviewSession.id, state.blob),
         blob: state.blob,
         url: URL.createObjectURL(state.blob),
         name: `answer-${String(number).padStart(2, "0")}.${extension}`,
