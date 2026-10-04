@@ -24,3 +24,12 @@
 .hypersense-confirm [data-choice="skip"]{background:#7be0c6;color:#082b25;border-color:#7be0c6}
 .hypersense-confirm button:focus-visible{outline:3px solid #c5fff1;outline-offset:3px}
 @media(max-width:480px){.hypersense-confirm{padding:24px}.hypersense-confirm .confirm-actions{display:grid;grid-template-columns:1fr}.hypersense-confirm button{width:100%}}
+.hypersense-confirm [data-choice="discard"] {
+  background: #48252d;
+  border-color: #96505d;
+  color: #ffd8df;
+}
+
+.hypersense-confirm [data-choice="discard"]:hover {
+  background: #60303b;
+}

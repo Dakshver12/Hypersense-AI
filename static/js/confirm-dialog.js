@@ -40,3 +40,60 @@ export function confirmSkipQuestion(hasDraft = false) {
     }
   });
 }
+export function confirmDiscardDraft() {
+  return new Promise((resolve, reject) => {
+    const previousFocus = document.activeElement;
+    const dialog = document.createElement("dialog");
+
+    dialog.className = "hypersense-confirm";
+    dialog.setAttribute("aria-labelledby", "discard-dialog-title");
+    dialog.setAttribute("aria-describedby", "discard-dialog-description");
+
+    dialog.innerHTML = `
+      <div class="confirm-eyebrow">UNFINISHED INTERVIEW</div>
+      <h2 id="discard-dialog-title">Discard this session?</h2>
+      <p id="discard-dialog-description">
+        This removes the unfinished session and its saved answers
+        and recordings. This action cannot be undone.
+      </p>
+      <div class="confirm-actions">
+        <button type="button" data-choice="keep" autofocus>
+          Keep session
+        </button>
+        <button type="button" data-choice="discard">
+          Discard session
+        </button>
+      </div>
+    `;
+
+    let settled = false;
+    const finish = accepted => {
+      if (settled) return;
+      settled = true;
+      if (dialog.open) dialog.close();
+      dialog.remove();
+      resolve(accepted);
+      if (previousFocus?.isConnected) previousFocus.focus();
+    };
+
+    dialog.querySelector('[data-choice="keep"]').onclick =
+      () => finish(false);
+    dialog.querySelector('[data-choice="discard"]').onclick =
+      () => finish(true);
+
+    dialog.addEventListener("cancel", event => {
+      event.preventDefault();
+      finish(false);
+    });
+    dialog.addEventListener("close", () => finish(false));
+
+    document.body.appendChild(dialog);
+    try {
+      dialog.showModal();
+      dialog.querySelector('[data-choice="keep"]').focus();
+    } catch (error) {
+      dialog.remove();
+      reject(error);
+    }
+  });
+}

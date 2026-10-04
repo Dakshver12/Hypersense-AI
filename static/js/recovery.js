@@ -1,5 +1,6 @@
 import { accountKey } from "./account-context.js";
 import { accountId } from "./account-context.js";
+import { confirmDiscardDraft } from "./confirm-dialog.js";
 import { accountRequest } from "./account-store.js";
 import { state } from "./state.js";
 import { $ } from "./dom.js";
@@ -157,7 +158,7 @@ export function initRecovery() {
   $("resume-session").onclick = () => run(resumeSessionDraft);
   $("discard-session").onclick = () => run(async () => {
     if (state.interviewSession?.active) return;
-    if (!window.confirm("Discard the unfinished session and its saved answers and recordings?")) return;
+    if (!(await confirmDiscardDraft())) return;
     const draft = await draftStore("readonly", s => s.get("active"));
     if (draft) await clearSessionDraft(draft.id);
   });
