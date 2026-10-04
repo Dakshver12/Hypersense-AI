@@ -4,14 +4,16 @@ const root=path.resolve(__dirname,'..');
 const html=fs.readFileSync(path.join(root,'templates/account-settings.html'),'utf8').replace('<!-- account-id -->','user-a');
 const bundle=esbuild.buildSync({entryPoints:[path.join(root,'static/auth/account-settings.js')],bundle:true,write:false,format:'iife'}).outputFiles[0].text;
 const dom=new JSDOM(html,{url:'http://localhost/account',runScripts:'outside-only'}),w=dom.window;
+w.structuredClone=structuredClone;
 const calls=[];let fail=false;
 w.fetch=async(url,options)=>{calls.push({url,options});return {ok:!fail,status:fail?400:200,json:async()=>fail?{detail:'Current password is incorrect.'}:url==='/auth/me'?{name:'Daksh',email:'test@example.com'}:{name:'New name',message:'Display name updated.'}};};
 w.HTMLDialogElement.prototype.showModal=function(){this.open=true;};
 w.HTMLDialogElement.prototype.close=function(){this.open=false;};
 const $=id=>w.document.getElementById(id),tick=()=>new Promise(r=>setTimeout(r,10));
+const waitFor=async predicate=>{for(let i=0;i<100;i++){if(predicate())return;await tick();}throw Error('Timed out waiting for account settings hydration.');};
 const submit=id=>$(id).dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));
 (async()=>{
-  w.eval(bundle);await tick();assert.equal($('display-name').value,'Daksh');assert.equal($('verified').hidden,false);
+  w.eval(bundle);await waitFor(()=>$('display-name').value==='Daksh');assert.equal($('verified').hidden,false);
   $('display-name').value='New name';submit('profile-form');await tick();assert.equal($('profile-name').textContent,'New name');
   const request=calls.find(c=>c.url==='/api/account/profile');assert.equal(request.options.headers['X-HyperSense-Account'],'user-a');
   $('new-password').value='long-password-123';$('confirm-password').value='different-password';submit('password-form');await tick();
