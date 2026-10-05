@@ -207,3 +207,28 @@
   body > .dashboard-nav button { border:0; border-radius:9px; font-size:11px; background:transparent; }
   body > .dashboard-nav button[aria-current="page"],body > .dashboard-nav button.active { background:#20372e; color:#b6dbcc; }
 }
+
+/* Mobile setup is a task flow with one visible panel. */
+@media screen and (max-width:600px) {
+  #session-setup .setup-steps,#session-setup .setup-form > .section-heading { display:none; }
+  #session-setup .setup-heading { margin-bottom:22px; }
+  #session-setup .setup-heading h1 { font-size:28px; line-height:1.18; max-width:280px; }
+  #session-setup .setup-form { padding:0; border:0; background:transparent; }
+  #mobile-setup-flow { min-width:0; }
+  #mobile-setup-flow .mobile-flow-progress { margin:0 0 16px; color:#91baa8; font-size:10px; letter-spacing:.16em; }
+  #mobile-setup-flow .mobile-setup-panel[hidden] { display:none!important; }
+  #mobile-setup-flow .mobile-setup-panel > .setup-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px 12px; }
+  #mobile-setup-flow label { color:#aab5be; font-size:12px; }
+  #mobile-setup-flow input:not([type="checkbox"]),#mobile-setup-flow select { min-height:50px; border-radius:12px; background:#18212b; border-color:#ffffff14; }
+  #mobile-setup-flow .mobile-question-options { margin-top:0; }
+  #mobile-setup-flow #session-questions { min-height:180px; padding:14px; }
+  #mobile-setup-flow .mobile-flow-controls { display:flex; gap:10px; margin-top:24px; }
+  #mobile-setup-flow .mobile-flow-controls button { min-height:48px; border-radius:12px; margin:0; }
+  #mobile-setup-flow #mobile-setup-next { flex:1; }
+  #mobile-setup-flow button[hidden] { display:none!important; }
+  #mobile-setup-flow .mobile-session-review { padding:16px; background:#18212b; border:1px solid #ffffff12; border-radius:14px; }
+  #mobile-setup-flow .mobile-session-review > div { display:flex; justify-content:space-between; align-items:baseline; gap:16px; padding:7px 0; font-size:12px; }
+  #mobile-setup-flow .mobile-session-review span { color:#99a6b2; }
+  #mobile-setup-flow .mobile-session-review strong { max-width:65%; text-align:right; font-weight:500; overflow-wrap:anywhere; }
+  #session-setup .session-explainer { margin-top:24px; padding:0; background:none; border:0; }
+}

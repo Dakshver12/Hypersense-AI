@@ -1,15 +1,17 @@
-# Mobile UI refinement — version 2
+# Mobile setup task flow
 
-Extract into your project root and replace matching files. This includes the earlier mobile redesign plus the refinements based on your latest screenshot.
+Replace matching files in the project root. This package includes the prior mobile changes and replaces the long setup form on phones with three screens:
 
-Four essential fields remain visible: interview type, topic, difficulty and question count. Language and answer timing are in an expandable row showing their selected values. Question source and manual questions remain accessible without changing their defaults. Optional role/resume settings and saved setups stay collapsed.
+1. Focus: interview type, topic, difficulty, question count; expandable language/timing and saved setups.
+2. Questions: source, manual question input when selected, optional personalisation.
+3. Ready: current settings review, required camera consent, original camera-check action.
 
-Header, title, card spacing and bottom navigation are smaller and quieter. Controls retain a minimum 44-pixel height and 16-pixel input text. Desktop restores the original controls and their values when the viewport grows.
+Back and Continue move between screens without starting a session or discarding input. Only one panel is visible. The original desktop arrangement is restored when the viewport exceeds 600 pixels.
 
-Validation: the full npm UI suite passes, including resize restoration, event handlers, retained values and the new timing summary. Visual rendering remains unverified here because browser socket creation is restricted. Review the deployed preview on your phone.
+Full npm UI suite passed, including step transitions, review output, original controls/listeners, retained values and desktop restoration. Visual browser verification remains unavailable in this environment; review the deployment on a phone.
 
 ```bash
 git add static/css/mobile-polish.css static/js/mobile-shell.js templates/index.html tests/mobile_layout_ui.cjs tests/ui.cjs MOBILE_REDESIGN.md
-git commit -m "Refine mobile setup hierarchy and compact session options"
+git commit -m "Replace mobile setup form with a focused three-screen flow"
 git push
 ```

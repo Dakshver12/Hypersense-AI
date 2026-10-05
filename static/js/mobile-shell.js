@@ -102,6 +102,52 @@ export function initMobileSetup() {
     if (importButton && accountMenu) relocate(importButton,accountMenu);
     const secondHeading = [...form.querySelectorAll(':scope > .section-heading')][1];
     if (secondHeading) {secondHeading.classList.add('mobile-secondary-heading');restore.push(()=>secondHeading.classList.remove('mobile-secondary-heading'));}
+    // A phone task flow, rather than a scaled desktop form.
+    const wizard = document.createElement('div');wizard.id = 'mobile-setup-flow';
+    form.prepend(wizard);restore.push(() => wizard.remove());
+    const titles = ['Choose your focus','Choose your questions','Ready to practise?'];
+    const descriptions = ['Set the interview you want to practise.','Generate questions or bring your own.','Review your choices, then check your camera.'];
+    const panels = titles.map((title,index) => {
+      const panel = document.createElement('section');panel.className = 'mobile-setup-panel';
+      panel.dataset.step = String(index);panel.setAttribute('aria-label',title);
+      wizard.append(panel);return panel;
+    });
+    relocate(core,panels[0]);relocate(timing,panels[0]);relocate(saved,panels[0]);
+    relocate(quick,panels[1]);relocate(preferences,panels[1]);
+    const review = document.createElement('div');review.className = 'mobile-session-review';panels[2].append(review);
+    for (const node of [...form.children]) {
+      if (node === wizard || node.classList.contains('section-heading')) continue;
+      relocate(node,panels[2]);
+    }
+    const footer = document.createElement('div');footer.className = 'mobile-flow-controls';wizard.append(footer);
+    const back = document.createElement('button');back.type = 'button';back.id = 'mobile-setup-back';back.textContent = 'Back';
+    const next = document.createElement('button');next.type = 'button';next.id = 'mobile-setup-next';next.className = 'primary';next.textContent = 'Continue';
+    footer.append(back,next);
+    const progress = document.createElement('p');progress.className = 'mobile-flow-progress';progress.setAttribute('aria-live','polite');wizard.prepend(progress);
+    let step = 0;
+    const heading = document.getElementById('session-title');
+    const description = setup.querySelector('.setup-heading .muted');
+    const show = (index,focus=false) => {
+      step = index;panels.forEach((panel,i) => {panel.hidden = i !== index;});
+      heading.textContent = titles[index];description.textContent = descriptions[index];
+      progress.textContent = `STEP ${index + 1} OF 3`;
+      back.hidden = index === 0;next.hidden = index === 2;
+      if (index === 2) {
+        review.replaceChildren();
+        for (const [label,id] of [['Interview','interview-type'],['Topic','technology'],['Difficulty','difficulty'],['Questions','session-count'],['Language','language'],['Answer time','duration'],['Source','session-source']]) {
+          const control = document.getElementById(id);const row = document.createElement('div');
+          const key = document.createElement('span');key.textContent = label;
+          const value = document.createElement('strong');value.textContent = control.options ? control.options[control.selectedIndex].text : control.value;
+          row.append(key,value);review.append(row);
+        }
+      }
+      if (focus) {heading.tabIndex = -1;heading.focus({preventScroll:true});setup.scrollIntoView({block:'start',behavior:'smooth'});}
+    };
+    next.addEventListener('click',() => show(Math.min(2,step + 1),true));
+    back.addEventListener('click',() => show(Math.max(0,step - 1),true));
+    const previousTabindex = heading.getAttribute('tabindex');
+    restore.push(() => {if(previousTabindex === null) heading.removeAttribute('tabindex');else heading.setAttribute('tabindex',previousTabindex);});
+    show(0);
   };
   apply();media.addEventListener('change',apply);
 }
