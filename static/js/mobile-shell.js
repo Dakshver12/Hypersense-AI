@@ -48,6 +48,12 @@ export function initMobileSetup() {
   const apply = () => {
     restore.reverse().forEach(fn => fn()); restore = [];
     if (!media.matches) return;
+    const historyHelp = [...document.querySelectorAll('#dashboard-panel-sessions > .card:first-child > p.muted')].find(p => p.textContent.includes('Search filters'));
+    if(historyHelp) {
+      const help = document.createElement('details');help.className = 'mobile-history-help';
+      const title = document.createElement('summary');title.textContent = 'How search works';help.append(title);
+      historyHelp.before(help);restore.push(() => help.remove());relocate(historyHelp,help);
+    }
     edit(document.getElementById('dashboard-title'), 'Your progress');
     const filters = document.getElementById('dashboard-shared-filters');
     if(filters) {
