@@ -52,6 +52,17 @@ export function initMobileSetup() {
     edit(form.querySelector('label[for="language"]'), 'Language');
     edit(form.querySelector('label[for="technology"]'), 'Topic');
     edit(document.getElementById('camera-consent-help'), 'Camera required for face and head-movement checks. Frames are processed on the server and aren’t saved.');
+    edit(document.getElementById('camera-check-title'), 'Check your devices');
+    edit(document.querySelector('#camera-check-page .device-heading p'), 'Enable your camera, then check your sound if needed.');
+    edit(document.getElementById('camera-on'), 'Enable camera');
+    edit(document.querySelector('#camera-check-page .camera-empty strong'), 'Camera preview');
+    edit(document.querySelector('#camera-check-page .camera-empty p'), 'Enable your camera to check your position.');
+    const micPanel = document.querySelector('#camera-check-page .microphone-check');
+    if (micPanel) {
+      const sound = document.createElement('details');sound.className = 'mobile-sound-check';
+      const soundSummary = document.createElement('summary');soundSummary.textContent = 'Test your microphone · optional';sound.append(soundSummary);
+      micPanel.before(sound);restore.push(() => sound.remove());relocate(micPanel,sound);
+    }
     const core = form.querySelector('.setup-grid');
     const timing = document.createElement('details');
     timing.className = 'mobile-session-timing';timing.id = 'mobile-session-timing';
@@ -124,10 +135,14 @@ export function initMobileSetup() {
     const next = document.createElement('button');next.type = 'button';next.id = 'mobile-setup-next';next.className = 'primary';next.textContent = 'Continue';
     footer.append(back,next);
     const progress = document.createElement('p');progress.className = 'mobile-flow-progress';progress.setAttribute('aria-live','polite');wizard.prepend(progress);
+    const exit = document.createElement('button');exit.type = 'button';exit.className = 'mobile-flow-exit';exit.textContent = 'Dashboard';
+    exit.addEventListener('click',() => document.getElementById('nav-dashboard')?.click());wizard.prepend(exit);
     let step = 0;
     const heading = document.getElementById('session-title');
     const description = setup.querySelector('.setup-heading .muted');
     const show = (index,focus=false) => {
+      // Explicitly sync the editor after preset/browser restoration as well as source changes.
+      document.getElementById('manual-question-fields').hidden = document.getElementById('session-source').value !== 'manual';
       step = index;panels.forEach((panel,i) => {panel.hidden = i !== index;});
       heading.textContent = titles[index];description.textContent = descriptions[index];
       progress.textContent = `STEP ${index + 1} OF 3`;

@@ -1,17 +1,19 @@
-# Mobile setup task flow
+# Mobile workspace and device-screen update
 
-Replace matching files in the project root. This package includes the prior mobile changes and replaces the long setup form on phones with three screens:
+Extract this ZIP into the project root and replace matching files. Includes all earlier mobile setup task-flow changes.
 
-1. Focus: interview type, topic, difficulty, question count; expandable language/timing and saved setups.
-2. Questions: source, manual question input when selected, optional personalisation.
-3. Ready: current settings review, required camera consent, original camera-check action.
+- Three-screen setup with retained controls, selections and event handlers.
+- Shorter headings and consistent spacing.
+- Manual editor explicitly hidden for AI source, including after saved-value restoration.
+- Focused setup navigation: Back/Continue plus a compact Dashboard action.
+- Compact camera preview, enabled actions only, expandable optional microphone test.
+- Fixed Back/Start controls during device check with camera/calibration gate preserved.
+- Desktop layout and microphone-panel position restored at wider viewports.
 
-Back and Continue move between screens without starting a session or discarding input. Only one panel is visible. The original desktop arrangement is restored when the viewport exceeds 600 pixels.
-
-Full npm UI suite passed, including step transitions, review output, original controls/listeners, retained values and desktop restoration. Visual browser verification remains unavailable in this environment; review the deployment on a phone.
+Validation: full npm UI suite passed. Mobile regression checks cover source visibility, step transitions, review, retained values, microphone-panel relocation and desktop restoration. Visual rendering could not be checked here because browser socket creation is restricted. Test the deployed phone preview, particularly camera permission, calibration and keyboard opening.
 
 ```bash
 git add static/css/mobile-polish.css static/js/mobile-shell.js templates/index.html tests/mobile_layout_ui.cjs tests/ui.cjs MOBILE_REDESIGN.md
-git commit -m "Replace mobile setup form with a focused three-screen flow"
+git commit -m "Polish mobile setup navigation and simplify device checks"
 git push
 ```
