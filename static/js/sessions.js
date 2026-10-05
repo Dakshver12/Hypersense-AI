@@ -10,6 +10,7 @@ import { cancelQuestionSpeech, beginQuestionReadout } from "./speech.js";
 import { recentQuestionsFor, rememberQuestion } from "./questions.js";
 import {
   message,
+  manualQuestionError,
   interviewSettings,
   concreteSettings,
   modeName,
@@ -302,7 +303,12 @@ export function initSessions() {
       else message("Camera ready. Continue your current answer or load the next question.");
     });
   $("open-camera-check").onclick = () => {
-    if (!state.busy && !state.recording) showCameraCheck();
+    if (!state.busy && !state.recording) {
+      if(!state.interviewSession?.active && !state.singlePractice) {
+        const problem = manualQuestionError();if(problem) {message(problem,true);return;}
+      }
+      showCameraCheck();
+    }
   };
   $("camera-check-back").onclick = () => {
     if (!state.busy && !state.recording) showInterviewPage();

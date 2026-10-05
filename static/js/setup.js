@@ -87,6 +87,15 @@ export function evaluationContext(settings) {
     job_description: settings.job_description || "",
   };
 }
+export function manualQuestionError() {
+  if ($('session-source').value !== 'manual') return '';
+  const total = Number($('session-count').value);
+  const questions = $('session-questions').value.split(/^\s*---\s*$/m).map(q=>q.trim()).filter(Boolean);
+  if(questions.length !== total) return `Add exactly ${total} questions, separated by a line containing ---. You have ${questions.length}.`;
+  if(questions.some(q=>q.length > 2000)) return 'Keep each question within 2,000 characters.';
+  return '';
+}
+
 export function initSetup() {
   const updateQuestionSource = () => {
     $("manual-question-fields").hidden = $("session-source").value !== "manual";

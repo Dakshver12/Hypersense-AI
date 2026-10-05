@@ -1,3 +1,5 @@
+import { manualQuestionError } from './setup.js';
+
 // Keep existing account links and handlers; only change their mobile presentation.
 export function initMobileShell() {
   const toggle = document.getElementById('mobile-account-toggle');
@@ -46,6 +48,18 @@ export function initMobileSetup() {
   const apply = () => {
     restore.reverse().forEach(fn => fn()); restore = [];
     if (!media.matches) return;
+    edit(document.getElementById('dashboard-title'), 'Your progress');
+    const filters = document.getElementById('dashboard-shared-filters');
+    if(filters) {
+      const disclosure = document.createElement('details');disclosure.className = 'mobile-dashboard-filters';
+      const title = document.createElement('summary');title.textContent = 'Filter by topic or interview type';disclosure.append(title);
+      filters.before(disclosure);restore.push(() => disclosure.remove());relocate(filters,disclosure);
+    }
+    for(const section of [...document.querySelectorAll('#dashboard-panel-overview > section.card')]) {
+      const disclosure = document.createElement('details');disclosure.className = 'mobile-dashboard-report';
+      const title = document.createElement('summary');title.textContent = section.querySelector('h2')?.textContent || 'Details';disclosure.append(title);
+      section.before(disclosure);restore.push(() => disclosure.remove());relocate(section,disclosure);
+    }
     edit(document.getElementById('session-title'), 'Your next interview');
     edit(setup.querySelector('.setup-heading .muted'), 'Choose your focus. We’ll check your devices next.');
     edit(form.querySelector('.section-heading h2'), 'Interview essentials');
@@ -158,7 +172,14 @@ export function initMobileSetup() {
       }
       if (focus) {heading.tabIndex = -1;heading.focus({preventScroll:true});setup.scrollIntoView({block:'start',behavior:'smooth'});}
     };
-    next.addEventListener('click',() => show(Math.min(2,step + 1),true));
+    const error = document.createElement('p');error.className = 'mobile-flow-error';error.setAttribute('role','alert');error.hidden = true;panels[1].append(error);
+    next.addEventListener('click',() => {
+      if(step === 1) {
+        const problem = manualQuestionError();error.hidden = !problem;error.textContent = problem;
+        if(problem) {document.getElementById('session-questions').focus();return;}
+      }
+      show(Math.min(2,step + 1),true);
+    });
     back.addEventListener('click',() => show(Math.max(0,step - 1),true));
     const previousTabindex = heading.getAttribute('tabindex');
     restore.push(() => {if(previousTabindex === null) heading.removeAttribute('tabindex');else heading.setAttribute('tabindex',previousTabindex);});

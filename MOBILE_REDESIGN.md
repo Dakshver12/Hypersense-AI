@@ -1,19 +1,15 @@
-# Mobile workspace and device-screen update
+# Mobile dashboard and manual-question correction
 
-Extract this ZIP into the project root and replace matching files. Includes all earlier mobile setup task-flow changes.
+Extract into the project root and replace matching files. Includes prior mobile setup/device work.
 
-- Three-screen setup with retained controls, selections and event handlers.
-- Shorter headings and consistent spacing.
-- Manual editor explicitly hidden for AI source, including after saved-value restoration.
-- Focused setup navigation: Back/Continue plus a compact Dashboard action.
-- Compact camera preview, enabled actions only, expandable optional microphone test.
-- Fixed Back/Start controls during device check with camera/calibration gate preserved.
-- Desktop layout and microphone-panel position restored at wider viewports.
+Mobile setup validates manual questions before the review/device step. It requires the selected question count, separates questions on a line containing ---, and caps each question at 2,000 characters. Errors appear beside the editor and focus it. The generic camera shortcut also checks the question list before opening camera check; the duplicate shortcut is hidden on phones.
 
-Validation: full npm UI suite passed. Mobile regression checks cover source visibility, step transitions, review, retained values, microphone-panel relocation and desktop restoration. Visual rendering could not be checked here because browser socket creation is restricted. Test the deployed phone preview, particularly camera permission, calibration and keyboard opening.
+Mobile dashboard uses a short title, single scrolling tab row, collapsed filters, two-column stats and expandable detailed reports. All existing report content remains accessible; original desktop layout is restored when resizing.
+
+Validation: full npm UI suite passed, including empty-question blocking, valid manual lists, AI editor visibility, tab/filters behavior and desktop restoration. Visual phone rendering remains unverified in this environment.
 
 ```bash
-git add static/css/mobile-polish.css static/js/mobile-shell.js templates/index.html tests/mobile_layout_ui.cjs tests/ui.cjs MOBILE_REDESIGN.md
-git commit -m "Polish mobile setup navigation and simplify device checks"
+git add static/css/mobile-polish.css static/js/mobile-shell.js static/js/setup.js static/js/sessions.js templates/index.html tests/mobile_layout_ui.cjs tests/ui.cjs MOBILE_REDESIGN.md
+git commit -m "Simplify mobile dashboard and validate manual questions before device checks"
 git push
 ```

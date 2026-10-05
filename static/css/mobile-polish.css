@@ -284,3 +284,33 @@
   #camera-check-page .device-footer button { min-height:44px; margin:0; font-size:12px; padding:10px; }
   #camera-check-page #camera-check-back { align-self:end; }
 }
+
+@media screen and (max-width:600px) {
+  #session-setup #open-camera-check { display:none; }
+  .mobile-flow-error { color:#ffb6af; font-size:12px; line-height:1.6; padding:12px; background:#442b2b; border-radius:10px; }
+  .mobile-flow-error[hidden] { display:none; }
+  #dashboard-page .dashboard-heading { padding:0 0 16px; gap:14px; }
+  #dashboard-page .dashboard-heading .eyebrow { display:none; }
+  #dashboard-page .dashboard-heading h1 { font-size:24px; margin:0 0 6px; }
+  #dashboard-page .dashboard-heading p { font-size:12px; }
+  #dashboard-page #dashboard-start { min-height:44px; padding:10px 16px; width:100%; font-size:13px; border-radius:12px; }
+  #dashboard-page .dashboard-tabs { display:flex; flex-wrap:nowrap; overflow-x:auto; gap:4px; padding:0 0 10px; margin-bottom:12px; border-radius:0; }
+  #dashboard-page .dashboard-tabs [role="tab"] { flex:0 0 auto; padding:10px 12px; min-height:44px; white-space:nowrap; font-size:11px; }
+  #dashboard-page .mobile-dashboard-filters { border-block:1px solid #ffffff12; margin-bottom:12px; }
+  #dashboard-page .mobile-dashboard-filters:has(#dashboard-shared-filters[hidden]) { display:none; }
+  #dashboard-page .mobile-dashboard-filters > summary { padding:13px 0; min-height:44px; font-size:12px; cursor:pointer; }
+  #dashboard-page .dashboard-filter-bar { margin:0 0 12px; padding:12px; gap:10px; }
+  #dashboard-page .dashboard-filter-bar > p { display:none; }
+  #dashboard-page .dashboard-filter-bar label { font-size:11px; }
+  #dashboard-page .dashboard-filter-bar select { min-height:44px; font-size:16px; }
+  #dashboard-page #dashboard-stats { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin-bottom:18px; }
+  #dashboard-page .dashboard-stat { padding:14px 12px; border-radius:12px; min-width:0; }
+  #dashboard-page .dashboard-stat strong { font-size:24px; }
+  #dashboard-page #dashboard-status { font-size:11px; margin:8px 0 12px; }
+  #dashboard-page .mobile-dashboard-report { margin:10px 0; border:1px solid #ffffff12; background:#17202a; border-radius:12px; }
+  #dashboard-page .mobile-dashboard-report > summary { padding:15px 12px; font-size:13px; cursor:pointer; }
+  #dashboard-page .mobile-dashboard-report > .card { margin:0; padding:0 12px 14px; border:0; background:none; box-shadow:none; }
+  #dashboard-page .mobile-dashboard-report > .card > h2 { display:none; }
+  #dashboard-page .card h2 { font-size:16px; }
+  #dashboard-page .card > p { font-size:12px; line-height:1.6; }
+}
