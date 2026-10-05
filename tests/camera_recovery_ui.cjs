@@ -1,0 +1,18 @@
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+const {JSDOM}=require('jsdom'),esbuild=require('esbuild');const root=path.resolve(__dirname,'..');
+let html=fs.readFileSync(path.join(root,'templates/index.html'),'utf8');
+for(const name of ['setup','interview','dashboard','camera-check','results'])html=html.replace('<!-- include:'+name+' -->',fs.readFileSync(path.join(root,'templates/screens',name+'.html'),'utf8'));
+const dom=new JSDOM(html,{url:'https://app.test/camera-check',runScripts:'outside-only'}),w=dom.window;
+const delays=[];w.setTimeout=(fn,delay)=>{delays.push(delay);return delays.length;};w.clearTimeout=()=>{};
+w.HTMLCanvasElement.prototype.getContext=()=>({drawImage(){},clearRect(){}});
+w.HTMLCanvasElement.prototype.toBlob=function(fn){fn(new w.Blob(['frame'],{type:'image/jpeg'}));};
+Object.defineProperty(w.document,'hidden',{value:false});
+const video=w.document.getElementById('camera-video');Object.defineProperties(video,{videoWidth:{value:640},videoHeight:{value:480},readyState:{value:4}});
+w.fetch=async()=>{throw Error('temporary backend failure');};
+const code=esbuild.buildSync({stdin:{contents:`import {detectCameraFrame} from './camera.js';import {state} from './state.js';Object.assign(window,{detectCameraFrame,state});`,resolveDir:path.join(root,'static/js')},bundle:true,write:false,format:'iife'}).outputFiles[0].text;
+w.eval(code);w.state.cameraSession=1;w.state.cameraStream={getVideoTracks:()=>[{readyState:'live',enabled:true}]};
+(async()=>{for(let i=0;i<3;i++)await w.detectCameraFrame(1);
+assert.equal(w.state.frameBusy,false);assert.equal(w.state.faceRequest,null);
+assert.equal(delays.at(-1),15000);assert.equal(w.document.getElementById('retry-detection').hidden,false);
+assert.match(w.document.getElementById('camera-status').textContent,/retry automatically/);
+assert(w.state.cameraStream);dom.window.close();console.log('PASS: camera detection failures retain the stream, release busy state and schedule automatic recovery after three failures.');})().catch(e=>{console.error(e);process.exitCode=1;});

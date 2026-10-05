@@ -100,7 +100,12 @@ export async function detectCameraFrame(session) {
     frameCanvas.width = Math.round(video.videoWidth * scale);
     frameCanvas.height = Math.round(video.videoHeight * scale);
     frameCanvas.getContext("2d").drawImage(video, 0, 0, frameCanvas.width, frameCanvas.height);
-    const image = await new Promise((resolve) => frameCanvas.toBlob(resolve, "image/jpeg", 0.75));
+    const image = await new Promise((resolve, reject) => {
+      const captureTimeout = setTimeout(() => reject(Error('Camera frame capture timed out.')),10000);
+      try {
+        frameCanvas.toBlob(blob => {clearTimeout(captureTimeout);resolve(blob);}, 'image/jpeg',0.75);
+      } catch(error) {clearTimeout(captureTimeout);reject(error);}
+    });
     if (session !== state.cameraSession) return;
     if (!image) throw Error("Could not capture a camera frame.");
     const form = new FormData();
@@ -132,7 +137,13 @@ export async function detectCameraFrame(session) {
     for (const face of data.faces) ctx.strokeRect(face.x, face.y, face.width, face.height);
     cameraMessage(
       data.face_count === 1
-        ? "One face detected."
+        ? !state.latestRotation
+          ? "One face detected, but head orientation is unavailable. Face landmarks are required for calibration."
+          : state.calibrating
+            ? `Face detected. Hold still: ${state.calibrationSamples.length}/5 calibration samples.`
+            : state.neutralRotation
+              ? "Face detected. Camera calibrated and ready."
+              : "One face detected."
         : data.face_count > 1
           ? "Multiple faces detected. Keep only yourself in view."
           : "No face detected in this frame. Try facing the camera in better light.",
@@ -148,11 +159,11 @@ export async function detectCameraFrame(session) {
         ? "Face detection took longer than 30 seconds."
         : "Face detection failed: " + err.message;
     if (state.detectionFailures >= 3) {
-      retryDelay = null;
+      retryDelay = 15000;
       $("retry-detection").hidden = false;
       cameraMessage(
         reason +
-          " Detection paused after 3 failed attempts. Check the backend terminal, then click Retry face detection. Your camera and calibration are retained.",
+          " Detection will retry automatically in 15 seconds. You can also tap Retry face detection. Your camera and calibration are retained.",
       );
     } else {
       retryDelay = state.detectionFailures * 3000;
