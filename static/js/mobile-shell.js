@@ -77,6 +77,21 @@ export function initMobileSetup() {
       const soundSummary = document.createElement('summary');soundSummary.textContent = 'Test your microphone · optional';sound.append(soundSummary);
       micPanel.before(sound);restore.push(() => sound.remove());relocate(micPanel,sound);
     }
+    edit(document.querySelector('#interview-workspace .interview-heading h1'), 'Your interview');
+    edit(document.getElementById('results-title'), 'Session review');
+    const answerCard = document.querySelector('.interview-answer-card');
+    if(answerCard) {
+      const options = document.createElement('details');options.className = 'mobile-answer-options';
+      const title = document.createElement('summary');title.textContent = 'Language, upload & self-rating';options.append(title);
+      answerCard.append(options);restore.push(() => options.remove());
+      for(const selector of ['label[for="spoken"]','#spoken','.upload','label[for="confidence-rating"]','#confidence-rating']) relocate(answerCard.querySelector(selector),options);
+    }
+    const toolbar = document.querySelector('#results-page .results-toolbar');
+    if(toolbar) {
+      const exports = document.createElement('details');exports.className = 'mobile-report-exports';
+      const title = document.createElement('summary');title.textContent = 'Download or print report';exports.append(title);
+      toolbar.before(exports);restore.push(() => exports.remove());relocate(toolbar,exports);
+    }
     const core = form.querySelector('.setup-grid');
     const timing = document.createElement('details');
     timing.className = 'mobile-session-timing';timing.id = 'mobile-session-timing';

@@ -63,6 +63,9 @@ phone=false;listeners.forEach(fn=>fn());assert.equal(w.document.getElementById('
 assert.equal(w.document.getElementById('duration').value,'90');
 assert.equal(w.document.querySelector('.mobile-sound-check'),null);
 assert.equal(w.document.querySelector('.mobile-dashboard-filters'),null);
+assert.equal(w.document.querySelector('.mobile-answer-options'),null);
+assert.equal(w.document.querySelector('.mobile-report-exports'),null);
+assert(w.document.querySelector('.interview-answer-card').contains(w.document.getElementById('spoken')));
 assert.equal(w.document.querySelectorAll('#dashboard-panel-overview > section.card').length,4);
 assert(w.document.querySelector('.device-grid').contains(w.document.querySelector('.microphone-check')));
 dom.window.close();console.log('PASS: mobile setup restructuring, essential source controls, desktop restoration, retained values/listeners and account menu dismissal.');

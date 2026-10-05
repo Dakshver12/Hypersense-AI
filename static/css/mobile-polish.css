@@ -314,3 +314,24 @@
   #dashboard-page .card h2 { font-size:16px; }
   #dashboard-page .card > p { font-size:12px; line-height:1.6; }
 }
+
+/* Session history: phone cards, never a compressed four-column table. */
+@media screen and (max-width:600px) {
+  #dashboard-page #dashboard-sessions { overflow:visible; min-width:0; }
+  #dashboard-page #dashboard-sessions .dashboard-table { display:block; width:100%; min-width:0; border:0; }
+  #dashboard-page #dashboard-sessions tbody { display:block; width:100%; }
+  #dashboard-page #dashboard-sessions thead { position:absolute; width:1px; height:1px; padding:0; overflow:hidden; clip-path:inset(50%); }
+  #dashboard-page #dashboard-sessions tbody > tr { display:grid; grid-template-columns:1fr 1fr; gap:12px; padding:14px; margin:12px 0; background:#111a23; border:1px solid #ffffff12; border-radius:12px; }
+  #dashboard-page #dashboard-sessions td { display:block; width:auto; min-width:0; padding:0; border:0; background:transparent; overflow-wrap:anywhere; }
+  #dashboard-page #dashboard-sessions .history-identity { grid-column:1 / -1; }
+  #dashboard-page #dashboard-sessions .history-topic { display:block; font-size:16px; font-weight:600; margin-bottom:4px; }
+  #dashboard-page #dashboard-sessions time { display:block; color:#99a7b5; font-size:11px; }
+  #dashboard-page #dashboard-sessions td[data-label] { font-size:12px; }
+  #dashboard-page #dashboard-sessions td[data-label]::before { content:attr(data-label); display:block; font-size:10px; color:#8e9daa; margin-bottom:3px; }
+  #dashboard-page #dashboard-sessions .history-actions { display:flex; flex-wrap:wrap; align-items:center; gap:8px; grid-column:1 / -1; border-top:1px solid #ffffff10; padding-top:12px; }
+  #dashboard-page #dashboard-sessions .history-actions button { min-height:44px; margin:0; white-space:nowrap; padding:10px 12px; border-radius:9px; font-size:12px; }
+  #dashboard-page #dashboard-sessions .history-open { flex:1; background:#254239; color:#c2e9d8; border:1px solid #3d6253; }
+  #dashboard-page #dashboard-sessions .history-delete { background:transparent; border:1px solid #ffffff14; color:#b7c0cb; }
+  #dashboard-page #dashboard-sessions .history-actions details { flex-basis:100%; order:3; max-width:100%; font-size:12px; }
+  #dashboard-page #dashboard-sessions .history-actions details p { overflow-wrap:anywhere; }
+}
