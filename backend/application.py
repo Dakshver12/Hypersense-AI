@@ -24,6 +24,12 @@ from backend.accounts.mail import validate_mail_config
 
 @asynccontextmanager
 async def lifespan(app):
+    if os.getenv('VERCEL') == '1':
+        if not os.getenv('DATABASE_URL') or not all(os.getenv(k) for k in
+                ('SUPABASE_URL', 'SUPABASE_SECRET_KEY', 'SUPABASE_STORAGE_BUCKET')):
+            raise RuntimeError('Vercel requires PostgreSQL and private Supabase recording storage.')
+        if os.getenv('TRANSCRIPTION_PROVIDER', 'groq') != 'groq' or not os.getenv('GROQ_API_KEY'):
+            raise RuntimeError('Vercel requires TRANSCRIPTION_PROVIDER=groq and GROQ_API_KEY.')
     origin()
     validate_mail_config()
     if os.getenv("APP_ENV") == "production" and (os.getenv("MAIL_MODE") != "smtp" or not os.getenv("SMTP_HOST") or not os.getenv("SMTP_FROM")):

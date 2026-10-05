@@ -39,3 +39,9 @@ backup-status.json
 restore-check.json
 
 test-output.txt
+
+# Generated Vercel native libraries
+.vercel-native/
+
+# Generated Vercel CDN assets
+public/static/

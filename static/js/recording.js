@@ -1,3 +1,5 @@
+import { accountId } from "./account-context.js";
+import { getRecordingConfig, transcribeStoredRecording } from "./account-store.js";
 import { microphoneConstraints, stopMicrophoneCheck } from "./microphone-check.js";
 import { resetTranscriptReview } from "./transcript-review.js";
 import { state } from "./state.js";
@@ -141,13 +143,23 @@ export function stopRecording() {
 
 export async function transcribeAnswer() {
   message(
-    "Transcribing… Groq is primary when configured. Local fallback may take longer on first use.",
+    "Preparing your recording for transcription…",
   );
+  const started = performance.now();
   const form = new FormData();
   form.append("file", state.blob, state.filename);
   form.append("spoken_language", $("spoken").value);
-  const data = await api("/transcribe", form, true);
+  let data;
+  const cloud = accountId && (await getRecordingConfig()).enabled;
+  if (cloud) {
+    const sessionId = state.interviewSession?.active ? state.interviewSession.id : (state.attemptId ||= crypto.randomUUID());
+    message("Uploading securely and transcribing your recording…");
+    data = await transcribeStoredRecording(sessionId, {blob:state.blob, name:state.filename}, $("spoken").value, text => message(text));
+  } else {
+    data = await api("/transcribe", form, true);
+  }
   if (!data.text?.trim()) throw Error("No speech was returned.");
+  data.total_seconds = ((performance.now() - started) / 1000).toFixed(1);
   state.deliveryAudio = data.delivery || null;
   renderDelivery();
   resetTranscriptReview();
@@ -159,8 +171,8 @@ export async function transcribeAnswer() {
       " / " +
       data.transcription_model +
       " · " +
-      data.transcription_seconds +
-      " seconds. " +
+      data.total_seconds +
+      " seconds total (upload and processing). " +
       (data.transcription_notice || "") +
       " Review and correct recognition errors before submitting.",
   );

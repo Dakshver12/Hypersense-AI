@@ -24,9 +24,26 @@ export async function accountRequest(path, options={}) {
   finally {if(pendingAccountReads.get(key)===pending)pendingAccountReads.delete(key);}
 }
 
+// Configuration is not an authorization decision; each write is checked by the server.
+let recordingConfig;
+let recordingConfigAt = 0;
+export async function getRecordingConfig() {
+  if (!recordingConfig || Date.now() - recordingConfigAt > 30000) {
+    recordingConfig = await accountRequest('/api/account/recordings/config');
+    recordingConfigAt = Date.now();
+  }
+  return recordingConfig;
+}
+
+export function uploadedRecordingReference(sessionId, blob) {
+  const key = JSON.stringify([sessionId, accountHeaders()]);
+  const entry = uploadedRecordings.get(blob)?.get(key);
+  return entry?.recording ? {...entry.recording} : null;
+}
+
 // Keep successful uploads across session-save retries without retaining blobs forever.
 const uploadedRecordings = new WeakMap();
-async function uploadRecording(sessionId, rec) {
+export async function uploadRecording(sessionId, rec) {
   const {blob,name}=rec;
   if(!(blob instanceof Blob) || !blob.size) throw Error('The recording is unavailable. Keep this page open and retry.');
   if(blob.size>10*1024*1024) throw Error('Each recording must be 10 MB or smaller.');
@@ -44,7 +61,10 @@ async function uploadRecording(sessionId, rec) {
     })()};
     entries.set(key,entry);
   }
-  try{return {...await entry.promise};}
+  try {
+    entry.recording = await entry.promise;
+    return {...entry.recording};
+  }
   catch(error){if(entries.get(key)===entry)entries.delete(key);throw error;}
 }
 
@@ -89,7 +109,7 @@ export function decodeAccountSession(record) {
 export async function putAccountSession(record, onlyNew=false) {
   // Fail closed when cloud configuration is broken; never silently store large audio in JSON.
   const hasNewAudio=record.answers.some(a=>a.recording && !a.recording.object_id);
-  const config=hasNewAudio ? await accountRequest('/api/account/recordings/config') : {enabled:false};
+  const config=hasNewAudio ? await getRecordingConfig() : {enabled:false};
   if(onlyNew){
     try {
       await accountRequest('/api/account/sessions/'+encodeURIComponent(record.id));
@@ -140,4 +160,15 @@ export async function restoreAccountSessions(records) {
     }
   }
   return {added,skipped};
+}
+
+
+export async function transcribeStoredRecording(sessionId, rec, language, onProgress=()=>{}) {
+  onProgress('Uploading your recording securely…');
+  const recording = await uploadRecording(sessionId, rec);
+  onProgress('Recording uploaded. Transcribing your answer…');
+  return accountRequest('/api/account/recordings/' + recording.object_id + '/transcribe', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({spoken_language:language})
+  });
 }

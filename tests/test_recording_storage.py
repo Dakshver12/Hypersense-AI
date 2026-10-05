@@ -77,6 +77,28 @@ class RecordingStorageTests(unittest.TestCase):
         r=self.client.put('/api/account/sessions/one',json=self.document(ident))
         self.assertEqual(r.status_code,200,r.text)
 
+    def test_transcription_uses_owned_ready_object_and_validates_language(self):
+        import sys
+        from types import ModuleType
+        service = ModuleType('backend.services.transcription')
+        service.transcribe_audio = lambda source, language: {'text':source.file.read().decode(), 'language':language}
+        ident = self.upload(complete=False)
+        endpoint = '/api/account/recordings/' + ident + '/transcribe'
+        with patch.dict(sys.modules, {'backend.services.transcription':service}), \
+                patch.object(ObjectStorage, 'download', return_value=b'test-audio') as download:
+            self.assertEqual(self.client.post(endpoint,json={}).status_code,409)
+            self.assertEqual(self.other.post(endpoint,json={}).status_code,404)
+            download.assert_not_called()
+            self.client.post('/api/account/recordings/'+ident+'/complete')
+            self.assertEqual(self.client.post(endpoint,json={'spoken_language':'invalid'}).status_code,422)
+            self.assertEqual(self.client.post(endpoint,json={},headers={'Origin':'https://evil.example'}).status_code,403)
+            response=self.client.post(endpoint,json={'spoken_language':'en'})
+            self.assertEqual(response.status_code,200,response.text)
+            self.assertEqual(response.json(),{'text':'test-audio','language':'en'})
+            download.assert_called_once_with('alice/one/'+ident,10)
+            with database() as db: db.execute("UPDATE recording_objects SET status='deleting' WHERE id=?",(ident,))
+            self.assertEqual(self.client.post(endpoint,json={}).status_code,404)
+
     def test_upload_save_reopen_and_private_playback(self):
         self.assertTrue(self.client.get('/api/account/recordings/config').json()['enabled'])
         ident=self.upload(); self.save(ident)
@@ -163,6 +185,21 @@ class RecordingStorageTests(unittest.TestCase):
 
 
 class StorageTransportTests(unittest.TestCase):
+    def test_download_is_bounded_and_uses_server_selected_object(self):
+        with patch.dict(os.environ,{'SUPABASE_URL':'https://storage-test.supabase.co',
+                                  'SUPABASE_SECRET_KEY':'sb_secret_private','SUPABASE_STORAGE_BUCKET':'interview-recordings'}):
+            storage=ObjectStorage()
+            def transport(request):
+                self.assertEqual(str(request.url),'https://storage-test.supabase.co/storage/v1/object/authenticated/interview-recordings/alice/one/id')
+                self.assertEqual(request.headers['apikey'],'sb_secret_private')
+                return httpx.Response(200,content=b'test-audio')
+            real_client=httpx.Client
+            with patch('backend.accounts.object_storage.httpx.Client',side_effect=lambda **kw:real_client(transport=httpx.MockTransport(transport),**kw)):
+                self.assertEqual(storage.download('alice/one/id',10),b'test-audio')
+                for size in (9,11):
+                    with self.assertRaises(HTTPException) as caught: storage.download('alice/one/id',size)
+                    self.assertEqual(caught.exception.status_code,422)
+
     def test_info_accepts_metadata_and_rejects_missing_type(self):
         with patch.dict(os.environ,{'SUPABASE_URL':'https://storage-test.supabase.co',
                                   'SUPABASE_SECRET_KEY':'sb_secret_private','SUPABASE_STORAGE_BUCKET':'interview-recordings'}):

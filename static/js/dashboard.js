@@ -35,17 +35,17 @@ export function renderHistorySearch() {
       : `${found.length} sessions shown. Enter a phrase to search saved text.`;
     for (const session of found) {
       const row = add(history, "tr", "");
-      add(
-        row,
-        "td",
-        new Date(session.date).toLocaleString() +
-          " · " +
-          (session.settings?.technology || "General"),
-      );
-      add(row, "td", modeName(session.settings?.interview_type || "technical"));
-      add(row, "td", session.answers.filter(a => !a.skipped).length + "/" + session.total + (session.answers.some(a => a.skipped) ? ` · ${session.answers.filter(a => a.skipped).length} skipped` : ""));
-      const cell = add(row, "td", "");
-      const button = add(cell, "button", "Open report");
+      const identity = add(row, 'td', '');identity.className = 'history-identity';
+      add(identity, 'strong', session.settings?.technology || 'General').className = 'history-topic';
+      const date = new Date(session.date);
+      const timestamp = add(identity, 'time', date.toLocaleString());
+      if(Number.isFinite(date.getTime())) timestamp.dateTime = date.toISOString();
+      const kind = add(row, "td", modeName(session.settings?.interview_type || "technical"));
+      kind.className = 'history-kind';kind.dataset.label = 'Interview';
+      const count = add(row, "td", session.answers.filter(a => !a.skipped).length + "/" + session.total + (session.answers.some(a => a.skipped) ? ` · ${session.answers.filter(a => a.skipped).length} skipped` : ""));
+      count.className = 'history-answers';count.dataset.label = 'Answered';
+      const cell = add(row, "td", "");cell.className = "history-actions";
+      const button = add(cell, "button", "Open report");button.className = "history-open";
       button.onclick = () => {
         if (!state.busy && !state.recording && !state.interviewSession?.active)
           openSavedSession(session.id);
@@ -59,7 +59,7 @@ export function renderHistorySearch() {
           add(matches, "p", `${match.field}: ${match.excerpt}`);
         }
       }
-      const remove = add(cell, "button", "Delete");
+      const remove = add(cell, "button", "Delete");remove.className = "history-delete";
       remove.dataset.sessionHistory = "true";
       remove.onclick = () => deleteSavedSession(session.id);
     }

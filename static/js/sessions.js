@@ -1,3 +1,4 @@
+import { uploadedRecordingReference } from "./account-store.js";
 import { confirmSkipQuestion } from "./confirm-dialog.js";
 import { requireTranscriptReview } from "./transcript-review.js";
 import { checkpointSession, draftStore } from "./recovery.js";
@@ -9,6 +10,7 @@ import { cancelQuestionSpeech, beginQuestionReadout } from "./speech.js";
 import { recentQuestionsFor, rememberQuestion } from "./questions.js";
 import {
   message,
+  manualQuestionError,
   interviewSettings,
   concreteSettings,
   modeName,
@@ -42,6 +44,7 @@ export function sessionSnapshot() {
   const extension = (state.filename.match(/\.([a-z0-9]{1,8})$/i) || [])[1] || "webm";
   const recording = state.blob?.size
     ? {
+        ...uploadedRecordingReference(state.interviewSession.id, state.blob),
         blob: state.blob,
         url: URL.createObjectURL(state.blob),
         name: `answer-${String(number).padStart(2, "0")}.${extension}`,
@@ -300,7 +303,12 @@ export function initSessions() {
       else message("Camera ready. Continue your current answer or load the next question.");
     });
   $("open-camera-check").onclick = () => {
-    if (!state.busy && !state.recording) showCameraCheck();
+    if (!state.busy && !state.recording) {
+      if(!state.interviewSession?.active && !state.singlePractice) {
+        const problem = manualQuestionError();if(problem) {message(problem,true);return;}
+      }
+      showCameraCheck();
+    }
   };
   $("camera-check-back").onclick = () => {
     if (!state.busy && !state.recording) showInterviewPage();

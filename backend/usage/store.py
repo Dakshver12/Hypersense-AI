@@ -3,6 +3,7 @@ from contextlib import contextmanager
 from contextvars import ContextVar
 from concurrent.futures import ThreadPoolExecutor
 import logging
+import os
 import sqlite3
 import time
 from backend.accounts.database import data_dir, postgres_enabled
@@ -57,7 +58,7 @@ def record(kind, provider, outcome, milliseconds=0, fallback=False):
     label = operation.get()
     if label not in ('question', 'session_questions', 'evaluation'):
         label = 'other'
-    if postgres_enabled():
+    if postgres_enabled() and os.getenv('VERCEL') != '1':
         # Usage telemetry is ancillary. Do not make the user wait for another
         # Tokyo round trip after the AI response is ready.
         try:

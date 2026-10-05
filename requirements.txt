@@ -6,7 +6,7 @@ pydantic>=2
 google-genai
 groq
 faster-whisper
-opencv-python>=4.10,<5
+opencv-contrib-python-headless>=4.10,<5
 mediapipe
 numpy
 httpx
