@@ -180,3 +180,30 @@
   #session-setup .setup-grid { gap:12px 8px!important; }
   #session-setup .setup-heading h1 { font-size:25px; }
 }
+
+/* Second phone pass: four essentials, compact secondary controls and quieter chrome. */
+@media screen and (max-width:600px) {
+  body > header { min-height:52px; padding-block:8px; }
+  body > main { padding-top:18px; }
+  #session-setup .setup-heading .eyebrow { display:none; }
+  #session-setup .setup-heading h1 { font-size:25px; margin:0 0 7px; letter-spacing:-.7px; }
+  #session-setup .setup-heading p { margin:0; font-size:12px; }
+  #session-setup .setup-heading { margin-bottom:16px; }
+  #session-setup .setup-steps { margin-bottom:16px; }
+  #session-setup .setup-form { padding:16px 14px; border-radius:14px; box-shadow:none; }
+  #session-setup .section-heading { margin-bottom:14px; }
+  #session-setup .section-heading h2 { font-size:13px; color:#c7d1d9; }
+  #session-setup .setup-form > .setup-grid { gap:12px; }
+  #session-setup input:not([type="checkbox"]),#session-setup select { min-height:44px; padding-block:9px; background:#101820; border-color:#ffffff18; border-radius:8px; }
+  #session-setup .mobile-session-timing { margin-top:14px; border-block:1px solid #ffffff10; }
+  #session-setup .mobile-session-timing summary { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px; min-height:44px; padding:10px 0; cursor:pointer; font-size:11px; list-style:none; }
+  #session-setup .mobile-session-timing summary::-webkit-details-marker { display:none; }
+  #session-setup .mobile-options-value { color:#a4cabc; }
+  #session-setup .mobile-options-value::after { content:'⌄'; margin-left:8px; }
+  #session-setup .mobile-session-timing[open] .mobile-options-value::after { content:'⌃'; }
+  #session-setup .mobile-session-timing .setup-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; padding-bottom:14px; }
+  #session-setup .mobile-question-options { margin-top:14px; }
+  body > .dashboard-nav { padding:6px 16px calc(6px + env(safe-area-inset-bottom)); gap:12px; background:#101720f5; }
+  body > .dashboard-nav button { border:0; border-radius:9px; font-size:11px; background:transparent; }
+  body > .dashboard-nav button[aria-current="page"],body > .dashboard-nav button.active { background:#20372e; color:#b6dbcc; }
+}

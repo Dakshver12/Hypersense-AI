@@ -1,19 +1,15 @@
-# Mobile workspace redesign
+# Mobile UI refinement — version 2
 
-Extract this ZIP into the project root and replace the matching files. It targets phones up to 600 CSS pixels wide; the desktop arrangement is restored when the viewport grows.
+Extract into your project root and replace matching files. This includes the earlier mobile redesign plus the refinements based on your latest screenshot.
 
-- Compact header and bottom navigation.
-- Essential session settings first, with two-column fields.
-- Question source and manual questions remain visible. Optional preferences and saved setups collapse below them.
-- Browser-session import moves into the account menu.
-- Smaller camera, interview, dashboard and report spacing; reachable interview action bar.
+Four essential fields remain visible: interview type, topic, difficulty and question count. Language and answer timing are in an expandable row showing their selected values. Question source and manual questions remain accessible without changing their defaults. Optional role/resume settings and saved setups stay collapsed.
 
-UI regression suite passed, including retained values, original event handlers and desktop restoration. Visual browser verification could not run in this environment because Chromium socket creation is restricted. Check the deployed preview at 360, 390 and 430 pixels before merging.
+Header, title, card spacing and bottom navigation are smaller and quieter. Controls retain a minimum 44-pixel height and 16-pixel input text. Desktop restores the original controls and their values when the viewport grows.
 
-Run `npm test` after installing the project dependencies.
+Validation: the full npm UI suite passes, including resize restoration, event handlers, retained values and the new timing summary. Visual rendering remains unverified here because browser socket creation is restricted. Review the deployed preview on your phone.
 
 ```bash
 git add static/css/mobile-polish.css static/js/mobile-shell.js templates/index.html tests/mobile_layout_ui.cjs tests/ui.cjs MOBILE_REDESIGN.md
-git commit -m "Redesign mobile workspace for focused interview practice"
+git commit -m "Refine mobile setup hierarchy and compact session options"
 git push
 ```

@@ -21,12 +21,17 @@ w.document.getElementById('technology').value='SQL';source.value='gemini';source
 assert.equal(w.document.getElementById('manual-question-fields').hidden,true);
 phone=false;listeners.forEach(fn=>fn());
 assert.equal(w.document.getElementById('mobile-session-options'),null);
+assert.equal(w.document.getElementById('mobile-session-timing'),null);
 assert(w.document.querySelector('.account-tools').contains(w.document.getElementById('account-import')));
 assert.equal(w.document.querySelector('#session-setup > details.setup-disclosure summary').innerHTML,originalSummary);
 assert.equal(w.document.getElementById('technology').value,'SQL');
 assert.equal(source.value,'gemini');
 phone=true;listeners.forEach(fn=>fn());
 assert.equal(w.document.querySelectorAll('#mobile-session-options').length,1);
+assert.equal(w.document.querySelectorAll('#mobile-session-timing').length,1);
+const duration=w.document.getElementById('duration');duration.value='90';duration.dispatchEvent(new w.Event('change'));
+assert.equal(w.document.querySelector('.mobile-options-value').textContent,'English · 90s');
+assert.equal(w.document.querySelector('#mobile-session-timing').open,false);
 assert.equal(w.document.querySelectorAll('#session-source').length,1);
 source.value='manual';source.dispatchEvent(new w.Event('change'));
 assert.equal(w.document.getElementById('manual-question-fields').hidden,false);

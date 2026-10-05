@@ -48,18 +48,38 @@ export function initMobileSetup() {
     if (!media.matches) return;
     edit(document.getElementById('session-title'), 'Your next interview');
     edit(setup.querySelector('.setup-heading .muted'), 'Choose your focus. We’ll check your devices next.');
-    edit(form.querySelector('.section-heading h2'), 'Session preferences');
+    edit(form.querySelector('.section-heading h2'), 'Interview essentials');
     edit(form.querySelector('label[for="language"]'), 'Language');
     edit(form.querySelector('label[for="technology"]'), 'Topic');
     edit(document.getElementById('camera-consent-help'), 'Camera required for face and head-movement checks. Frames are processed on the server and aren’t saved.');
     const core = form.querySelector('.setup-grid');
+    const timing = document.createElement('details');
+    timing.className = 'mobile-session-timing';timing.id = 'mobile-session-timing';
+    const timingSummary = document.createElement('summary');
+    const timingTitle = document.createElement('span');timingTitle.textContent = 'Language & timing';
+    const timingValue = document.createElement('span');timingValue.className = 'mobile-options-value';
+    timingSummary.append(timingTitle,timingValue);
+    const timingGrid = document.createElement('div');timingGrid.className = 'setup-grid';
+    timing.append(timingSummary,timingGrid);core.after(timing);restore.push(() => timing.remove());
+    for (const id of ['language','duration']) relocate(document.getElementById(id)?.closest('.setup-field'),timingGrid);
+    const updateTiming = () => {
+      const language = document.getElementById('language');const duration = document.getElementById('duration');
+      timingValue.textContent = `${language.value} · ${duration.value}s`;
+    };
+    updateTiming();
+    // Refresh when opened too: loading a saved setup can change values without a change event.
+    timing.addEventListener('toggle',updateTiming);
+    for (const id of ['language','duration']) {
+      const control = document.getElementById(id);control.addEventListener('change',updateTiming);
+      restore.push(() => control.removeEventListener('change',updateTiming));
+    }
     const quick = document.createElement('div');quick.className = 'mobile-question-options';
-    core.after(quick);restore.push(() => quick.remove());
+    timing.after(quick);restore.push(() => quick.remove());
     relocate(document.getElementById('session-source')?.closest('.setup-grid'),quick);
     relocate(document.getElementById('manual-question-fields'),quick);
     const preferences = document.createElement('details');
     preferences.id = 'mobile-session-options';preferences.className = 'setup-disclosure mobile-preferences';
-    const summary = document.createElement('summary');summary.textContent = 'Personalise & preferences';preferences.append(summary);
+    const summary = document.createElement('summary');summary.textContent = 'Personalise your interview';preferences.append(summary);
     quick.after(preferences);restore.push(() => preferences.remove());
     relocate(form.querySelector('details.setup-disclosure:not(#mobile-session-options)'),preferences);
     const workflow = document.getElementById('auto-flow');
