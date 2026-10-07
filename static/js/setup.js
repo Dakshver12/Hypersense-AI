@@ -88,20 +88,56 @@ export function evaluationContext(settings) {
   };
 }
 export function manualQuestionError() {
-  if ($('session-source').value !== 'manual') return '';
-  const total = Number($('session-count').value);
-  const questions = $('session-questions').value.split(/^\s*---\s*$/m).map(q=>q.trim()).filter(Boolean);
-  if(questions.length !== total) return `Add exactly ${total} questions, separated by a line containing ---. You have ${questions.length}.`;
-  if(questions.some(q=>q.length > 2000)) return 'Keep each question within 2,000 characters.';
-  return '';
+  if ($("session-source").value !== "manual") return "";
+  const total = Number($("session-count").value);
+  const questions = $("session-questions").value.split(/^\s*---\s*$/m).map(q => q.trim()).filter(Boolean);
+  if (!questions.length) return "Add your questions before continuing. Separate each question with a line containing ---.";
+  if (questions.length !== total) return `Add exactly ${total} questions, separated by a line containing ---. You have ${questions.length}.`;
+  if (questions.some(q => q.length > 2000)) return "Keep each question within 2,000 characters.";
+  return "";
+}
+
+export function validateManualQuestions() {
+  const field = $("session-questions");
+  let alert = $("manual-question-error");
+  if (!alert) {
+    alert = document.createElement("p");
+    alert.id = "manual-question-error";
+    alert.className = "error";
+    alert.setAttribute("role", "alert");
+    alert.hidden = true;
+    field.insertAdjacentElement("afterend", alert);
+    const described = (field.getAttribute("aria-describedby") || "").split(/\s+/).filter(Boolean);
+    if (!described.includes(alert.id)) described.push(alert.id);
+    field.setAttribute("aria-describedby", described.join(" "));
+  }
+  const problem = manualQuestionError();
+  alert.textContent = problem;
+  alert.hidden = !problem;
+  if (!problem) { field.removeAttribute("aria-invalid"); return true; }
+  $("manual-question-fields").hidden = false;
+  field.setAttribute("aria-invalid", "true");
+  message(problem, true);
+  field.focus();
+  field.scrollIntoView?.({block: "center", behavior: "smooth"});
+  return false;
 }
 
 export function initSetup() {
   const updateQuestionSource = () => {
     $("manual-question-fields").hidden = $("session-source").value !== "manual";
+    if ($("manual-question-error")) { $("manual-question-error").hidden = true; $("session-questions").removeAttribute("aria-invalid"); }
   };
   $("session-source").addEventListener("change", updateQuestionSource);
   updateQuestionSource();
+  $("session-questions").addEventListener("input", () => {
+    if ($("manual-question-error") && !$("manual-question-error").hidden) {
+      const problem = manualQuestionError();
+      $("manual-question-error").textContent = problem;
+      $("manual-question-error").hidden = !problem;
+      if (!problem) $("session-questions").removeAttribute("aria-invalid");
+    }
+  });
   $("resume-text").addEventListener("input", resumeStatus);
   $("resume-file").onchange = () =>
     run(async () => {

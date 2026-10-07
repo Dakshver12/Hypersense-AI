@@ -10,7 +10,7 @@ import { cancelQuestionSpeech, beginQuestionReadout } from "./speech.js";
 import { recentQuestionsFor, rememberQuestion } from "./questions.js";
 import {
   message,
-  manualQuestionError,
+  validateManualQuestions,
   interviewSettings,
   concreteSettings,
   modeName,
@@ -275,20 +275,9 @@ export function initSessions() {
   });
   $("session-start").onclick = () => {
     if (state.busy || state.recording || state.interviewSession?.active) return;
+    if (!validateManualQuestions()) return;
     if (!$("camera-consent").checked) {
       message("Check the camera consent box before continuing.", true);
-      return;
-    }
-    const total = Number($("session-count").value);
-    const questions = $("session-questions")
-      .value.split(/^\s*---\s*$/m)
-      .map((q) => q.trim())
-      .filter(Boolean);
-    if (
-      $("session-source").value === "manual" &&
-      (questions.length !== total || questions.some((q) => q.length > 2000))
-    ) {
-      message(`Paste exactly ${total} valid questions separated by ---.`, true);
       return;
     }
     showCameraCheck();
@@ -305,7 +294,7 @@ export function initSessions() {
   $("open-camera-check").onclick = () => {
     if (!state.busy && !state.recording) {
       if(!state.interviewSession?.active && !state.singlePractice) {
-        const problem = manualQuestionError();if(problem) {message(problem,true);return;}
+        if (!validateManualQuestions()) return;
       }
       showCameraCheck();
     }
