@@ -13,6 +13,7 @@ from backend.admin.routes import router as admin_router
 from backend.support.routes import router as support_router
 
 from backend.accounts.routes import router as auth_router
+from backend.accounts.oauth import router as oauth_router
 from backend.accounts.settings import router as settings_router
 from backend.accounts.interviews import router as account_router
 from backend.accounts.recordings import router as recording_router
@@ -32,8 +33,6 @@ async def lifespan(app):
             raise RuntimeError('Vercel requires TRANSCRIPTION_PROVIDER=groq and GROQ_API_KEY.')
     origin()
     validate_mail_config()
-    if os.getenv("APP_ENV") == "production" and (os.getenv("MAIL_MODE") != "smtp" or not os.getenv("SMTP_HOST") or not os.getenv("SMTP_FROM")):
-        raise RuntimeError("Production requires SMTP_HOST, SMTP_FROM and MAIL_MODE=smtp")
     with database():
         pass
     yield
@@ -53,6 +52,7 @@ app.include_router(usage_router)
 app.include_router(admin_router)
 app.include_router(support_router)
 app.include_router(auth_router)
+app.include_router(oauth_router)
 app.include_router(settings_router)
 app.include_router(account_router)
 app.include_router(recording_router)

@@ -31,7 +31,7 @@ class MailTests(unittest.TestCase):
                 server.login.assert_called_once_with('test-user', 'test-password')
                 message = server.send_message.call_args.args[0]
                 self.assertEqual(message['To'], 'person@example.test')
-                self.assertIn('#token=example', message.get_content())
+                self.assertIn('#token=example', message.get_body(preferencelist=('plain',)).get_content())
                 self.assertIsNone(result)
 
     def test_invalid_config(self):
@@ -39,3 +39,23 @@ class MailTests(unittest.TestCase):
             with self.subTest(changes=changes), patch.dict(os.environ, changes):
                 with self.assertRaises(RuntimeError):
                     validate_mail_config()
+
+    def test_brevo_api_delivery_uses_https_and_both_email_formats(self):
+        import httpx
+        from unittest.mock import Mock
+        with patch.dict(os.environ, {'MAIL_MODE':'brevo','BREVO_API_KEY':'fake-api-key'}), patch('backend.accounts.mail.httpx.Client') as factory, patch('backend.accounts.mail.smtplib.SMTP') as smtp:
+            response=Mock();factory.return_value.__enter__.return_value.post.return_value=response
+            self.assertIsNone(send_link('person@example.test','verify','https://example.test/verify-email#token=example'))
+            call=factory.return_value.__enter__.return_value.post.call_args
+            self.assertEqual(call.args[0],'https://api.brevo.com/v3/smtp/email')
+            self.assertEqual(call.kwargs['headers']['api-key'],'fake-api-key')
+            self.assertIn('#token=example',call.kwargs['json']['htmlContent'])
+            self.assertIn('#token=example',call.kwargs['json']['textContent'])
+            response.raise_for_status.assert_called_once();smtp.assert_not_called()
+            response.raise_for_status.side_effect=httpx.HTTPStatusError('Rejected',request=httpx.Request('POST',call.args[0]),response=httpx.Response(401))
+            with self.assertRaises(httpx.HTTPStatusError):send_link('person@example.test','verify','https://example.test/verify-email#token=example')
+
+    def test_brevo_requires_key_and_sender(self):
+        for fields in ({'BREVO_API_KEY':''},{'BREVO_API_KEY':'key','SMTP_FROM':''}):
+            with patch.dict(os.environ,{'MAIL_MODE':'brevo',**fields}):
+                with self.assertRaises(RuntimeError):validate_mail_config()

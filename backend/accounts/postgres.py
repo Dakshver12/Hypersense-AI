@@ -14,7 +14,7 @@ _guard = Lock()
 _pool_guard = Lock()
 _pool = None
 _pool_key = None
-TABLES = ('users','logins','links','attempts','account_suspensions','admin_audit',
+TABLES = ('users','oauth_identities','oauth_flows','logins','links','attempts','account_suspensions','admin_audit',
           'support_reports','support_receipts','support_messages','support_threads',
           'support_admin_reads','interviews','interview_drafts','recording_objects','counters')
 COUNTERS = '''CREATE TABLE IF NOT EXISTS counters (

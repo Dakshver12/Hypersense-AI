@@ -743,3 +743,6 @@ require("./session_save_queue_ui.cjs");
 require("./mobile_layout_ui.cjs");
 
 require("./camera_recovery_ui.cjs");
+
+require("./auth_navigation_ui.cjs");
+require("./verification_social_ui.cjs");

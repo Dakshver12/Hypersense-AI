@@ -3,6 +3,13 @@ SQLITE_SCHEMA = """
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY, email TEXT UNIQUE NOT NULL, name TEXT NOT NULL,
       password TEXT NOT NULL, verified INTEGER NOT NULL DEFAULT 0, created INTEGER NOT NULL);
+    CREATE TABLE IF NOT EXISTS oauth_identities (
+      provider TEXT NOT NULL, subject TEXT NOT NULL,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      PRIMARY KEY(provider,subject));
+    CREATE TABLE IF NOT EXISTS oauth_flows (
+      state TEXT PRIMARY KEY, provider TEXT NOT NULL, verifier TEXT NOT NULL,
+      expires INTEGER NOT NULL, user_id TEXT REFERENCES users(id) ON DELETE CASCADE);
     CREATE TABLE IF NOT EXISTS logins (
       token TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       expires INTEGER NOT NULL);

@@ -4,6 +4,7 @@ from email.utils import parseaddr
 import ipaddress
 import json
 import os
+import re
 from pathlib import Path
 import sqlite3
 import subprocess
@@ -96,7 +97,12 @@ def checks(env=None, root=ROOT, profile='production', probe=dependencies):
     mode=env.get('MAIL_MODE','file')
     if mode=='file' and not production:
         add('Email configuration','WARN','Development file mode does not deliver email. Switch to SMTP before deployment.')
-    elif mode!='smtp': add('Email configuration','FAIL','Set MAIL_MODE=smtp for production verification and password-reset email.')
+    elif mode=='brevo':
+        sender=parseaddr(env.get('SMTP_FROM',''))[1]
+        valid=bool(env.get('BREVO_API_KEY','').strip()) and bool(re.fullmatch(r'[^\s@]+@[^\s@]+\.[^\s@]+',sender))
+        add('Email configuration','PASS' if valid else 'FAIL',
+            'Brevo API fields are configured. Key validity, verified sender and delivery have not been tested.' if valid else 'Set BREVO_API_KEY and a verified SMTP_FROM sender for MAIL_MODE=brevo.')
+    elif mode!='smtp': add('Email configuration','FAIL','Set MAIL_MODE=smtp or brevo for production verification and password-reset email.')
     else:
         host=env.get('SMTP_HOST','');sender=env.get('SMTP_FROM','');security=env.get('SMTP_SECURITY','starttls')
         try: port=int(env.get('SMTP_PORT','587'))

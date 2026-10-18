@@ -86,3 +86,7 @@ class ReadinessTests(unittest.TestCase):
         self.assertEqual(result['Environment']['status'],'PASS')
         self.assertEqual(result['Session cookie']['status'],'WARN')
         self.assertEqual(result['Email configuration']['status'],'WARN')
+
+    def test_brevo_api_configuration(self):
+        self.assertEqual(self.result(MAIL_MODE='brevo',BREVO_API_KEY='test-key')['Email configuration']['status'],'PASS')
+        self.assertEqual(self.result(MAIL_MODE='brevo',BREVO_API_KEY='')['Email configuration']['status'],'FAIL')
