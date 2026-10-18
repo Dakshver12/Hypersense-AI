@@ -1,0 +1,28 @@
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const path=require('node:path');
+const {JSDOM}=require('jsdom');
+(async()=>{
+ const root=path.resolve(__dirname,'..');
+ const dom=new JSDOM(fs.readFileSync(path.join(root,'templates/auth.html'),'utf8'),{url:'https://example.test/login',runScripts:'outside-only'});
+ const w=dom.window,d=id=>w.document.getElementById(id);w.scrollTo=()=>{};
+ let requests=[];
+ w.fetch=async(url,options)=>{requests.push([url,JSON.parse(options.body)]);return {ok:false,json:async()=>({detail:'Test error'})};};
+ w.eval(fs.readFileSync(path.join(root,'static/auth/form.js'),'utf8'));
+ d('auth-email').value='daksh@example.test';d('auth-password').value='clear-this-password';
+ d('auth-switch').querySelector('a').click();
+ assert.equal(w.location.pathname,'/signup');assert.equal(d('name-field').hidden,false);
+ assert.equal(d('auth-submit').textContent,'Create account');assert.equal(d('auth-email').value,'daksh@example.test');
+ assert.equal(d('auth-password').value,'');assert.equal(requests.length,0);
+ d('auth-name').value='Daksh';d('auth-password').value='test-password-1234';
+ d('auth-form').dispatchEvent(new w.Event('submit',{cancelable:true}));
+ await new Promise(r=>setTimeout(r,0));
+ assert.equal(requests[0][0],'/auth/signup');assert.equal(requests[0][1].name,'Daksh');
+ d('auth-switch').querySelector('a').click();d('forgot-link').click();
+ assert.equal(w.location.pathname,'/forgot-password');assert.equal(d('password-field').hidden,true);
+ assert.equal(d('auth-submit').textContent,'Send reset link');assert.equal(requests.length,1);
+ const moved=new Promise(resolve=>w.addEventListener('popstate',resolve,{once:true}));w.history.back();await moved;
+ assert.equal(w.location.pathname,'/login');assert.equal(d('password-field').hidden,false);assert.equal(d('auth-submit').textContent,'Sign in');
+ assert.equal(requests.length,1);dom.window.close();
+ console.log('PASS: auth navigation uses no page requests, preserves email, clears passwords, submits the correct endpoint and supports Back.');
+})().catch(error=>{console.error(error);process.exitCode=1;});
