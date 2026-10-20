@@ -13,7 +13,7 @@ class AccountSafetyMiddleware:
             return await self.app(scope,receive,send)
         started=time.perf_counter()
         path=scope['path']
-        private=not path.startswith('/static/')
+        private=not path.startswith(('/static/','/assets/'))
         async def safe_send(message):
             if message['type']=='http.response.start':
                 headers=[(k,v) for k,v in message.get('headers',[]) if not (private and k.lower()==b'cache-control')]

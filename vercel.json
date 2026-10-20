@@ -4,7 +4,8 @@
   "functions": {
     "main.py": {
       "maxDuration": 300,
-      "excludeFiles": "{tests/**,static - Copy/**,templates - Copy/**,backups/**,data/**,.venv/**,node_modules/**,**/__pycache__/**,test-output.txt,*.dump,*.zip,*.mp3,*.webm}"
+      "excludeFiles": "{tests/**,static - Copy/**,templates - Copy/**,backups/**,data/**,.venv/**,node_modules/**,**/__pycache__/**,test-output.txt,*.dump,*.zip,*.mp3,*.webm}",
+      "includeFiles": "{generated/templates/**,static/bundles/**}"
     }
   },
   "headers": [

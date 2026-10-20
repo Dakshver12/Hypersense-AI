@@ -1,4 +1,6 @@
-# HyperSense frontend loading fix
+# HyperSense frontend loading fix — corrected asset serving
+
+The first performance deployment linked to generated assets that returned 404. This revision adds an explicit `/assets/` fallback, includes runtime copies in the function bundle, and falls back to source templates if bundled files are missing. Re-extract this corrected ZIP and redeploy.
 
 ## Findings
 
@@ -40,13 +42,13 @@ Use the project's activated Python environment. The tests simulate providers and
 3. Commit the source changes:
 
 ```bash
-git add .gitignore vercel.json public/.gitkeep backend/assets.py backend/pages.py backend/accounts/routes.py backend/accounts/settings.py backend/admin/pages.py backend/support/routes.py
+git add .gitignore vercel.json public/.gitkeep backend/assets.py backend/application.py backend/accounts/middleware.py backend/pages.py backend/accounts/routes.py backend/accounts/settings.py backend/admin/pages.py backend/support/routes.py
 git add scripts/build_frontend.cjs scripts/build_vercel.py tests/test_frontend_assets.py tests/frontend_bundle_ui.cjs FRONTEND_PERFORMANCE_SETUP.md
-git commit -m "Bundle frontend assets and serve versioned files through CDN"
+git commit -m "Fix generated asset serving and preserve styled page fallback"
 git push origin main
 ```
 
-Generated `public/assets/` and `generated/templates/` files are intentionally ignored. The deployment build regenerates them from source.
+Generated `public/assets/`, `static/bundles/` and `generated/templates/` files are intentionally ignored. The deployment build regenerates them from source.
 
 ## Vercel deployment check
 
@@ -63,7 +65,7 @@ Published static assets to public/static for CDN delivery
 The build installs existing Node dev dependencies for esbuild, then generates the frontend bundles and native assets. A build failure should be corrected rather than deploying incomplete output.
 
 3. Wait for **Ready**, open the production URL in a fresh private tab, and inspect page source. The main stylesheet and script should now begin `/assets/` and contain a content hash. If they still reference the old individual `/static/css/` links, the generated templates are not being used: check the deployed commit and build output first.
-4. In desktop DevTools → Network, leave **Disable cache unchecked** for normal-use testing. Reload twice. Versioned assets should be served directly and then use browser cache; their requests should not appear as FastAPI function invocations in Vercel logs. Confirm the assets return 200 with the correct content type, not an HTML error page.
+4. In desktop DevTools → Network, leave **Disable cache unchecked** for normal-use testing. Reload twice. Every versioned asset must return 200, then use browser/edge caching. If platform static publishing is unavailable, the explicit app fallback serves the same bytes. A first request may then appear as a FastAPI invocation. Confirm the assets return 200 with the correct content type, not an HTML error page.
 5. Test login, both social sign-ins, verification, dashboard, device checks and a short interview on desktop and mobile.
 
 If private pages are still slow after assets are cached, inspect the slow **document or API request**, its Waiting/TTFB timing and Server-Timing response header. Share the route, timings and status with credentials/cookies/tokens omitted. That is the evidence needed to distinguish database or provider waits from network delay.
@@ -72,11 +74,16 @@ If private pages are still slow after assets are cached, inspect the slow **docu
 
 - Full existing npm UI suite passed.
 - Actual minified workspace and authentication bundles booted successfully in jsdom with working navigation.
-- Fourteen targeted Python tests passed, covering generated templates/assets plus OAuth and email regression checks.
+- Fifteen targeted Python tests passed, covering generated templates/assets plus OAuth and email regression checks.
 - Generated HTML keeps account/social placeholders; every referenced generated CSS/JS file exists.
+- Actual GET requests through the app fallback returned correct CSS/JS content, immutable caching and 304 responses; private routes stayed no-store. Missing bundle files select the original source template.
 - No live deployment, real provider sign-in or authenticated database timing was performed from this workspace.
 
 ## Reference
 
 Vercel's FastAPI documentation describes serving the public directory from the CDN:
 https://vercel.com/docs/frameworks/backend/fastapi#the-public-directory
+
+## Quick correction deployment
+
+After extracting this corrected ZIP, commit and push using the commands above. Wait for Vercel Ready. Open `/login` in a fresh tab, then Ctrl+Shift+R. The previously broken files `/assets/auth.c4c0dcabcbd79d9e.css` and `/assets/form.1b76f828f33d4847.js` should return 200; later code changes can generate new hashes. Check the URLs actually present in page source. Do not change OAuth credentials or callback URLs for this correction.

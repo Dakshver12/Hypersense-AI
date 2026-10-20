@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 import os
 from fastapi.staticfiles import StaticFiles
 from backend.config import PROJECT_ROOT
+from backend.assets import BundledStaticFiles
 from backend.api import router as api_router
 from backend.pages import router as page_router
 from backend.health import router as health_router
@@ -56,6 +57,7 @@ app.include_router(oauth_router)
 app.include_router(settings_router)
 app.include_router(account_router)
 app.include_router(recording_router)
+app.mount("/assets", BundledStaticFiles(directory=PROJECT_ROOT / "static" / "bundles", check_dir=False), name="bundled-assets")
 app.mount("/static", RevalidatedStaticFiles(directory=PROJECT_ROOT / "static"), name="static")
 app.include_router(api_router, dependencies=[Depends(require_practice_user)])
 app.include_router(page_router)

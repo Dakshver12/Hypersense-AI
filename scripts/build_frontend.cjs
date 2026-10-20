@@ -5,6 +5,7 @@ const crypto=require('node:crypto');
 const esbuild=require('esbuild');
 const root=path.resolve(__dirname,'..');
 const target=path.join(root,'public/assets');
+const runtimeTarget=path.join(root,'static/bundles');
 const templates=path.join(root,'templates');
 const generated=path.join(root,'generated/templates');
 function hash(bytes){return crypto.createHash('sha256').update(bytes).digest('hex').slice(0,16);}
@@ -18,9 +19,11 @@ function source(url){
 function publish(stem,extension,bytes){
  const name=stem+'.'+hash(bytes)+'.'+extension;
  fs.writeFileSync(path.join(target,name),bytes);
+ fs.writeFileSync(path.join(runtimeTarget,name),bytes);
  return '/assets/'+name;
 }
 function build(){
+ fs.rmSync(runtimeTarget,{recursive:true,force:true});fs.mkdirSync(runtimeTarget,{recursive:true});
  fs.rmSync(target,{recursive:true,force:true});fs.mkdirSync(target,{recursive:true});
  fs.rmSync(generated,{recursive:true,force:true});fs.mkdirSync(generated,{recursive:true});
  const scripts=new Map(),manifest={};

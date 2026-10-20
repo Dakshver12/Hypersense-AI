@@ -49,3 +49,6 @@ public/static/
 # Generated fingerprinted frontend bundles and deployment templates
 public/assets/
 generated/templates/
+
+# Runtime fallback copies of generated frontend assets
+static/bundles/
