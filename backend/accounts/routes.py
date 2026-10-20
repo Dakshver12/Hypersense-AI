@@ -1,3 +1,4 @@
+from backend.assets import template_path
 import os
 import re
 import secrets
@@ -124,7 +125,7 @@ def home(request: Request):
 def auth_page(request: Request):
     if request.url.path in ('/login','/signup') and current_user(request):
         return RedirectResponse('/interview', status_code=303)
-    text = (PROJECT_ROOT/'templates/auth.html').read_text(encoding='utf-8')
+    text = template_path('auth.html').read_text(encoding='utf-8')
     hint = 'Development email is saved in data/outbox (or your configured data directory).' if os.getenv('MAIL_MODE','file') == 'file' and os.getenv('APP_ENV','development') != 'production' else 'Check your inbox for the verification or reset link.'
     from .oauth import PROVIDERS, enabled
     providers = ''.join('<a class="social-provider" data-provider="{0}" href="/auth/oauth/{0}/start">Continue with {1}</a>'.format(p, {'google': 'Google', 'github': 'GitHub'}[p]) for p in PROVIDERS if enabled(p))

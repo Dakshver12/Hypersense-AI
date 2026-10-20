@@ -4,6 +4,7 @@ import hashlib
 import io
 import platform
 import shutil
+import subprocess
 import tarfile
 from pathlib import Path
 from urllib.request import urlopen
@@ -46,6 +47,9 @@ def prepare_static_assets():
 def main():
     if platform.system() != 'Linux' or platform.machine() not in ('x86_64','AMD64'):
         raise RuntimeError('This Vercel native build expects Linux x86_64')
+    # Bundle before the native library step; fail the build rather than ship missing assets.
+    subprocess.run(['npm', 'ci', '--include=dev'], cwd=ROOT, check=True)
+    subprocess.run(['node', 'scripts/build_frontend.cjs'], cwd=ROOT, check=True)
     prepare_static_assets()
     index = gzip.decompress(fetch(BASE+'dists/bookworm/main/binary-amd64/Packages.gz')).decode()
     found = {}

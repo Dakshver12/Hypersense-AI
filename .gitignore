@@ -45,3 +45,7 @@ test-output.txt
 
 # Generated Vercel CDN assets
 public/static/
+
+# Generated fingerprinted frontend bundles and deployment templates
+public/assets/
+generated/templates/

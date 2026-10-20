@@ -1,4 +1,5 @@
 """Authenticated account settings and explicit session revocation."""
+from backend.assets import template_path
 from html import escape
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -47,7 +48,7 @@ def account_page(request: Request):
     user = current_user(request)
     if not user:
         return RedirectResponse('/login', status_code=303)
-    page = (PROJECT_ROOT/'templates/account-settings.html').read_text(encoding='utf-8')
+    page = template_path('account-settings.html').read_text(encoding='utf-8')
     return HTMLResponse(page.replace('<!-- account-id -->', escape(user['id'], quote=True)),
                         headers={'Cache-Control':'no-store'})
 

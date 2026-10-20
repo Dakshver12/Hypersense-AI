@@ -1,4 +1,5 @@
 from html import escape
+from backend.assets import template_path
 from fastapi import HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
 from backend.accounts.security import current_user
@@ -15,6 +16,6 @@ def admin_page(request, template, active):
     directory = PROJECT_ROOT/'templates'
     nav = (directory/'admin-nav.html').read_text(encoding='utf-8')
     nav = nav.replace('data-page="'+active+'"', 'data-page="'+active+'" aria-current="page"')
-    html = (directory/template).read_text(encoding='utf-8')
+    html = template_path(template).read_text(encoding='utf-8')
     html = html.replace('<!-- admin-nav -->', nav).replace('<!-- account-id -->', escape(user['id'], quote=True))
     return HTMLResponse(html, headers={'Cache-Control':'no-store'})

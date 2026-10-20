@@ -1,3 +1,4 @@
+from backend.assets import template_path
 import time
 from html import escape
 from typing import Literal
@@ -51,7 +52,7 @@ class UpdateReport(BaseModel):
 def support_page(request: Request):
     user=current_user(request)
     if not user: return RedirectResponse('/login',status_code=303)
-    html=(PROJECT_ROOT/'templates/support.html').read_text(encoding='utf-8')
+    html=template_path('support.html').read_text(encoding='utf-8')
     return HTMLResponse(html.replace('<!-- account-id -->',escape(user['id'],quote=True)),headers={'Cache-Control':'no-store'})
 
 

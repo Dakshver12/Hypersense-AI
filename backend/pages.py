@@ -1,4 +1,5 @@
 """Compose a shared document from separately maintained screen fragments."""
+from backend.assets import template_path
 
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -12,7 +13,7 @@ SCREEN_NAMES = ("dashboard", "setup", "interview", "camera-check", "results")
 
 def render_shell():
     templates = PROJECT_ROOT / "templates"
-    shell = (templates / "index.html").read_text(encoding="utf-8")
+    shell = template_path("index.html").read_text(encoding="utf-8")
     for name in SCREEN_NAMES:
         shell = shell.replace(
             "<!-- include:" + name + " -->",

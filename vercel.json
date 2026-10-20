@@ -20,6 +20,19 @@
           "value": "public, s-maxage=86400"
         }
       ]
+    },
+    {
+      "source": "/assets/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        },
+        {
+          "key": "Vercel-CDN-Cache-Control",
+          "value": "public, s-maxage=31536000, immutable"
+        }
+      ]
     }
   ],
   "buildCommand": "python scripts/build_vercel.py",
