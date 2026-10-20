@@ -2,12 +2,73 @@
 
 import json
 import random
+import re
 import unicodedata
 from fastapi import HTTPException
 from google.genai import types
 from backend.schemas import QuestionRequest
 from backend.services.providers import generate_with_fallback
 
+
+
+QUESTION_OUTPUT_RULES = (
+    " Output final interview questions only, never brainstorming, analysis, draft labels,"
+    " Idea 1/Idea 2, alternatives, answers or solutions. Every question must be complete"
+    " and answerable by itself. Finish each scenario and include the actual task."
+    " Never end a question mid-sentence or abbreviate a missing scenario with ellipses."
+)
+_LABEL = re.compile(
+    r"^\s*(?:\#{1,6}\s*)?[*_]{0,2}(?:idea|question|draft|option|prompt)"
+    r"(?:\s*\#?\d+)?(?:\s*\([^()\n]{1,120}\))?\s*[*_]{0,2}\s*[:–—-]\s*[*_]{0,2}\s*",
+    re.IGNORECASE,
+)
+_DRAFT = re.compile(
+    r"(?:^|\n)\s*(?:\#{1,6}\s*)?[*_]{0,2}(?:idea|draft|option)\s*(?:\d+\b|:)"
+    r"|(?:^|\n)\s*[*_]{0,2}(?:answer|solution|analysis|reasoning|hint)\s*[*_]{0,2}\s*:"
+    r"|</?(?:think|analysis)>", re.IGNORECASE,
+)
+_DANGLING = re.compile(
+    r"(?:\b(?:where|when|if|because|and|or|that|which|using|such as|for example|the following|a|an|the)"
+    r"|(?:जहाँ|जहां|क्योंकि|यदि|और|अगर|kyunki|jahan|agar|aur))$", re.IGNORECASE,
+)
+
+
+class QuestionQualityError(ValueError):
+    pass
+
+
+def clean_generated_question(text):
+    """Conservative presentation/truncation checks, not a grammar or truth judge."""
+    if not isinstance(text, str):
+        raise QuestionQualityError('Question must be text')
+    question = _LABEL.sub('', text.strip(), count=1).strip()
+    if not 8 <= len(question) <= 2000 or len(question.split()) > 80:
+        raise QuestionQualityError('Question length is invalid')
+    if _DRAFT.search(question):
+        raise QuestionQualityError('Drafting or answer text')
+    if question.count('```') % 2:
+        raise QuestionQualityError('Unfinished code fence')
+    if re.search(r'(?:\.\.\.|…|[:,;–—-])\s*$', question):
+        raise QuestionQualityError('Unfinished ending')
+    ending = question.rstrip(' ?.!।*_' + chr(34) + chr(39)).strip()
+    if _DANGLING.search(ending):
+        raise QuestionQualityError('Unfinished clause')
+    return question
+
+
+def _validated_generation(contents, config, validate):
+    # Valid responses cost one call. Only malformed question text gets one repair.
+    for attempt in range(2):
+        response = generate_with_fallback(contents, config)
+        try:
+            return validate(response.text), response
+        except QuestionQualityError:
+            if attempt:
+                raise HTTPException(502, 'The provider returned unfinished or draft question text. Please retry loading questions.') from None
+            config = config.model_copy(update={
+                'system_instruction': (config.system_instruction or '') + QUESTION_OUTPUT_RULES
+                    + ' The previous output failed text validation. Return a complete final question without drafting labels.'
+            })
 
 def question_key(text):
     return " ".join(unicodedata.normalize("NFKC", text).casefold().split()).rstrip(
@@ -39,7 +100,7 @@ def generate_question(request: QuestionRequest):
     payload["question_style"] = random.choice(
         ["practical example", "reasoning", "reflection", "scenario"]
     )
-    response = generate_with_fallback(
+    result, response = _validated_generation(
         json.dumps(payload, ensure_ascii=False),
         types.GenerateContentConfig(
             system_instruction=(
@@ -62,19 +123,16 @@ def generate_question(request: QuestionRequest):
                 " that tests one relevant goal while respecting interview_type and"
                 " difficulty. Do not reveal the answer or repeat the feedback. "
             )
-            + category
+            + category + QUESTION_OUTPUT_RULES
             + " Match the selected language: English, Hindi in Devanagari with common"
             " technical terms retained, or Hinglish in Roman script. Return only the"
             " question, without answers, hints or introductions. Keep it under 80"
             " words.",
             max_output_tokens=512,
         ),
+        clean_generated_question,
     )
-    question = (response.text or "").strip()
-    if not question:
-        raise HTTPException(
-            status_code=502, detail="The evaluator returned no question. Try again."
-        )
+    question = result
     if question_key(question) in {question_key(q) for q in request.recent_questions}:
         raise HTTPException(
             status_code=409,
@@ -95,7 +153,7 @@ def generate_question(request: QuestionRequest):
 
 
 def generate_session_questions(request):
-    """Generate and validate the entire remaining session with one provider call."""
+    """Generate a session in one call; allow one bounded text-quality repair."""
     if not request.technology.strip():
         raise HTTPException(422, "Technology cannot be blank.")
     category = (
@@ -103,7 +161,7 @@ def generate_session_questions(request):
         " Technical tests subject knowledge; behavioral invites a concrete example"
         " of teamwork, setbacks or initiative; HR asks about motivation or role interest."
     )
-    response = generate_with_fallback(
+    items, response = _validated_generation(
         json.dumps(request.model_dump(), ensure_ascii=False),
         types.GenerateContentConfig(
             system_instruction=(
@@ -126,17 +184,22 @@ def generate_session_questions(request):
                 " that tests one relevant goal while respecting interview_type and"
                 " difficulty. Do not reveal the answer or repeat the feedback. "
             )
-            + category
+            + category + QUESTION_OUTPUT_RULES
             + " Match the selected language: English, Hindi in Devanagari with common"
             " technical terms retained, or Hinglish in Roman script. Return only JSON with a questions array of objects containing"
             " interview_type and question. No answers, hints or introductions."
             " Keep each question under 80 words.",
             response_mime_type="application/json",
-            max_output_tokens=2048,
+            max_output_tokens=max(2048, len(request.interview_types) * 256),
         ),
+        lambda text: _validate_batch(text, request),
     )
+    return {"questions": items, "provider": response.provider, "model": response.model}
+
+
+def _validate_batch(text, request):
     try:
-        items = json.loads(response.text)["questions"]
+        items = json.loads(text)["questions"]
         if not isinstance(items, list) or len(items) != len(request.interview_types):
             raise ValueError("Wrong question count")
         seen = {question_key(q) for q in request.recent_questions}
@@ -144,13 +207,16 @@ def generate_session_questions(request):
             if not isinstance(item, dict) or item.get("interview_type") != expected:
                 raise ValueError("Wrong category")
             question = item.get("question")
-            if not isinstance(question, str) or not 1 <= len(question.strip()) <= 2000:
+            if not isinstance(question, str) or not question.strip():
                 raise ValueError("Invalid question")
+            question = clean_generated_question(question)
             key = question_key(question)
             if not key or key in seen:
                 raise ValueError("Repeated question")
             seen.add(key)
             item["question"] = question.strip()
+    except QuestionQualityError:
+        raise
     except (ValueError, TypeError, KeyError):
         raise HTTPException(502, "The provider returned an invalid question set. Retry loading questions.") from None
-    return {"questions": items, "provider": response.provider, "model": response.model}
+    return items
