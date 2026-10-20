@@ -169,6 +169,14 @@ def provider_identity(provider, code, verifier):
         return subject, email, str(name).strip()[:80] or 'HyperSense user'
 
 
+class OAuthAccountError(Exception):
+    """Account decisions must pass through the PostgreSQL transaction unchanged.
+
+    The legacy adapter translates ValueError into sqlite3.OperationalError.
+    Use a separate exception type for expected OAuth account outcomes.
+    """
+
+
 def resolve_account(provider, subject, email, name, link_user=None):
     # A verified provider email never silently takes over an existing local account.
     with database() as db:
@@ -177,22 +185,22 @@ def resolve_account(provider, subject, email, name, link_user=None):
         if identity:
             uid = identity['user_id']
             if link_user and uid != link_user:
-                raise ValueError('conflict')
+                raise OAuthAccountError('conflict')
         elif link_user:
             uid = link_user
             db.execute('INSERT INTO oauth_identities VALUES (?,?,?)', (provider, subject, uid))
         else:
             if db.execute('SELECT 1 FROM users WHERE email=?', (email,)).fetchone():
-                raise ValueError('existing-account')
+                raise OAuthAccountError('existing-account')
             uid = str(uuid.uuid4())
             new_password = hash_password(secrets.token_urlsafe(48))
             db.execute('INSERT INTO users VALUES (?,?,?,?,1,?)', (uid, email, name, new_password, int(time.time())))
             db.execute('INSERT INTO oauth_identities VALUES (?,?,?)', (provider, subject, uid))
         user = db.execute('SELECT verified FROM users WHERE id=?', (uid,)).fetchone()
         if not user or not user['verified']:
-            raise ValueError('sign-in-first')
+            raise OAuthAccountError('sign-in-first')
         if db.execute('SELECT 1 FROM account_suspensions WHERE user_id=?', (uid,)).fetchone():
-            raise ValueError('suspended')
+            raise OAuthAccountError('suspended')
     return uid
 
 
@@ -221,6 +229,8 @@ def callback(provider: str, request: Request, state: str = '', code: str = '', e
     try:
         subject, email, name = provider_identity(provider, code, flow['verifier'])
         uid = resolve_account(provider, subject, email, name, link_user)
+    except OAuthAccountError as exc:
+        return failure(str(exc) if str(exc) in ERRORS else 'provider')
     except ValueError as exc:
         category = str(exc) if str(exc) in ERRORS else 'provider'
         if category == 'provider':
