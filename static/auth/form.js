@@ -31,10 +31,16 @@ function renderAuthMode(){
 }
 renderAuthMode();
 const socialErrors={
+ 'oauth-credentials':'The provider rejected the website client credentials. The site administrator needs to check the Client ID and Client secret.',
+ 'oauth-callback':'The provider callback URL does not match the website configuration. Contact the site administrator.',
+ 'oauth-code':'The sign-in code expired or was rejected. Start a fresh sign-in from this website.',
+ 'oauth-network':'The website could not connect to the sign-in provider. Please try again shortly.',
+ 'oauth-permissions':'The provider did not grant the required profile or email access. Please try again or contact support.',
+ 'oauth-database':'Provider sign-in reached account setup, but saving the account failed. Contact the site administrator.', 
  'not-configured':'This provider is not configured yet. Use email sign-in.',
  expired:'This sign-in request expired or belongs to another browser. Start again.',
  cancelled:'Sign-in was cancelled. Try again or use email.',
- provider:'The sign-in provider could not be reached. Please try again.',
+ provider:'The provider rejected sign-in or returned an unexpected response. Please retry or contact support.',
  'verified-email':'Choose a provider account with a verified email address.',
  'existing-account':'This email already has a HyperSense account. Sign in with your password, then open Connected accounts in Settings to connect this provider.',
  suspended:'This account is suspended. Contact support.',

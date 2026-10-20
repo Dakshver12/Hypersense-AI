@@ -2,6 +2,7 @@
 import base64
 import hashlib
 import hmac
+import logging
 import os
 import re
 import secrets
@@ -17,6 +18,7 @@ from .database import database
 from .security import COOKIE, SESSION_SECONDS, current_user, digest, hash_password, limit, origin, secure_cookie
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 PROVIDERS = {
     'google': {'authorize': 'https://accounts.google.com/o/oauth2/v2/auth',
                'token': 'https://oauth2.googleapis.com/token', 'scope': 'openid email profile'},
@@ -24,10 +26,16 @@ PROVIDERS = {
                'token': 'https://github.com/login/oauth/access_token', 'scope': 'read:user user:email'},
 }
 ERRORS = {
+    'oauth-credentials': 'The provider rejected the website client credentials. The site administrator needs to check the provider Client ID and Client secret.',
+    'oauth-callback': 'The provider callback URL does not match the website configuration. Contact the site administrator.',
+    'oauth-code': 'The provider sign-in code expired or was rejected. Start a fresh sign-in from this website.',
+    'oauth-network': 'The website could not connect to the sign-in provider. Please try again shortly.',
+    'oauth-permissions': 'The provider did not grant the required profile or email access. Please try again or contact support.',
+    'oauth-database': 'Provider sign-in reached account setup, but saving the account failed. Contact the site administrator.',
     'not-configured': 'This sign-in provider is not configured yet. Use email sign-in.',
     'expired': 'This sign-in request expired or belongs to another browser. Start again.',
     'cancelled': 'Sign-in was cancelled. You can try again or use email.',
-    'provider': 'The sign-in provider could not be reached. Please try again.',
+    'provider': 'The provider rejected sign-in or returned an unexpected response. Please retry or contact support.',
     'verified-email': 'Choose a provider account with a verified email address.',
     'existing-account': 'This email already has a HyperSense account. Sign in with your password, then open Connected accounts in Settings to connect this provider.',
     'suspended': 'This account is suspended. Contact support.',
@@ -90,25 +98,54 @@ def start(provider: str, request: Request, connect: bool = False):
     return response
 
 
+
+class OAuthFailure(ValueError):
+    pass
+
+
+def _provider_json(provider, stage, operation):
+    """Only fixed diagnostic categories are logged: never codes, secrets or bodies."""
+    try:
+        response = operation()
+    except httpx.RequestError as exc:
+        logger.warning('OAuth failure provider=%s stage=%s category=network type=%s', provider, stage, type(exc).__name__)
+        raise OAuthFailure('oauth-network') from None
+    known = {'invalid_client', 'incorrect_client_credentials', 'redirect_uri_mismatch',
+             'invalid_grant', 'bad_verification_code', 'invalid_scope', 'access_denied', 'unauthorized_client'}
+    try:
+        data = response.json()
+    except ValueError:
+        data = None
+    reason = data.get('error') if isinstance(data, dict) else None
+    reason = reason if isinstance(reason, str) and reason in known else 'unspecified'
+    if response.status_code >= 400 or (isinstance(data, dict) and data.get('error')):
+        logger.warning('OAuth failure provider=%s stage=%s status=%s reason=%s', provider, stage, response.status_code, reason)
+        category = ('oauth-credentials' if reason in {'invalid_client', 'incorrect_client_credentials', 'unauthorized_client'} else
+                    'oauth-callback' if reason == 'redirect_uri_mismatch' else
+                    'oauth-code' if reason in {'invalid_grant', 'bad_verification_code'} else
+                    'oauth-permissions' if reason in {'invalid_scope', 'access_denied'} or (stage != 'token' and response.status_code == 403) else 'provider')
+        raise OAuthFailure(category)
+    if response.status_code not in range(200, 300) or data is None:
+        logger.warning('OAuth failure provider=%s stage=%s status=%s reason=invalid-response', provider, stage, response.status_code)
+        raise OAuthFailure('provider')
+    return data
+
 def provider_identity(provider, code, verifier):
     client_id, secret = credentials(provider)
     with httpx.Client(timeout=15, follow_redirects=False) as client:
-        response = client.post(PROVIDERS[provider]['token'], data={
+        tokens = _provider_json(provider, 'token', lambda: client.post(PROVIDERS[provider]['token'], data={
             'client_id': client_id, 'client_secret': secret, 'code': code,
             'redirect_uri': origin() + '/auth/oauth/' + provider + '/callback',
-            'grant_type': 'authorization_code', 'code_verifier': verifier}, headers={'Accept': 'application/json'})
-        response.raise_for_status()
-        tokens = response.json()
+            'grant_type': 'authorization_code', 'code_verifier': verifier}, headers={'Accept': 'application/json'}))
         if not isinstance(tokens, dict):
             raise ValueError('provider')
         token = tokens.get('access_token')
         if not isinstance(token, str) or not token:
+            logger.warning('OAuth failure provider=%s stage=token reason=missing-access-token', provider)
             raise ValueError('provider')
         headers = {'Authorization': 'Bearer ' + token, 'Accept': 'application/json', 'User-Agent': 'HyperSense-AI'}
         url = 'https://openidconnect.googleapis.com/v1/userinfo' if provider == 'google' else 'https://api.github.com/user'
-        response = client.get(url, headers=headers)
-        response.raise_for_status()
-        profile = response.json()
+        profile = _provider_json(provider, 'profile', lambda: client.get(url, headers=headers))
         if not isinstance(profile, dict):
             raise ValueError('provider')
         if provider == 'google':
@@ -117,9 +154,7 @@ def provider_identity(provider, code, verifier):
             subject, email = profile.get('sub'), profile.get('email')
         else:
             subject = str(profile.get('id') or '')
-            response = client.get('https://api.github.com/user/emails', headers=headers)
-            response.raise_for_status()
-            values = response.json()
+            values = _provider_json(provider, 'emails', lambda: client.get('https://api.github.com/user/emails', headers=headers))
             if not isinstance(values, list):
                 raise ValueError('provider')
             addresses = [x for x in values if isinstance(x, dict) and x.get('verified') is True and isinstance(x.get('email'), str)]
@@ -187,8 +222,15 @@ def callback(provider: str, request: Request, state: str = '', code: str = '', e
         subject, email, name = provider_identity(provider, code, flow['verifier'])
         uid = resolve_account(provider, subject, email, name, link_user)
     except ValueError as exc:
-        return failure(str(exc) if str(exc) in ERRORS else 'provider')
-    except (httpx.HTTPError, sqlite3.Error, TypeError, KeyError):
+        category = str(exc) if str(exc) in ERRORS else 'provider'
+        if category == 'provider':
+            logger.warning('OAuth failure provider=%s stage=identity reason=invalid-profile', provider)
+        return failure(category)
+    except sqlite3.Error as exc:
+        logger.warning('OAuth failure provider=%s stage=account category=database type=%s', provider, type(exc).__name__)
+        return failure('oauth-database')
+    except (httpx.HTTPError, TypeError, KeyError) as exc:
+        logger.warning('OAuth failure provider=%s stage=identity category=response type=%s', provider, type(exc).__name__)
         return failure('provider')
     token = secrets.token_urlsafe(32)
     with database() as db:
